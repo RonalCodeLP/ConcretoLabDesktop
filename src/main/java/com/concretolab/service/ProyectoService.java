@@ -41,5 +41,28 @@ public class ProyectoService {
     private void agregar(Long proyectoId,String tipo,String nombre,double largo,double ancho,double altura,double x,double y,double z){
         Elemento e=new Elemento();e.setProyectoId(proyectoId);e.setTipo(tipo);e.setNombre(nombre);e.setLargo(largo);e.setAncho(ancho);e.setAltura(altura);e.setX(x);e.setY(y);e.setZ(z);guardar(e);
     }
+    public static final List<String> ESCENARIOS=List.of("LAB · 4 pisos · pórtico regular","LAB · 3 pisos · planta baja flexible","LAB · 3 pisos · referencia regular");
+    @Transactional public void prepararEscenarios(){
+        var existentes=proyectos.findAll().stream().map(Proyecto::getNombre).toList();
+        for(int caso=0;caso<ESCENARIOS.size();caso++){
+            String nombre=ESCENARIOS.get(caso);
+            if(existentes.contains(nombre))continue;
+            long id=crearProyecto(nombre,"Laboratorio didáctico · base fija").getId();
+            double z=0.65;
+            for(int nivel=1;nivel<=(caso==0?4:3);nivel++){
+                boolean flexible=caso==1 && nivel==1;
+                double h=flexible?4.5:3.1, lado=flexible?0.30:0.45;
+                for(int i=0;i<3;i++)for(int j=0;j<2;j++){
+                    double x=(i-1)*5,y=(j-0.5)*4;
+                    String marca=nivel+"-"+i+j;
+                    if(nivel==1)agregar(id,"ZAPATA","Z-"+i+j,2,2,0.65,x,y,0.325);
+                    agregar(id,"COLUMNA","C-"+marca,lado,lado,h,x,y,z+h/2);
+                    if(i<2)agregar(id,"VIGA","VX-"+marca,5-lado,0.3,0.5,x+2.5,y,z+h-0.25);
+                    if(j==0)agregar(id,"VIGA","VY-"+marca,0.3,4-lado,0.5,x,0,z+h-0.25);
+                }
+                z+=h;
+            }
+        }
+    }
     private boolean positivo(double n){return Double.isFinite(n)&&n>0;}
 }

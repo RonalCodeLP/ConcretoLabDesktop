@@ -14,4 +14,5 @@
 .menu-boton { -fx-background-color: transparent; -fx-text-fill: #d8e5f3; -fx-alignment: center-left; -fx-max-width: infinity; }
 .menu-boton:hover { -fx-background-color: #24415f; }
 .menu-boton.activo { -fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; }
+.menu-scroll, .menu-scroll > .viewport { -fx-background-color: #10243d; -fx-background: #10243d; -fx-padding: 0; }
 .page-heading { -fx-font-size: 26px; -fx-text-fill: #17304c; -fx-font-weight: bold; }

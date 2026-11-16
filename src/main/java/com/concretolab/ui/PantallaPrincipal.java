@@ -6,6 +6,7 @@ import com.concretolab.service.MezclaService;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.RegistroGranulometriaService;
 import com.concretolab.service.ModeloCerchaService;
+import com.concretolab.service.ExpedienteService;
 import java.util.*;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -26,19 +27,20 @@ public class PantallaPrincipal {
     private final MaterialService materiales;
     private final RegistroGranulometriaService granulometrias;
     private final ModeloCerchaService cerchas;
+    private final ExpedienteService expedientes;
     private final ComboBox<Proyecto> proyectos=new ComboBox<>();
     private final TableView<Elemento> tabla=new TableView<>();
     private final Label resumen=new Label("Seleccione un proyecto"), estado=new Label();
     private final Group mundo=new Group(), modelo=new Group();
     private final Rotate rotacionX=new Rotate(-20,Rotate.X_AXIS), rotacionY=new Rotate(-35,Rotate.Y_AXIS);
     private double inicioX,inicioY,anguloX,anguloY,zoom=1;
-    public PantallaPrincipal(ProyectoService servicio,MezclaService mezclas,MaterialService materiales,RegistroGranulometriaService granulometrias,ModeloCerchaService cerchas){this.servicio=servicio;this.mezclas=mezclas;this.materiales=materiales;this.granulometrias=granulometrias;this.cerchas=cerchas;}
+    public PantallaPrincipal(ProyectoService servicio,MezclaService mezclas,MaterialService materiales,RegistroGranulometriaService granulometrias,ModeloCerchaService cerchas,ExpedienteService expedientes){this.servicio=servicio;this.mezclas=mezclas;this.materiales=materiales;this.granulometrias=granulometrias;this.cerchas=cerchas;this.expedientes=expedientes;}
     public Parent crear(){
         Label titulo=new Label("ConcretoLab"); titulo.getStyleClass().add("titulo");
         Label descripcion=new Label("Proyectos de concreto · modelo 3D esquemático"); descripcion.getStyleClass().add("subtitulo");
         Button nuevoProyecto=new Button("+ Proyecto"); nuevoProyecto.getStyleClass().add("principal");
         nuevoProyecto.setOnAction(e -> crearProyecto());
-        proyectos.setPromptText("Seleccionar proyecto"); proyectos.setPrefWidth(260); proyectos.setOnAction(e -> cargar());
+        servicio.prepararEscenarios(); proyectos.setPromptText("Seleccionar proyecto"); proyectos.setPrefWidth(260); proyectos.setOnAction(e -> cargar());
         HBox cabecera=new HBox(12,new VBox(3,titulo,descripcion),new Region(),proyectos,nuevoProyecto); HBox.setHgrow(cabecera.getChildren().get(1),Priority.ALWAYS); cabecera.getStyleClass().add("cabecera");
         columna("Tipo",Elemento::getTipo); columna("Nombre",Elemento::getNombre);
         columna("Volumen m³",e -> FormatoNumeros.volumen(e.volumen()));
@@ -66,17 +68,23 @@ public class PantallaPrincipal {
         BorderPane marco=new BorderPane(); VBox menu=new VBox(8);menu.getStyleClass().add("sidebar");
         Label marca=new Label("ConcretoLab");marca.getStyleClass().add("titulo"); Label grupo=new Label("PROYECTO");grupo.getStyleClass().add("menu-grupo");
         Button inicioBtn=new Button("Inicio"),modeloBtn=new Button("Modelo 3D y metrado"), cerchaBtn=new Button("Cerchas 2D"), materialBtn=new Button("Materiales y ensayos"), granuloBtn=new Button("Granulometría"), balanceBtn=new Button("Balance de volúmenes"), mezclaBtn=new Button("Mezclas y probetas");
-        List<Button> navegacion=List.of(inicioBtn,modeloBtn,cerchaBtn,materialBtn,granuloBtn,balanceBtn,mezclaBtn);for(Button b:navegacion)b.getStyleClass().add("menu-boton");
+        Button sismoBtn=new Button("Respuesta sísmica idealizada");
+        Button expedienteBtn=new Button("Expediente estructural");
+        Button porticoBtn=new Button("Pórtico plano · prueba");
+        List<Button> navegacion=List.of(inicioBtn,modeloBtn,expedienteBtn,cerchaBtn,porticoBtn,sismoBtn,materialBtn,granuloBtn,balanceBtn,mezclaBtn);for(Button b:navegacion)b.getStyleClass().add("menu-boton");
         java.util.function.Consumer<Button> activar=b->{for(Button boton:navegacion)boton.getStyleClass().remove("activo");b.getStyleClass().add("activo");};
         modeloBtn.setOnAction(e->{activar.accept(modeloBtn);marco.setCenter(raiz);});
         cerchaBtn.setOnAction(e->{activar.accept(cerchaBtn);marco.setCenter(new PantallaCercha(servicio,cerchas,proyectos::setValue).crear(proyectos.getValue()));});
+        expedienteBtn.setOnAction(e->{activar.accept(expedienteBtn);marco.setCenter(new PantallaExpediente(servicio,expedientes,proyectos::setValue).crear(proyectos.getValue()));});
+        porticoBtn.setOnAction(e->{activar.accept(porticoBtn);marco.setCenter(new PantallaPortico().crear());});
+        sismoBtn.setOnAction(e->{activar.accept(sismoBtn);marco.setCenter(new PantallaSismica(servicio,proyectos.getValue(),proyectos::setValue).crear());});
         materialBtn.setOnAction(e->{activar.accept(materialBtn);marco.setCenter(new PantallaMateriales(materiales).crear());});
         granuloBtn.setOnAction(e->{activar.accept(granuloBtn);marco.setCenter(new PantallaGranulometria(materiales,granulometrias).crear());});
         balanceBtn.setOnAction(e->{activar.accept(balanceBtn);marco.setCenter(new PantallaVolumenAbsoluto().crear());});
         mezclaBtn.setOnAction(e->{activar.accept(mezclaBtn);marco.setCenter(new PantallaMezclas(servicio,mezclas,materiales,proyectos::setValue).crear(proyectos.getValue()));});
         inicioBtn.setOnAction(e->{activar.accept(inicioBtn);marco.setCenter(inicio(modeloBtn,materialBtn,granuloBtn,mezclaBtn));});
-        menu.getChildren().addAll(marca,grupo,inicioBtn,modeloBtn,new Label("ANÁLISIS ESTRUCTURAL"){{getStyleClass().add("menu-grupo");}},cerchaBtn,new Label("DISEÑO DE CONCRETO"){{getStyleClass().add("menu-grupo");}},materialBtn,granuloBtn,balanceBtn,mezclaBtn);
-        marco.setLeft(menu);inicioBtn.fire();return marco;
+        menu.getChildren().addAll(marca,grupo,inicioBtn,modeloBtn,new Label("ANÁLISIS ESTRUCTURAL"){{getStyleClass().add("menu-grupo");}},expedienteBtn,cerchaBtn,porticoBtn,sismoBtn,new Label("DISEÑO DE CONCRETO"){{getStyleClass().add("menu-grupo");}},materialBtn,granuloBtn,balanceBtn,mezclaBtn);
+        ScrollPane menuScroll=new ScrollPane(menu);menuScroll.setFitToWidth(true);menuScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);menuScroll.getStyleClass().add("menu-scroll");marco.setLeft(menuScroll);inicioBtn.fire();return marco;
     }
     private Parent inicio(Button modeloBtn,Button materialBtn,Button granuloBtn,Button mezclaBtn){
         Label titulo=new Label("Bienvenido a ConcretoLab");titulo.getStyleClass().add("page-heading");
