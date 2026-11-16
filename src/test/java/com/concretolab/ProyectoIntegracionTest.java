@@ -10,7 +10,7 @@ import org.springframework.test.context.*;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(classes=ConcretoLabConfig.class,webEnvironment=SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(classes=ConcretoLabApplication.class,webEnvironment=SpringBootTest.WebEnvironment.NONE)
 @TestExecutionListeners(DependencyInjectionTestExecutionListener.class)
 class ProyectoIntegracionTest {
     private static final Path BASE;

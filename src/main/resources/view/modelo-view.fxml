@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.concretolab.controller.ModeloController"
+      styleClass="pagina">
+
+    <fx:define>
+
+        <!-- ============ Panel: nuevo proyecto ============ -->
+        <VBox fx:id="panelProyecto" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-folder-plus"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Nuevo proyecto" styleClass="drawer-titulo"/>
+                    <Label text="Datos del proyecto" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <VBox styleClass="campo">
+                        <Label text="Nombre *" styleClass="campo-label"/>
+                        <TextField fx:id="txtNombreProyecto" promptText="Nombre del proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Ubicación" styleClass="campo-label"/>
+                        <TextField fx:id="txtUbicacionProyecto" promptText="Ubicación (opcional)"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Crear" onAction="#onGuardarProyecto" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ============ Panel: nuevo / editar elemento ============ -->
+        <VBox fx:id="panelElemento" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-box"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="lblTituloElemento" text="Nuevo elemento" styleClass="drawer-titulo"/>
+                    <Label text="Dimensiones y posición en metros" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="IDENTIFICACIÓN" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Tipo" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbTipo" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Nombre" styleClass="campo-label"/>
+                        <TextField fx:id="txtNombreElemento" promptText="Ej. Z1, C1, VX1"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="DIMENSIONES (m)" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Largo eje X" styleClass="campo-label"/>
+                        <TextField fx:id="txtLargo"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Ancho eje Y" styleClass="campo-label"/>
+                        <TextField fx:id="txtAncho"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Altura eje Z" styleClass="campo-label"/>
+                        <TextField fx:id="txtAltura"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="POSICIÓN DEL CENTRO (m)" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Centro X" styleClass="campo-label"/>
+                        <TextField fx:id="txtX"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Centro Y" styleClass="campo-label"/>
+                        <TextField fx:id="txtY"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Centro Z" styleClass="campo-label"/>
+                        <TextField fx:id="txtZ"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Guardar" onAction="#onGuardarElemento" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ============ Panel: plantilla rectangular ============ -->
+        <VBox fx:id="panelPlantilla" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-grid"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Plantilla rectangular" styleClass="drawer-titulo"/>
+                    <Label text="4 zapatas, 4 columnas y 4 vigas" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="Plantilla geométrica: ingresa medidas del proyecto. No diseña ni verifica la estructura. Las vigas llegan hasta las caras de las columnas."
+                           styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
+
+                    <Label text="SEPARACIÓN ENTRE EJES" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Separación entre ejes X (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtSeparacionX" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Separación entre ejes Y (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtSeparacionY" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="ZAPATAS" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Largo de zapata X (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtLargoZapata" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Ancho de zapata Y (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAnchoZapata" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Altura de zapata (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAlturaZapata" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="COLUMNAS" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Lado de columna cuadrada (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtLadoColumna" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Altura de columna (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAlturaColumna" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="VIGAS" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Ancho de viga (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAnchoViga" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Altura de viga (m)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAlturaViga" promptText="Dimensión definida en el proyecto"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Crear elementos" onAction="#onGuardarPlantilla" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </fx:define>
+
+    <!-- ============ Cabecera ============ -->
+    <HBox styleClass="pagina-cabecera">
+        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+            <Label text="Modelo 3D y metrado" styleClass="pagina-titulo"/>
+            <Label text="Proyectos de concreto · modelo 3D esquemático" styleClass="pagina-subtitulo"/>
+        </VBox>
+        <ComboBox fx:id="cmbProyecto" promptText="Seleccionar proyecto" prefWidth="260.0"/>
+        <Button fx:id="btnNuevoProyecto" text="+ Proyecto" onAction="#onNuevoProyecto"
+                styleClass="accent,boton-principal"/>
+    </HBox>
+
+    <!-- ============ Contenido ============ -->
+    <HBox spacing="16.0" VBox.vgrow="ALWAYS">
+
+        <!-- Elementos del proyecto -->
+        <VBox styleClass="tarjeta" prefWidth="440.0" minWidth="380.0" maxWidth="480.0">
+            <Label text="Elementos" styleClass="grafico-titulo"/>
+
+            <HBox styleClass="barra-herramientas">
+                <Button fx:id="btnNuevoElemento" text="+ Elemento" onAction="#onNuevoElemento"
+                        styleClass="accent"/>
+                <Button fx:id="btnEditar" text="Editar" onAction="#onEditarElemento" styleClass="button-outlined">
+                    <graphic><FontIcon iconLiteral="fth-edit-2"/></graphic>
+                </Button>
+                <Button fx:id="btnEliminar" text="Eliminar" onAction="#onEliminarElemento"
+                        styleClass="button-outlined,danger">
+                    <graphic><FontIcon iconLiteral="fth-trash-2"/></graphic>
+                </Button>
+            </HBox>
+
+            <Button fx:id="btnPlantilla" text="Crear plantilla rectangular" onAction="#onPlantilla"
+                    styleClass="button-outlined" maxWidth="Infinity">
+                <graphic><FontIcon iconLiteral="fth-grid"/></graphic>
+            </Button>
+
+            <TableView fx:id="tabla" VBox.vgrow="ALWAYS">
+                <columns>
+                    <TableColumn fx:id="colTipo" text="TIPO" prefWidth="100.0"/>
+                    <TableColumn fx:id="colNombre" text="NOMBRE" prefWidth="130.0"/>
+                    <TableColumn fx:id="colVolumen" text="VOLUMEN M³" prefWidth="120.0"/>
+                </columns>
+            </TableView>
+
+            <Label fx:id="lblResumen" text="Seleccione un proyecto" styleClass="modelo-resumen"
+                   wrapText="true" maxWidth="Infinity"/>
+        </VBox>
+
+        <!-- Visor 3D -->
+        <VBox styleClass="tarjeta" spacing="10.0" HBox.hgrow="ALWAYS">
+            <Label text="Vista 3D esquemática" styleClass="grafico-titulo"/>
+            <Label text="Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Posiciones expresadas en metros"
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>
+            <Label text="La vista no realiza análisis estructural. La suma bruta no descuenta intersecciones."
+                   styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
+        </VBox>
+    </HBox>
+</VBox>

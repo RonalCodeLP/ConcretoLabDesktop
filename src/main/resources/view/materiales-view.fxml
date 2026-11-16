@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import com.concretolab.ui.Paginador?>
+<?import java.lang.String?>
+<?import javafx.collections.FXCollections?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.concretolab.controller.MaterialesController"
+      styleClass="pagina">
+
+    <!-- ============ Formulario (se muestra en el panel lateral) ============ -->
+    <fx:define>
+        <VBox fx:id="panelFormulario" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-package"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Registrar material" styleClass="drawer-titulo"/>
+                    <Label text="Identificación y resultados de laboratorio" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarFormulario" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="IDENTIFICACIÓN" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Tipo *" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbTipo" maxWidth="Infinity">
+                            <items>
+                                <FXCollections fx:factory="observableArrayList">
+                                    <String fx:value="CEMENTO"/>
+                                    <String fx:value="AGREGADO FINO"/>
+                                    <String fx:value="AGREGADO GRUESO"/>
+                                </FXCollections>
+                            </items>
+                        </ComboBox>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Nombre *" styleClass="campo-label"/>
+                        <TextField fx:id="txtNombre" promptText="Ej. Arena cantera A"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Procedencia" styleClass="campo-label"/>
+                        <TextField fx:id="txtProcedencia" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="ENSAYO" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Referencia del ensayo / informe" styleClass="campo-label"/>
+                        <TextField fx:id="txtReferenciaEnsayo" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Fecha del ensayo (AAAA-MM-DD)" styleClass="campo-label"/>
+                        <TextField fx:id="txtFechaEnsayo" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="RESULTADOS DE LABORATORIO" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Densidad relativa" styleClass="campo-label"/>
+                        <TextField fx:id="txtDensidadRelativa" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Absorción (%)" styleClass="campo-label"/>
+                        <TextField fx:id="txtAbsorcion" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Humedad total (%)" styleClass="campo-label"/>
+                        <TextField fx:id="txtHumedad" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Módulo de finura" styleClass="campo-label"/>
+                        <TextField fx:id="txtModuloFinura" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Tamaño máximo (mm)" styleClass="campo-label"/>
+                        <TextField fx:id="txtTamanoMaximo" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Peso unitario compactado (kg/m³)" styleClass="campo-label"/>
+                        <TextField fx:id="txtPesoUnitario" promptText="Opcional"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Observaciones" styleClass="campo-label"/>
+                        <TextArea fx:id="txtObservaciones" promptText="Opcional" prefRowCount="3" wrapText="true"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="Ingrese los valores medidos y sus unidades; deje vacío lo que aún no conozca."
+                           styleClass="campo-ayuda" wrapText="true"/>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarFormulario" styleClass="button-outlined"/>
+                <Button text="Guardar" onAction="#onGuardar" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </fx:define>
+
+    <!-- ============ Cabecera ============ -->
+    <HBox styleClass="pagina-cabecera">
+        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+            <Label text="Biblioteca de materiales" styleClass="pagina-titulo"/>
+            <Label text="Registre los resultados de laboratorio y reutilícelos al crear una mezcla."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+        </VBox>
+        <Button text="Registrar material" onAction="#onNuevo" styleClass="accent,boton-principal">
+            <graphic><FontIcon iconLiteral="fth-plus"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ============ Tabla ============ -->
+    <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
+        <TableView fx:id="tabla" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colNombre"      text="MATERIAL"        prefWidth="240.0"/>
+                <TableColumn fx:id="colTipo"        text="TIPO"            prefWidth="160.0"/>
+                <TableColumn fx:id="colProcedencia" text="PROCEDENCIA"     prefWidth="200.0"/>
+                <TableColumn fx:id="colEnsayo"      text="ENSAYO / FECHA"  prefWidth="260.0"/>
+            </columns>
+        </TableView>
+
+        <Paginador fx:id="paginador"/>
+    </VBox>
+
+    <!-- ============ Ficha del material seleccionado ============ -->
+    <VBox styleClass="tarjeta">
+        <Label text="Datos del material" styleClass="grafico-titulo"/>
+        <Label fx:id="lblDetalle" text="Seleccione un material para ver sus datos de laboratorio."
+               styleClass="texto-resultado" wrapText="true"/>
+    </VBox>
+
+    <Label text="Los valores proceden de los ensayos que ingrese. Crear un nuevo registro conserva la trazabilidad de los datos anteriores."
+           styleClass="grafico-subtitulo-compacto" wrapText="true"/>
+</VBox>

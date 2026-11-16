@@ -31,7 +31,14 @@ import javafx.util.Duration;
 /** Visor 3D del modelo: solo presentación, no modifica datos. X e Y son horizontales y Z es vertical (en metros). */
 public class Visor3D {
     private static final double ESCALA = 65;
+    // Colores de los materiales 3D (no son CSS). Los de la leyenda 2D están en css/pendiente-modelo.css.
     private static final Color EJE_X = Color.web("#ef4444"), EJE_Y = Color.web("#22c55e"), EJE_Z = Color.web("#3b82f6");
+    private static final Color COLOR_SELECCION = Color.web("#f59e0b");
+    private static final Color COLOR_ZAPATA = Color.web("#78716c");
+    private static final Color COLOR_COLUMNA = Color.web("#3b82f6");
+    private static final Color COLOR_VIGA = Color.web("#14b8a6");
+    private static final Color COLOR_LOSA = Color.web("#e2e8f0");
+    private static final Color COLOR_LINEA = Color.web("#94a3b8");
 
     private final Group contenido = new Group(), suelo = new Group(), ejes = new Group(), elementos = new Group();
     private final Group mundo = new Group(contenido);
@@ -79,7 +86,7 @@ public class Visor3D {
             camara.setTranslateZ(-distancia);
         });
 
-        nodo.setStyle("-fx-background-color: linear-gradient(to bottom, #dbe7f5, #f7fafd); -fx-background-radius: 8;");
+        nodo.getStyleClass().add("visor-fondo");
         nodo.setMinSize(200, 200);
         escena.widthProperty().bind(nodo.widthProperty());
         escena.heightProperty().bind(nodo.heightProperty());
@@ -96,7 +103,7 @@ public class Visor3D {
             caja.setTranslateX(e.getX() * ESCALA);
             caja.setTranslateY(-e.getZ() * ESCALA);
             caja.setTranslateZ(e.getY() * ESCALA);
-            caja.setMaterial(material(e == seleccionado ? Color.web("#f59e0b") : colorDe(e.getTipo()), e == seleccionado));
+            caja.setMaterial(material(e == seleccionado ? COLOR_SELECCION : colorDe(e.getTipo()), e == seleccionado));
             caja.setOnMouseClicked(ev -> { if (ev.isStillSincePress() && ev.getButton() == MouseButton.PRIMARY) alSeleccionar.accept(e); });
             elementos.getChildren().add(caja);
         }
@@ -125,9 +132,9 @@ public class Visor3D {
         suelo.getChildren().clear();
         Box losa = new Box(w, 2, d);
         losa.setTranslateX(cx); losa.setTranslateZ(cy); losa.setTranslateY(nivel + 1.5);
-        losa.setMaterial(material(Color.web("#e2e8f0"), false));
+        losa.setMaterial(material(COLOR_LOSA, false));
         suelo.getChildren().add(losa);
-        PhongMaterial linea = new PhongMaterial(Color.web("#94a3b8"));
+        PhongMaterial linea = new PhongMaterial(COLOR_LINEA);
         for (int x = x0; x <= x1; x += paso) {
             Box l = new Box(x == 0 ? 1.6 : 0.8, 0.8, d);
             l.setTranslateX(x * ESCALA); l.setTranslateZ(cy); l.setTranslateY(nivel + 0.3); l.setMaterial(linea);
@@ -152,8 +159,13 @@ public class Visor3D {
         radioModelo = radio;
         desplazamiento.setX(0); desplazamiento.setY(0);
         contenido.getTransforms().setAll(new Translate(-cx, -(nivel - (alto - base) * ESCALA / 2), -cy));
-        distancia = Math.max(500, radio * 2.6);
+        distancia = distanciaParaEncuadrar(radio);
         camara.setTranslateZ(-distancia);
+    }
+
+    /** La cámara tiene un campo de visión vertical de 30°: una esfera de radio r cabe a r / sen(15°) ≈ 3,86·r, con un 10 % de margen. */
+    private static double distanciaParaEncuadrar(double radio) {
+        return Math.max(500, radio / Math.sin(Math.toRadians(15)) * 1.1);
     }
 
     private HBox barra() {
@@ -177,7 +189,7 @@ public class Visor3D {
     }
 
     private VBox leyenda() {
-        VBox caja = new VBox(2, texto("X", EJE_X), texto("Y", EJE_Y), texto("Z (vertical)", EJE_Z));
+        VBox caja = new VBox(2, texto("X", "visor-leyenda-x"), texto("Y", "visor-leyenda-y"), texto("Z (vertical)", "visor-leyenda-z"));
         caja.setPadding(new Insets(6, 10, 6, 10));
         caja.setMaxSize(VBox.USE_PREF_SIZE, VBox.USE_PREF_SIZE);
         caja.getStyleClass().add("visor-barra");
@@ -187,10 +199,9 @@ public class Visor3D {
         return caja;
     }
 
-    private Label texto(String t, Color c) {
+    private Label texto(String t, String claseColor) {
         Label l = new Label("● " + t);
-        l.setTextFill(c);
-        l.setStyle("-fx-font-size: 11px; -fx-font-weight: bold;");
+        l.getStyleClass().addAll("visor-leyenda", claseColor);
         return l;
     }
 
@@ -211,7 +222,7 @@ public class Visor3D {
 
     private void ajustar() {
         vista(-25, -35);
-        distancia = Math.max(500, radioModelo * 2.6);
+        distancia = distanciaParaEncuadrar(radioModelo);
         new Timeline(new KeyFrame(Duration.millis(350), new KeyValue(camara.translateZProperty(), -distancia))).play();
     }
 
@@ -230,9 +241,9 @@ public class Visor3D {
 
     private Color colorDe(String tipo) {
         return switch (tipo) {
-            case "ZAPATA" -> Color.web("#78716c");
-            case "COLUMNA" -> Color.web("#3b82f6");
-            default -> Color.web("#14b8a6");
+            case "ZAPATA" -> COLOR_ZAPATA;
+            case "COLUMNA" -> COLOR_COLUMNA;
+            default -> COLOR_VIGA;
         };
     }
 }

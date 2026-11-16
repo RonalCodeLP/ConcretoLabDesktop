@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.concretolab.controller.SismoController"
+      styleClass="pagina">
+
+    <!-- ============ Cabecera ============ -->
+    <HBox styleClass="pagina-cabecera">
+        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+            <Label text="Análisis sísmico · E.030" styleClass="pagina-titulo"/>
+            <Label text="Pórtico de concreto armado · estático, modal espectral (CQC) y derivas"
+                   styleClass="pagina-subtitulo"/>
+        </VBox>
+    </HBox>
+
+    <!-- ============ Sin proyecto activo ============ -->
+    <VBox fx:id="panelVacio" styleClass="tarjeta" alignment="CENTER" VBox.vgrow="ALWAYS"
+          visible="false" managed="false">
+        <FontIcon iconLiteral="fth-activity" styleClass="vacio-icono"/>
+        <Label text="Sin proyecto seleccionado" styleClass="vacio-titulo"/>
+        <Label text="Seleccione un proyecto en «Modelo 3D y metrado» para analizarlo."
+               styleClass="vacio-detalle" wrapText="true"/>
+    </VBox>
+
+    <!-- ============ Contenido ============ -->
+    <HBox fx:id="panelContenido" spacing="22.0" VBox.vgrow="ALWAYS">
+
+        <!-- ====== Datos de entrada ====== -->
+        <VBox styleClass="tarjeta" prefWidth="480.0" minWidth="-Infinity" maxWidth="-Infinity">
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="pagina-scroll" VBox.vgrow="ALWAYS">
+                <VBox spacing="14.0">
+                    <padding>
+                        <Insets right="10.0"/>
+                    </padding>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Versión de la E.030" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbVersion" maxWidth="Infinity" onAction="#onCambiarVersion"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Zona (Z)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbZona" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Categoría (U)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbCategoria" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Suelo (S, Tp, TL)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbSuelo" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Vs30 en m/s (opcional, S2 y S3)" styleClass="campo-label" wrapText="true"/>
+                        <TextField fx:id="txtVs30" promptText="vacío = valor más desfavorable">
+                            <tooltip>
+                                <Tooltip text="Solo para S2 (350–550 m/s) y S3 (200–350 m/s): interpola S, Tp y TL (Tablas 4 y 5)."/>
+                            </tooltip>
+                        </TextField>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="R0 (pórticos de C.A. = 8)" styleClass="campo-label" wrapText="true"/>
+                            <TextField fx:id="txtR0" text="8"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="CT (35: solo pórticos)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbCt" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Ia (Tabla 8, menor valor aplicable)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbIa" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Ip (Tabla 9, menor valor aplicable)" styleClass="campo-label" wrapText="true"/>
+                            <ComboBox fx:id="cmbIp" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="f'c (MPa)" styleClass="campo-label" wrapText="true"/>
+                            <TextField fx:id="txtFc" text="21"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Poisson" styleClass="campo-label" wrapText="true"/>
+                            <TextField fx:id="txtPoisson" text="0.20"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Fracción de rigidez EI (≤ 1)" styleClass="campo-label" wrapText="true"/>
+                            <TextField fx:id="txtRigidez" text="1.0"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
+                            <Label text="Espesor de losa (m)" styleClass="campo-label" wrapText="true"/>
+                            <TextField fx:id="txtEspesor" text="0.20"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label text="Pisos detectados (editable)" styleClass="seccion-form"/>
+
+                    <TableView fx:id="tablaPisos" editable="true" prefHeight="230.0" minHeight="230.0">
+                        <columns>
+                            <TableColumn fx:id="colPiso" text="Piso" prefWidth="60.0"/>
+                            <TableColumn fx:id="colCota" text="Cota (m)" prefWidth="80.0"/>
+                            <TableColumn fx:id="colArea" text="Área losa (m²)" prefWidth="110.0"/>
+                            <TableColumn fx:id="colCm" text="CM adic. (kN/m²)" prefWidth="120.0"/>
+                            <TableColumn fx:id="colCv" text="CV (kN/m²)" prefWidth="100.0"/>
+                        </columns>
+                    </TableView>
+
+                    <Label text="Los pisos se agrupan por la cota superior de las vigas. CM y CV se proponen como 1,0 y 2,0 kN/m²: ajústelos a su proyecto (E.020). Nada de esto se guarda en la base de datos."
+                           styleClass="pagina-subtitulo" wrapText="true"/>
+                </VBox>
+            </ScrollPane>
+
+            <Button fx:id="btnCalcular" text="Calcular análisis sísmico" onAction="#onCalcular"
+                    styleClass="accent,boton-principal" maxWidth="Infinity">
+                <graphic><FontIcon iconLiteral="fth-play"/></graphic>
+            </Button>
+            <Button fx:id="btnExportar" text="Exportar PDF" onAction="#onExportarPdf"
+                    styleClass="button-outlined" maxWidth="Infinity" disable="true">
+                <graphic><FontIcon iconLiteral="fth-file-text"/></graphic>
+            </Button>
+            <Label fx:id="lblEstado" text="Defina los datos y pulse «Calcular»."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+        </VBox>
+
+        <!-- ====== Resultados ====== -->
+        <VBox styleClass="tarjeta" HBox.hgrow="ALWAYS">
+            <TabPane fx:id="tabsResultados" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"/>
+            <Label text="Resultado educativo y preliminar: base empotrada, losa como diafragma rígido, sin muros ni zonas rígidas. Se ofrecen el texto 2026 (R.M. 183-2026-VIVIENDA) y la versión 2018 (R.M. 355-2018-VIVIENDA); verifique cuál rige para su proyecto, pues los trámites iniciados pueden seguir con la anterior. Haga validar el análisis por un ingeniero civil colegiado."
+                   styleClass="sismo-aviso" wrapText="true" minHeight="-Infinity"/>
+        </VBox>
+    </HBox>
+</VBox>

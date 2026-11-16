@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.concretolab.controller.CerchaController"
+            fitToWidth="true" styleClass="pagina-scroll">
+
+    <VBox styleClass="pagina">
+
+        <!-- ============ Paneles laterales (se muestran con Notificador.abrirPanel) ============ -->
+        <fx:define>
+            <!-- Panel: anadir nudo -->
+            <VBox fx:id="panelNudo" styleClass="drawer"
+                  prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+                <HBox styleClass="drawer-header">
+                    <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-plus-circle"/></StackPane>
+                    <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                        <Label text="Añadir nudo" styleClass="drawer-titulo"/>
+                        <Label text="Coordenadas, apoyos y cargas nodales" styleClass="drawer-subtitulo"/>
+                    </VBox>
+                    <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                        <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                    </Button>
+                </HBox>
+
+                <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                    <VBox styleClass="drawer-body">
+                        <Label text="DATOS DEL NUDO" styleClass="seccion-form"/>
+
+                        <VBox styleClass="campo">
+                            <Label text="Nombre" styleClass="campo-label"/>
+                            <TextField fx:id="txtNudoNombre" promptText="Ej. A"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+
+                        <HBox spacing="14.0">
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="X (m)" styleClass="campo-label"/>
+                                <TextField fx:id="txtNudoX" promptText="0"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="Y (m)" styleClass="campo-label"/>
+                                <TextField fx:id="txtNudoY" promptText="0"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                        </HBox>
+
+                        <Label text="APOYOS" styleClass="seccion-form"/>
+
+                        <CheckBox fx:id="chkApoyoX" text="Restringir desplazamiento en X"/>
+                        <CheckBox fx:id="chkApoyoY" text="Restringir desplazamiento en Y"/>
+
+                        <Label text="CARGAS NODALES" styleClass="seccion-form"/>
+
+                        <HBox spacing="14.0">
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="Fx (kN)" styleClass="campo-label"/>
+                                <TextField fx:id="txtNudoFx" promptText="0"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="Fy (kN)" styleClass="campo-label"/>
+                                <TextField fx:id="txtNudoFy" promptText="0"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+                </ScrollPane>
+
+                <HBox styleClass="drawer-footer">
+                    <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                    <Button text="Agregar" onAction="#onConfirmarNudo" styleClass="accent" defaultButton="true">
+                        <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+
+            <!-- Panel: anadir barra articulada -->
+            <VBox fx:id="panelBarra" styleClass="drawer"
+                  prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+                <HBox styleClass="drawer-header">
+                    <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-minus"/></StackPane>
+                    <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                        <Label text="Añadir barra articulada" styleClass="drawer-titulo"/>
+                        <Label text="Conexión y propiedades elásticas" styleClass="drawer-subtitulo"/>
+                    </VBox>
+                    <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                        <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                    </Button>
+                </HBox>
+
+                <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                    <VBox styleClass="drawer-body">
+                        <Label text="DATOS DE LA BARRA" styleClass="seccion-form"/>
+
+                        <VBox styleClass="campo">
+                            <Label text="Nombre" styleClass="campo-label"/>
+                            <TextField fx:id="txtBarraNombre" promptText="Ej. AB"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+
+                        <HBox spacing="14.0">
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="Módulo E (MPa)" styleClass="campo-label"/>
+                                <TextField fx:id="txtBarraModulo" promptText="200000"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                                <Label text="Área (cm²)" styleClass="campo-label"/>
+                                <TextField fx:id="txtBarraArea" promptText="20"/>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                        </HBox>
+
+                        <Label text="CONEXIÓN" styleClass="seccion-form"/>
+
+                        <VBox styleClass="campo">
+                            <Label text="Nudo inicial" styleClass="campo-label"/>
+                            <ComboBox fx:id="cmbInicio" promptText="Selecciona un nudo" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+
+                        <VBox styleClass="campo">
+                            <Label text="Nudo final" styleClass="campo-label"/>
+                            <ComboBox fx:id="cmbFin" promptText="Selecciona un nudo" maxWidth="Infinity"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </VBox>
+                </ScrollPane>
+
+                <HBox styleClass="drawer-footer">
+                    <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                    <Button text="Agregar" onAction="#onConfirmarBarra" styleClass="accent" defaultButton="true">
+                        <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+        </fx:define>
+
+        <!-- ============ Cabecera ============ -->
+        <HBox styleClass="pagina-cabecera">
+            <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                <Label text="Análisis de cerchas 2D" styleClass="pagina-titulo"/>
+                <Label text="1. Define nudos, apoyos y cargas   2. Conecta barras   3. Revisa el modelo   4. Calcula"
+                       styleClass="pagina-subtitulo" wrapText="true"/>
+            </VBox>
+        </HBox>
+
+        <!-- ============ Entrada de datos y resultados ============ -->
+        <HBox spacing="14.0">
+            <!-- Entrada -->
+            <VBox styleClass="tarjeta" prefWidth="560.0" HBox.hgrow="ALWAYS">
+                <Label text="Proyecto y modelo" styleClass="grafico-titulo"/>
+
+                <HBox spacing="14.0">
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                        <Label text="Proyecto" styleClass="campo-label"/>
+                        <Label fx:id="lblProyecto" text="Selecciona un proyecto" styleClass="stock-actual"
+                               maxWidth="Infinity"/>
+                    </VBox>
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                        <Label text="Modelo guardado" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbGuardados" promptText="Modelo guardado" maxWidth="Infinity"
+                                  onAction="#onGuardadoSeleccionado"/>
+                    </VBox>
+                </HBox>
+
+                <VBox styleClass="campo">
+                    <Label text="Nombre del modelo" styleClass="campo-label"/>
+                    <TextField fx:id="txtNombre" promptText="Nombre del modelo"/>
+                </VBox>
+
+                <HBox styleClass="barra-herramientas">
+                    <Button text="Nuevo modelo" onAction="#onNuevoModelo" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-file-plus"/></graphic>
+                    </Button>
+                    <Button text="Cargar ejemplo educativo" onAction="#onCargarEjemplo" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-book-open"/></graphic>
+                    </Button>
+                    <Button text="Guardar modelo" onAction="#onGuardar" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-save"/></graphic>
+                    </Button>
+                </HBox>
+
+                <VBox styleClass="campo">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Nudos" styleClass="campo-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                        <Button text="+ Nudo y apoyo" onAction="#onAgregarNudo" styleClass="button-outlined"/>
+                    </HBox>
+                    <Label text="Nudos: nombre; X (m); Y (m); apoyo X SI/NO; apoyo Y SI/NO; Fx (kN); Fy (kN)"
+                           styleClass="grafico-subtitulo-compacto" wrapText="true"/>
+                    <TextArea fx:id="txtNudos" prefRowCount="6"/>
+                </VBox>
+
+                <VBox styleClass="campo">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Barras" styleClass="campo-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                        <Button text="+ Barra" onAction="#onAgregarBarra" styleClass="button-outlined"/>
+                    </HBox>
+                    <Label text="Barras: nombre; nudo inicial; nudo final; módulo E (MPa); área (cm²)"
+                           styleClass="grafico-subtitulo-compacto" wrapText="true"/>
+                    <TextArea fx:id="txtBarras" prefRowCount="6"/>
+                </VBox>
+
+                <HBox styleClass="barra-herramientas">
+                    <Button text="Ver geometría" onAction="#onDibujar" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-eye"/></graphic>
+                    </Button>
+                    <Button text="Calcular" onAction="#onCalcular" styleClass="accent,boton-principal">
+                        <graphic><FontIcon iconLiteral="fth-play"/></graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+
+            <!-- Modelo y resultados -->
+            <VBox styleClass="tarjeta" HBox.hgrow="ALWAYS">
+                <Label text="Modelo y resultados" styleClass="grafico-titulo"/>
+                <Label text="Esquema: azul = barra, rojo = carga. Los apoyos se identifican en cada nudo."
+                       styleClass="grafico-subtitulo-compacto" wrapText="true"/>
+                <Canvas fx:id="cnvLienzo" width="580.0" height="320.0"/>
+                <TextArea fx:id="txtResultado" editable="false" prefRowCount="12" wrapText="false"/>
+            </VBox>
+        </HBox>
+
+        <!-- ============ Nota ============ -->
+        <Label text="Uso educativo y preliminar: cercha plana lineal de barras articuladas, cargas en nudos y pequeñas deformaciones. No representa flexión, pórticos, losas, sismo ni diseño de concreto; no usar como verificación de seguridad para obra."
+               styleClass="cercha-aviso" wrapText="true" maxWidth="Infinity"/>
+    </VBox>
+</ScrollPane>
