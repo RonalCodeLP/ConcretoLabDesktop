@@ -17,6 +17,7 @@
             <Label text="Pórtico de concreto armado · estático, modal espectral (CQC) y derivas"
                    styleClass="pagina-subtitulo"/>
         </VBox>
+        <VBox spacing="4"><Label text="Proyecto a analizar"/><ComboBox fx:id="cmbProyecto" promptText="Seleccione un proyecto" prefWidth="300"/></VBox>
     </HBox>
 
     <!-- ============ Sin proyecto activo ============ -->
@@ -24,7 +25,7 @@
           visible="false" managed="false">
         <FontIcon iconLiteral="fth-activity" styleClass="vacio-icono"/>
         <Label text="Sin proyecto seleccionado" styleClass="vacio-titulo"/>
-        <Label text="Seleccione un proyecto en «Modelo 3D y metrado» para analizarlo."
+        <Label text="Seleccione un proyecto en la cabecera para analizarlo."
                styleClass="vacio-detalle" wrapText="true"/>
     </VBox>
 

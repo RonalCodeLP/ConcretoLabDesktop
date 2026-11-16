@@ -71,6 +71,8 @@ public class SismoController implements Refrescable {
     @FXML private VBox panelVacio;
     @FXML private HBox panelContenido;
 
+    private boolean actualizandoProyectos;
+    @FXML private ComboBox<Proyecto> cmbProyecto;
     @FXML private ComboBox<Version> cmbVersion;
     @FXML private ComboBox<Zona> cmbZona;
     @FXML private ComboBox<Categoria> cmbCategoria;
@@ -125,6 +127,12 @@ public class SismoController implements Refrescable {
 
     @FXML
     private void initialize() {
+        cmbProyecto.valueProperty().addListener((o, anterior, nuevo) -> {
+            if (!actualizandoProyectos && nuevo != null) {
+                sesion.setProyecto(nuevo);
+                cargarProyectoActivo();
+            }
+        });
         cmbZona.getItems().addAll(Zona.values());
         cmbZona.setValue(Zona.Z4);
         cmbCategoria.getItems().addAll(Categoria.values());
@@ -148,11 +156,29 @@ public class SismoController implements Refrescable {
         columnaEditable(colArea, c -> c.area);
         columnaEditable(colCm, c -> c.cm);
         columnaEditable(colCv, c -> c.cv);
+        for(var campo:List.of(txtVs30,txtR0,txtFc,txtPoisson,txtRigidez,txtEspesor))
+            campo.textProperty().addListener((o,a,b)->invalidar());
+        for(var combo:List.of(cmbVersion,cmbZona,cmbCategoria,cmbSuelo,cmbIa,cmbIp,cmbCt))
+            combo.valueProperty().addListener((o,a,b)->invalidar());
     }
 
     /** Se llama cada vez que se muestra la vista: relee el proyecto activo y recarga los pisos. */
     @Override
     public void refrescar() {
+        Proyecto activo = sesion.getProyecto();
+        actualizandoProyectos = true;
+        try {
+            cmbProyecto.getItems().setAll(servicio.proyectos());
+            cmbProyecto.setValue(cmbProyecto.getItems().stream()
+                    .filter(p -> activo != null && Objects.equals(p.getId(), activo.getId()))
+                    .findFirst().orElse(null));
+        } finally {
+            actualizandoProyectos = false;
+        }
+        cargarProyectoActivo();
+    }
+
+    private void cargarProyectoActivo() {
         Proyecto p = sesion.getProyecto();
         boolean hayProyecto = p != null;
         panelVacio.setVisible(!hayProyecto);
@@ -177,6 +203,7 @@ public class SismoController implements Refrescable {
         }
         // Mismo proyecto y mismos pisos: se conservan los valores editados y los resultados.
         if (problema == null && Objects.equals(idProyectoCargado, p.getId()) && pisos.equals(pisosCargados)) {
+            if(entrada!=null && !geometria(entrada.elementos()).equals(geometria(servicio.elementos(p.getId())))) invalidar();
             return;
         }
 
@@ -261,6 +288,14 @@ public class SismoController implements Refrescable {
         notificador.error(mensaje);
     }
 
+    private void invalidar(){
+        if(resultado!=null){limpiarResultados();lblEstado.setText("Datos modificados. Vuelva a calcular.");}
+    }
+
+    private static List<?> geometria(List<Elemento> elementos){
+        return elementos.stream().map(e->List.of(e.getId(),e.getTipo(),e.getX(),e.getY(),e.getZ(),e.getLargo(),e.getAncho(),e.getAltura())).toList();
+    }
+
     private void limpiarResultados() {
         tabsResultados.getTabs().clear();
         entrada = null;
@@ -295,7 +330,7 @@ public class SismoController implements Refrescable {
     private void columnaEditable(TableColumn<FilaPiso, String> c, Function<FilaPiso, StringProperty> valor) {
         c.setCellValueFactory(x -> valor.apply(x.getValue()));
         c.setCellFactory(TextFieldTableCell.forTableColumn());
-        c.setOnEditCommit(e -> valor.apply(e.getRowValue()).set(e.getNewValue()));
+        c.setOnEditCommit(e -> {valor.apply(e.getRowValue()).set(e.getNewValue());invalidar();});
     }
 
     // ------------------------------------------------------------------ resultados
@@ -351,6 +386,7 @@ public class SismoController implements Refrescable {
         VBox resumen = new VBox(10, tablaResumen, avisos);
         VBox.setVgrow(tablaResumen, Priority.ALWAYS);
         tabsResultados.getTabs().add(tab("Resumen", resumen));
+        tabsResultados.getTabs().add(tab("Simulación 3D", new com.concretolab.ui.VistaModal(entrada.elementos(), r)));
         // Pisos
         tabsResultados.getTabs().add(tab("Pisos", tabla(new String[]{"Piso", "Cota (m)", "h (m)", "Área (m²)", "Peso (kN)", "X cm", "Y cm", "I polar"},
                 r.pisos().stream().map(s -> new String[]{"" + s.numero(), f(s.cota(), 2), f(s.altura(), 2), f(s.area(), 2), f(s.peso(), 1), f(s.xcm(), 3), f(s.ycm(), 3), f(s.inercia(), 0)}).toList())));

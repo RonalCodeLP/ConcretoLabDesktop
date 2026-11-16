@@ -38,6 +38,7 @@ com\concretolab\ui\Exportador$Generador.class
 com\concretolab\controller\MaterialesController.class
 com\concretolab\service\NormaE030$Categoria.class
 com\concretolab\repository\MezclaRepository.class
+com\concretolab\ui\VistaModal.class
 com\concretolab\service\ReporteMezcla.class
 com\concretolab\seeder\DatabaseSeeder.class
 com\concretolab\ui\Exportador$1.class
@@ -69,6 +70,7 @@ com\concretolab\model\Ensayo.class
 com\concretolab\service\NormaE030$Version.class
 com\concretolab\ui\Tablas$3.class
 com\concretolab\service\AnalisisSismico$PisoBase.class
+com\concretolab\ui\VistaModal$1.class
 com\concretolab\ui\Autocompletar$Celda.class
 com\concretolab\controller\InicioController.class
 com\concretolab\ui\Exportador.class
@@ -77,6 +79,7 @@ com\concretolab\service\NormaE030$Parametros.class
 com\concretolab\controller\CerchaController.class
 com\concretolab\controller\MainController.class
 com\concretolab\Launcher.class
+com\concretolab\ui\VistaModal$Tramo.class
 com\concretolab\service\AnalisisSismico$Modo.class
 com\concretolab\service\GranulometriaService$Resultado.class
 com\concretolab\service\AnalisisSismico$Direccion.class

@@ -110,6 +110,8 @@ public class Visor3D {
         if (reencuadrar) construirReferencias(lista);
     }
 
+    Group capaElementos() { return elementos; }
+    static double unidades() { return ESCALA; }
     private void construirReferencias(List<Elemento> lista) {
         double minX = -3, maxX = 3, minY = -3, maxY = 3, base = 0, alto = 3;
         if (!lista.isEmpty()) {

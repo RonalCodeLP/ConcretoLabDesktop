@@ -25,7 +25,7 @@ public final class AnalisisSismico {
                           double espesorLosa, List<CargaPiso> cargas, NormaE030.Parametros norma) {}
 
     public record Piso(int numero, double cota, double altura, double area, double peso, double xcm, double ycm, double inercia, double largoX, double largoY) {}
-    public record Modo(int numero, double periodo, double masaEfectivaX, double masaEfectivaY) {}
+    public record Modo(int numero, double periodo, double masaEfectivaX, double masaEfectivaY, List<Double> forma) {}
     /** Resultado de una dirección. Desplazamientos inelásticos en m; derivas adimensionales; fuerzas en kN. */
     public record Direccion(String nombre, double periodo, double cortanteBase, double[] fuerzas, double[] cortantes,
                             double[] desplazamientosCm, double[] derivasCm, double[] derivasMaximas, double factorEscala, double[] razonTorsion) {
@@ -276,7 +276,7 @@ public final class AnalisisSismico {
             double[] psi = ed.getEigenvector(orden[n]).toArray();
             for (int i = 0; i < nm; i++) phi[n][i] = psi[i] / Math.sqrt(m[i]);
             for (int s = 0; s < S; s++) { gx[n] += m[3 * s] * phi[n][3 * s]; gy[n] += m[3 * s + 1] * phi[n][3 * s + 1]; }
-            modos.add(new Modo(n + 1, per[n], gx[n] * gx[n] / masaTotal, gy[n] * gy[n] / masaTotal));
+            modos.add(new Modo(n + 1, per[n], gx[n] * gx[n] / masaTotal, gy[n] * gy[n] / masaTotal, Arrays.stream(phi[n]).boxed().toList()));
         }
 
         // Puntos de control por piso: el centro de masas y todos los nudos del piso
