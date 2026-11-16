@@ -1,0 +1,18 @@
+.raiz { -fx-background-color: #eef3f8; -fx-font-family: "Segoe UI"; }
+.cabecera { -fx-background-color: #10243d; -fx-padding: 20 24; -fx-alignment: center-left; }
+.titulo { -fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold; }
+.cabecera .subtitulo { -fx-text-fill: #bdd0e4; }
+.subtitulo { -fx-text-fill: #637790; -fx-font-size: 12px; }
+.seccion { -fx-text-fill: #172d47; -fx-font-size: 17px; -fx-font-weight: bold; }
+.tarjeta { -fx-background-color: white; -fx-background-radius: 10; -fx-padding: 18; }
+.button { -fx-cursor: hand; -fx-background-radius: 6; -fx-padding: 8 12; }
+.principal { -fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; }
+.aviso { -fx-text-fill: #8d5a13; -fx-background-color: #fff7e5; -fx-padding: 10; }
+.estado { -fx-text-fill: #b42318; }
+.sidebar { -fx-background-color: #10243d; -fx-padding: 24 16; -fx-pref-width: 220; }
+.menu-grupo { -fx-text-fill: #97b0ca; -fx-font-size: 10px; -fx-font-weight: bold; -fx-padding: 16 8 3 8; }
+.menu-boton { -fx-background-color: transparent; -fx-text-fill: #d8e5f3; -fx-alignment: center-left; -fx-max-width: infinity; }
+.menu-boton:hover { -fx-background-color: #24415f; }
+.menu-boton.activo { -fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; }
+.menu-scroll, .menu-scroll > .viewport { -fx-background-color: #10243d; -fx-background: #10243d; -fx-padding: 0; }
+.page-heading { -fx-font-size: 26px; -fx-text-fill: #17304c; -fx-font-weight: bold; }
