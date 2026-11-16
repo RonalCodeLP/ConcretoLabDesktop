@@ -29,9 +29,7 @@ public class PantallaPrincipal {
     private final ComboBox<Proyecto> proyectos=new ComboBox<>();
     private final TableView<Elemento> tabla=new TableView<>();
     private final Label resumen=new Label("Seleccione un proyecto"), estado=new Label();
-    private final Group mundo=new Group(), modelo=new Group();
-    private final Rotate rotacionX=new Rotate(-20,Rotate.X_AXIS), rotacionY=new Rotate(-35,Rotate.Y_AXIS);
-    private double inicioX,inicioY,anguloX,anguloY,zoom=1;
+    private final Visor3D visor3d=new Visor3D();
     public PantallaPrincipal(ProyectoService servicio,MezclaService mezclas,MaterialService materiales,RegistroGranulometriaService granulometrias,ModeloCerchaService cerchas){this.servicio=servicio;this.mezclas=mezclas;this.materiales=materiales;this.granulometrias=granulometrias;this.cerchas=cerchas;}
     public Parent crear(){
         Label titulo=new Label("ConcretoLab"); titulo.getStyleClass().add("titulo");
@@ -43,39 +41,34 @@ public class PantallaPrincipal {
         columna("Tipo",Elemento::getTipo); columna("Nombre",Elemento::getNombre);
         columna("Volumen m³",e -> FormatoNumeros.volumen(e.volumen()));
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN); tabla.setPlaceholder(new Label("Agregue elementos al proyecto"));
-        tabla.getSelectionModel().selectedItemProperty().addListener((o,a,b)->dibujar());
+        tabla.getSelectionModel().selectedItemProperty().addListener((o,a,b)->dibujar(false));
         Button agregar=new Button("+ Elemento"), editar=new Button("Editar"), eliminar=new Button("Eliminar"),plantilla=new Button("Crear plantilla rectangular"); agregar.getStyleClass().add("principal");
         agregar.setOnAction(e -> formulario(null)); editar.setOnAction(e -> {Elemento seleccionado=tabla.getSelectionModel().getSelectedItem(); if(seleccionado!=null) formulario(seleccionado);});
         plantilla.setOnAction(e -> plantilla());
         eliminar.setOnAction(e -> {Elemento seleccionado=tabla.getSelectionModel().getSelectedItem(); if(seleccionado!=null && new Alert(Alert.AlertType.CONFIRMATION,"¿Eliminar el elemento seleccionado?",ButtonType.CANCEL,ButtonType.OK).showAndWait().orElse(ButtonType.CANCEL)==ButtonType.OK){servicio.eliminar(seleccionado.getId());cargar();}});
         Label lista=new Label("Elementos"); lista.getStyleClass().add("seccion"); resumen.setWrapText(true); estado.setWrapText(true); estado.getStyleClass().add("estado");
         VBox izquierda=new VBox(12,lista,new HBox(8,agregar,editar,eliminar),plantilla,tabla,resumen,estado); izquierda.getStyleClass().add("tarjeta"); izquierda.setPrefWidth(420); VBox.setVgrow(tabla,Priority.ALWAYS);
-        mundo.getChildren().addAll(modelo,new AmbientLight(Color.WHITE)); modelo.getTransforms().addAll(rotacionX,rotacionY);
-        SubScene escena=new SubScene(mundo,600,500,true,SceneAntialiasing.BALANCED); escena.setFill(Color.web("#edf3fa"));
-        PerspectiveCamera camara=new PerspectiveCamera(true); camara.setNearClip(0.1); camara.setFarClip(10000); camara.setTranslateZ(-1200); escena.setCamera(camara);
-        escena.setOnMousePressed(e->{inicioX=e.getSceneX();inicioY=e.getSceneY();anguloX=rotacionX.getAngle();anguloY=rotacionY.getAngle();});
-        escena.setOnMouseDragged(e->{rotacionY.setAngle(anguloY+(e.getSceneX()-inicioX)*0.5);rotacionX.setAngle(anguloX-(e.getSceneY()-inicioY)*0.5);});
-        escena.setOnScroll(e->{zoom=Math.max(0.2,Math.min(4,zoom*(e.getDeltaY()>0?1.1:1/1.1)));modelo.setScaleX(zoom);modelo.setScaleY(zoom);modelo.setScaleZ(zoom);});
-        StackPane visor=new StackPane(escena); escena.widthProperty().bind(visor.widthProperty()); escena.heightProperty().bind(visor.heightProperty());
+        StackPane visor=visor3d.nodo();
         Label vista=new Label("Vista 3D esquemática"); vista.getStyleClass().add("seccion");
-        Label ayuda=new Label("Arrastra para girar · Rueda para acercar · Posiciones expresadas en metros"); ayuda.getStyleClass().add("subtitulo");
+        Label ayuda=new Label("Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Posiciones expresadas en metros"); ayuda.getStyleClass().add("subtitulo");
         Label limite=new Label("La vista no realiza análisis estructural. La suma bruta no descuenta intersecciones."); limite.setWrapText(true); limite.getStyleClass().add("aviso");
         VBox derecha=new VBox(10,vista,ayuda,visor,limite); derecha.getStyleClass().add("tarjeta"); VBox.setVgrow(visor,Priority.ALWAYS); HBox.setHgrow(derecha,Priority.ALWAYS);
         HBox centro=new HBox(16,izquierda,derecha); centro.setPadding(new Insets(20)); VBox.setVgrow(centro,Priority.ALWAYS);
         VBox raiz=new VBox(cabecera,centro); raiz.getStyleClass().add("raiz"); actualizarProyectos();
         BorderPane marco=new BorderPane(); VBox menu=new VBox(8);menu.getStyleClass().add("sidebar");
         Label marca=new Label("ConcretoLab");marca.getStyleClass().add("titulo"); Label grupo=new Label("PROYECTO");grupo.getStyleClass().add("menu-grupo");
-        Button inicioBtn=new Button("Inicio"),modeloBtn=new Button("Modelo 3D y metrado"), cerchaBtn=new Button("Cerchas 2D"), materialBtn=new Button("Materiales y ensayos"), granuloBtn=new Button("Granulometría"), balanceBtn=new Button("Balance de volúmenes"), mezclaBtn=new Button("Mezclas y probetas");
-        List<Button> navegacion=List.of(inicioBtn,modeloBtn,cerchaBtn,materialBtn,granuloBtn,balanceBtn,mezclaBtn);for(Button b:navegacion)b.getStyleClass().add("menu-boton");
+        Button inicioBtn=new Button("Inicio"),modeloBtn=new Button("Modelo 3D y metrado"), cerchaBtn=new Button("Cerchas 2D"), sismoBtn=new Button("Análisis sísmico E.030"), materialBtn=new Button("Materiales y ensayos"), granuloBtn=new Button("Granulometría"), balanceBtn=new Button("Balance de volúmenes"), mezclaBtn=new Button("Mezclas y probetas");
+        List<Button> navegacion=List.of(inicioBtn,modeloBtn,cerchaBtn,sismoBtn,materialBtn,granuloBtn,balanceBtn,mezclaBtn);for(Button b:navegacion)b.getStyleClass().add("menu-boton");
         java.util.function.Consumer<Button> activar=b->{for(Button boton:navegacion)boton.getStyleClass().remove("activo");b.getStyleClass().add("activo");};
         modeloBtn.setOnAction(e->{activar.accept(modeloBtn);marco.setCenter(raiz);});
         cerchaBtn.setOnAction(e->{activar.accept(cerchaBtn);marco.setCenter(new PantallaCercha(servicio,cerchas,proyectos::setValue).crear(proyectos.getValue()));});
+        sismoBtn.setOnAction(e->{activar.accept(sismoBtn);marco.setCenter(new PantallaSismo(servicio).crear(proyectos.getValue()));});
         materialBtn.setOnAction(e->{activar.accept(materialBtn);marco.setCenter(new PantallaMateriales(materiales).crear());});
         granuloBtn.setOnAction(e->{activar.accept(granuloBtn);marco.setCenter(new PantallaGranulometria(materiales,granulometrias).crear());});
         balanceBtn.setOnAction(e->{activar.accept(balanceBtn);marco.setCenter(new PantallaVolumenAbsoluto().crear());});
         mezclaBtn.setOnAction(e->{activar.accept(mezclaBtn);marco.setCenter(new PantallaMezclas(servicio,mezclas,materiales,proyectos::setValue).crear(proyectos.getValue()));});
         inicioBtn.setOnAction(e->{activar.accept(inicioBtn);marco.setCenter(inicio(modeloBtn,materialBtn,granuloBtn,mezclaBtn));});
-        menu.getChildren().addAll(marca,grupo,inicioBtn,modeloBtn,new Label("ANÁLISIS ESTRUCTURAL"){{getStyleClass().add("menu-grupo");}},cerchaBtn,new Label("DISEÑO DE CONCRETO"){{getStyleClass().add("menu-grupo");}},materialBtn,granuloBtn,balanceBtn,mezclaBtn);
+        menu.getChildren().addAll(marca,grupo,inicioBtn,modeloBtn,new Label("ANÁLISIS ESTRUCTURAL"){{getStyleClass().add("menu-grupo");}},cerchaBtn,sismoBtn,new Label("DISEÑO DE CONCRETO"){{getStyleClass().add("menu-grupo");}},materialBtn,granuloBtn,balanceBtn,mezclaBtn);
         marco.setLeft(menu);inicioBtn.fire();return marco;
     }
     private Parent inicio(Button modeloBtn,Button materialBtn,Button granuloBtn,Button mezclaBtn){
@@ -138,12 +131,9 @@ public class PantallaPrincipal {
     private void error(String mensaje){new Alert(Alert.AlertType.ERROR,mensaje==null?"No se pudo completar la operación.":mensaje,ButtonType.OK).showAndWait();}
     private void cargar(){Proyecto p=proyectos.getValue();tabla.getItems().clear();if(p==null){dibujar();return;}tabla.getItems().setAll(servicio.elementos(p.getId()));
         double suma=tabla.getItems().stream().mapToDouble(Elemento::volumen).sum();resumen.setText("Suma bruta: "+FormatoNumeros.volumen(suma)+" m³\nNo descuenta superposiciones.");estado.setText("");dibujar();}
-    private void dibujar(){modelo.getChildren().clear();Elemento seleccionado=tabla.getSelectionModel().getSelectedItem();double escala=65;
-        for(Elemento e:tabla.getItems()){
-            Box caja=new Box(e.getLargo()*escala,e.getAltura()*escala,e.getAncho()*escala);
-            caja.setTranslateX(e.getX()*escala);caja.setTranslateY(-e.getZ()*escala);caja.setTranslateZ(e.getY()*escala);
-            Color color=e==seleccionado?Color.ORANGE:switch(e.getTipo()){case "ZAPATA"->Color.web("#64748b");case "COLUMNA"->Color.web("#2563eb");default->Color.web("#0d9488");};
-            caja.setMaterial(new PhongMaterial(color));caja.setOnMouseClicked(ev->{if(ev.isStillSincePress())tabla.getSelectionModel().select(e);});modelo.getChildren().add(caja);
-        }
+    private void dibujar(){dibujar(true);}
+    /** Reencuadra la cámara al cargar datos, pero no al seleccionar una fila. */
+    private void dibujar(boolean reencuadrar){
+        visor3d.mostrar(tabla.getItems(),tabla.getSelectionModel().getSelectedItem(),e->tabla.getSelectionModel().select(e),reencuadrar);
     }
 }
