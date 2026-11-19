@@ -8,7 +8,7 @@ import com.concretolab.model.Mezcla;
 import com.concretolab.model.Proyecto;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.MezclaService;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.ReporteMezcla;
 import com.concretolab.ui.Exportador;
 import com.concretolab.ui.Formularios;
@@ -50,7 +50,7 @@ public class MezclasController implements Refrescable {
     private static final String SIN_MEZCLA = "Seleccione una mezcla.";
     private static final String ERROR_NUMERO = "Ingrese valores numéricos válidos.";
 
-    private final ProyectoService proyectos;
+    private final YefriLermaProyectoService proyectos;
     private final MezclaService servicio;
     private final MaterialService materiales;
     private final SesionProyecto sesion;

@@ -7,12 +7,12 @@ import com.concretolab.seeder.DatabaseSeeder;
 import com.concretolab.seeder.EdificiosSismicosSeeder;
 import com.concretolab.seeder.MaterialSeeder;
 import com.concretolab.seeder.ProyectoSeeder;
-import com.concretolab.service.AnalisisSismico;
+import com.concretolab.service.FernandoHuancaAnalisisSismico;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.MezclaService;
 import com.concretolab.service.ModeloCerchaService;
 import com.concretolab.service.NormaE030;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.RegistroGranulometriaService;
 import java.io.File;
 import java.nio.file.Files;
@@ -35,7 +35,7 @@ class SeederDemostracionTest {
         registro.add("app.seeder.enabled", () -> "true");
     }
 
-    @Autowired ProyectoService proyectos;
+    @Autowired YefriLermaProyectoService proyectos;
     @Autowired MaterialService materiales;
     @Autowired RegistroGranulometriaService granulometrias;
     @Autowired MezclaService mezclas;
@@ -70,19 +70,19 @@ class SeederDemostracionTest {
     @Test
     void elProyectoDemoSePuedeAnalizarSismicamente() {
         var elementos = proyectos.elementos(demo().getId());
-        var cargas = AnalisisSismico.pisos(elementos).stream().map(b -> new AnalisisSismico.CargaPiso(b.areaPorDefecto(), 1.0, 2.0)).toList();
+        var cargas = FernandoHuancaAnalisisSismico.pisos(elementos).stream().map(b -> new FernandoHuancaAnalisisSismico.CargaPiso(b.areaPorDefecto(), 1.0, 2.0)).toList();
         var norma = new NormaE030.Parametros(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S1, 8, 1, 1, 35);
-        var r = AnalisisSismico.analizar(new AnalisisSismico.Entrada(elementos, 21, 0.2, 1.0, 0.20, List.copyOf(cargas), norma));
+        var r = FernandoHuancaAnalisisSismico.analizar(new FernandoHuancaAnalisisSismico.Entrada(elementos, 21, 0.2, 1.0, 0.20, List.copyOf(cargas), norma));
         assertThat(r.pisos()).hasSize(1);
         assertThat(r.estaticoX().cortanteBase()).isPositive();
     }
 
-    private AnalisisSismico.Resultado analizar(String nombre) {
+    private FernandoHuancaAnalisisSismico.Resultado analizar(String nombre) {
         Proyecto p = proyectos.proyectos().stream().filter(x -> nombre.equals(x.getNombre())).findFirst().orElseThrow();
         var elementos = proyectos.elementos(p.getId());
-        var cargas = AnalisisSismico.pisos(elementos).stream().map(b -> new AnalisisSismico.CargaPiso(b.areaPorDefecto(), 1.0, 2.0)).toList();
+        var cargas = FernandoHuancaAnalisisSismico.pisos(elementos).stream().map(b -> new FernandoHuancaAnalisisSismico.CargaPiso(b.areaPorDefecto(), 1.0, 2.0)).toList();
         var norma = new NormaE030.Parametros(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S2, 8, 1, 1, 35);
-        return AnalisisSismico.analizar(new AnalisisSismico.Entrada(elementos, 21, 0.2, 1.0, 0.20, List.copyOf(cargas), norma));
+        return FernandoHuancaAnalisisSismico.analizar(new FernandoHuancaAnalisisSismico.Entrada(elementos, 21, 0.2, 1.0, 0.20, List.copyOf(cargas), norma));
     }
 
     @Test

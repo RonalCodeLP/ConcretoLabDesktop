@@ -10,8 +10,8 @@ import org.apache.commons.math3.linear.*;
  * un diafragma rígido por nivel (3 GDL por piso en el centro de masas) y condensación estática de los demás GDL.
  * No modela muros, losas deformables, zonas rígidas, interacción suelo-estructura ni diseño de elementos.
  */
-public final class AnalisisSismico {
-    private AnalisisSismico() {}
+public final class FernandoHuancaAnalisisSismico {
+    private FernandoHuancaAnalisisSismico() {}
 
     public static final double G = 9.80665;        // m/s²
     public static final double PESO_CONCRETO = 24; // kN/m³ (E.020: 2400 kgf/m³)

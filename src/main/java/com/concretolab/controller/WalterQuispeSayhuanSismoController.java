@@ -2,20 +2,20 @@ package com.concretolab.controller;
 
 import com.concretolab.model.Elemento;
 import com.concretolab.model.Proyecto;
-import com.concretolab.service.AnalisisSismico;
-import com.concretolab.service.AnalisisSismico.CargaPiso;
-import com.concretolab.service.AnalisisSismico.Direccion;
-import com.concretolab.service.AnalisisSismico.Entrada;
-import com.concretolab.service.AnalisisSismico.Modo;
-import com.concretolab.service.AnalisisSismico.PisoBase;
-import com.concretolab.service.AnalisisSismico.Resultado;
+import com.concretolab.service.FernandoHuancaAnalisisSismico;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.CargaPiso;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.Direccion;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.Entrada;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.Modo;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.PisoBase;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.Resultado;
 import com.concretolab.service.NormaE030;
 import com.concretolab.service.NormaE030.Categoria;
 import com.concretolab.service.NormaE030.Parametros;
 import com.concretolab.service.NormaE030.Suelo;
 import com.concretolab.service.NormaE030.Version;
 import com.concretolab.service.NormaE030.Zona;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.ReporteSismo;
 import com.concretolab.ui.Exportador;
 import com.concretolab.ui.Formularios;
@@ -59,11 +59,11 @@ import java.util.function.Function;
  */
 @Component
 @RequiredArgsConstructor
-public class SismoController implements Refrescable {
+public class WalterQuispeSayhuanSismoController implements Refrescable {
 
     private static final String ESTADO_INICIAL = "Defina los datos y pulse «Calcular».";
 
-    private final ProyectoService servicio;
+    private final YefriLermaProyectoService servicio;
     private final SesionProyecto sesion;
     private final Notificador notificador;
     private final Exportador exportador;
@@ -197,7 +197,7 @@ public class SismoController implements Refrescable {
         List<PisoBase> pisos = List.of();
         String problema = null;
         try {
-            pisos = AnalisisSismico.pisos(servicio.elementos(p.getId()));
+            pisos = FernandoHuancaAnalisisSismico.pisos(servicio.elementos(p.getId()));
         } catch (IllegalArgumentException ex) {
             problema = ex.getMessage();
         }
@@ -257,7 +257,7 @@ public class SismoController implements Refrescable {
             double rigidez = leer(txtRigidez);
             double espesor = leer(txtEspesor);
             entrada = new Entrada(el, fc, poisson, rigidez, espesor, cargas, norma);
-            resultado = AnalisisSismico.analizar(entrada);
+            resultado = FernandoHuancaAnalisisSismico.analizar(entrada);
             proyectoCalculado = p;
             mostrar();
             btnExportar.setDisable(false);

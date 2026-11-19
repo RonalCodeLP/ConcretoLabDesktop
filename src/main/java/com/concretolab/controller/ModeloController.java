@@ -2,13 +2,13 @@ package com.concretolab.controller;
 
 import com.concretolab.model.Elemento;
 import com.concretolab.model.Proyecto;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.ui.Formularios;
 import com.concretolab.ui.Notificador;
 import com.concretolab.ui.Refrescable;
 import com.concretolab.ui.SesionProyecto;
 import com.concretolab.ui.Tablas;
-import com.concretolab.ui.Visor3D;
+import com.concretolab.ui.MiajeldDelgadoVisor3D;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -36,12 +36,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ModeloController implements Refrescable {
 
-    private final ProyectoService servicio;
+    private final YefriLermaProyectoService servicio;
     private final SesionProyecto sesion;
     private final Notificador notificador;
 
     /** Se crea en initialize(): construye nodos 3D de JavaFX, que no existen todavía cuando Spring instancia el controlador. */
-    private Visor3D visor3d;
+    private MiajeldDelgadoVisor3D visor3d;
 
     // ---- cabecera
     @FXML private ComboBox<Proyecto> cmbProyecto;
@@ -95,7 +95,7 @@ public class ModeloController implements Refrescable {
 
     @FXML
     public void initialize() {
-        visor3d = new Visor3D();
+        visor3d = new MiajeldDelgadoVisor3D();
         contenedorVisor.getChildren().add(visor3d.nodo());
 
         colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo()));
@@ -309,7 +309,7 @@ public class ModeloController implements Refrescable {
             return;
         }
         try {
-            servicio.crearPlantilla(p.getId(), new ProyectoService.Plantilla(
+            servicio.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(
                     v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8]));
             notificador.cerrarPanel();
             notificador.exito("Plantilla rectangular creada: 4 zapatas, 4 columnas y 4 vigas.");

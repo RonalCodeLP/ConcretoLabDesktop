@@ -3,7 +3,7 @@ package com.concretolab;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.ui.Refrescable;
 import com.concretolab.ui.SesionProyecto;
 import java.io.File;
@@ -42,7 +42,7 @@ class VistasFxmlTest {
 
     @Autowired ApplicationContext context;
     @Autowired SesionProyecto sesion;
-    @Autowired ProyectoService proyectos;
+    @Autowired YefriLermaProyectoService proyectos;
 
     @Test
     void todasLasVistasCarganSinProyecto() throws Exception {
@@ -55,7 +55,7 @@ class VistasFxmlTest {
     void todasLasVistasCarganConUnProyectoConElementos() throws Exception {
         iniciarJavaFx();
         var p = proyectos.crearProyecto("Proyecto de prueba de vistas", "Lima");
-        proyectos.crearPlantilla(p.getId(), new ProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
+        proyectos.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
         sesion.setProyecto(p);
         cargarTodas();
     }

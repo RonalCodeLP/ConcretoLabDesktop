@@ -1,6 +1,6 @@
 package com.concretolab;
 import com.concretolab.model.*;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.ModeloCerchaService;
 import java.nio.file.*;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ class ProyectoIntegracionTest {
     private static final Path BASE;
     static {try{BASE=Files.createTempDirectory("concretolab-test-").resolve("test.db");}catch(Exception e){throw new ExceptionInInitializerError(e);}}
     @DynamicPropertySource static void db(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->"jdbc:sqlite:"+BASE.toAbsolutePath());}
-    @Autowired ProyectoService servicio;
+    @Autowired YefriLermaProyectoService servicio;
     @Autowired ModeloCerchaService cerchas;
     @Test void guardaElementosYValidaDimensiones(){
         Proyecto p=servicio.crearProyecto("Proyecto de prueba","Lima");
@@ -28,12 +28,12 @@ class ProyectoIntegracionTest {
     }
     @Test void plantillaGeneraElementosYRechazaMedidasIncompatibles(){
         Proyecto p=servicio.crearProyecto("Plantilla","Lima");
-        servicio.crearPlantilla(p.getId(),new ProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5));
+        servicio.crearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5));
         var lista=servicio.elementos(p.getId());assertEquals(12,lista.size());
         assertEquals(4,lista.stream().filter(e->"ZAPATA".equals(e.getTipo())).count());
         assertEquals(4,lista.stream().filter(e->"COLUMNA".equals(e.getTipo())).count());
         assertEquals(4,lista.stream().filter(e->"VIGA".equals(e.getTipo())).count());
-        assertThrows(IllegalArgumentException.class,()->servicio.crearPlantilla(p.getId(),new ProyectoService.Plantilla(.2,4,1.5,1.5,.5,.4,3,.3,.5)));
+        assertThrows(IllegalArgumentException.class,()->servicio.crearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(.2,4,1.5,1.5,.5,.4,3,.3,.5)));
         assertEquals(12,servicio.elementos(p.getId()).size());
     }
     @Test void guardaCerchaEnSuProyectoYConservaSusDatos(){

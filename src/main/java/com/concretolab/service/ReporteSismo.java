@@ -1,7 +1,7 @@
 package com.concretolab.service;
 
 import com.concretolab.model.Proyecto;
-import com.concretolab.service.AnalisisSismico.*;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.*;
 import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -44,7 +44,7 @@ public final class ReporteSismo {
         d.add(new Paragraph("2. Pisos y pesos", SECCION));
         d.add(tabla(new String[]{"Piso", "Cota (m)", "h (m)", "Área losa (m²)", "Peso (kN)", "X cm (m)", "Y cm (m)", "I polar (kN·m²)"},
                 r.pisos().stream().map(s -> new String[]{"" + s.numero(), f(s.cota(), 2), f(s.altura(), 2), f(s.area(), 2), f(s.peso(), 1), f(s.xcm(), 2), f(s.ycm(), 2), f(s.inercia(), 0)}).toList()));
-        d.add(new Paragraph("Peso sísmico (" + n.art("peso") + "): CM + " + (int) (n.categoria().porcentajeCv * 100) + " % de CV en pisos; 25 % de CV en azotea. Concreto armado: " + (int) AnalisisSismico.PESO_CONCRETO + " kN/m³.", NOTA));
+        d.add(new Paragraph("Peso sísmico (" + n.art("peso") + "): CM + " + (int) (n.categoria().porcentajeCv * 100) + " % de CV en pisos; 25 % de CV en azotea. Concreto armado: " + (int) FernandoHuancaAnalisisSismico.PESO_CONCRETO + " kN/m³.", NOTA));
 
         d.add(new Paragraph("3. Modos de vibración", SECCION));
         d.add(tabla(new String[]{"Modo", "T (s)", "f (Hz)", "Masa efectiva X (%)", "Masa efectiva Y (%)"},

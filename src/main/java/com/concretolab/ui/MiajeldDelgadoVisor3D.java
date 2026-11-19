@@ -29,7 +29,7 @@ import javafx.scene.transform.Translate;
 import javafx.util.Duration;
 
 /** Visor 3D del modelo: solo presentación, no modifica datos. X e Y son horizontales y Z es vertical (en metros). */
-public class Visor3D {
+public class MiajeldDelgadoVisor3D {
     private static final double ESCALA = 65;
     // Colores de los materiales 3D (no son CSS). Los de la leyenda 2D están en css/pendiente-modelo.css.
     private static final Color EJE_X = Color.web("#ef4444"), EJE_Y = Color.web("#22c55e"), EJE_Z = Color.web("#3b82f6");
@@ -48,7 +48,7 @@ public class Visor3D {
     private final StackPane nodo = new StackPane();
     private double radioModelo = 400, distancia = 1200, inicioX, inicioY, anguloX, anguloY, panX, panY;
 
-    public Visor3D() {
+    public MiajeldDelgadoVisor3D() {
         contenido.getChildren().addAll(suelo, ejes, elementos);
         mundo.getTransforms().addAll(desplazamiento, rotacionX, rotacionY);
 

@@ -1,7 +1,7 @@
 package com.concretolab.seeder;
 
 import com.concretolab.model.Proyecto;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +16,7 @@ public class ProyectoSeeder {
 
     public static final String NOMBRE = "DEMO - Edificación de práctica";
 
-    private final ProyectoService proyectos;
+    private final YefriLermaProyectoService proyectos;
 
     @Transactional
     public int sembrar() {
@@ -24,12 +24,12 @@ public class ProyectoSeeder {
             return 0;
         }
         Proyecto p = proyectos.crearProyecto(NOMBRE, "Datos ficticios para aprendizaje");
-        proyectos.crearPlantilla(p.getId(), new ProyectoService.Plantilla(5, 4, 1.5, 1.5, 0.5, 0.4, 3, 0.3, 0.5));
+        proyectos.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.5, 1.5, 0.5, 0.4, 3, 0.3, 0.5));
         return 1;
     }
 
     /** Devuelve el proyecto DEMO o {@code null} si todavía no existe. */
-    static Proyecto buscar(ProyectoService proyectos) {
+    static Proyecto buscar(YefriLermaProyectoService proyectos) {
         return proyectos.proyectos().stream().filter(p -> NOMBRE.equals(p.getNombre())).findFirst().orElse(null);
     }
 }

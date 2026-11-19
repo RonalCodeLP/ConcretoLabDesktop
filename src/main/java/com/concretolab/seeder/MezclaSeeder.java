@@ -4,7 +4,7 @@ import com.concretolab.model.Ensayo;
 import com.concretolab.model.Mezcla;
 import com.concretolab.model.Proyecto;
 import com.concretolab.service.MezclaService;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +20,7 @@ public class MezclaSeeder {
     public static final String NOMBRE = "DEMO - Mezcla de práctica";
     public static final String PROBETA = "DEMO - Probeta 28 días";
 
-    private final ProyectoService proyectos;
+    private final YefriLermaProyectoService proyectos;
     private final MezclaService mezclas;
 
     @Transactional

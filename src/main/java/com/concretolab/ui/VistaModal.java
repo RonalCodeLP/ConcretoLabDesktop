@@ -1,7 +1,7 @@
 package com.concretolab.ui;
 
 import com.concretolab.model.Elemento;
-import com.concretolab.service.AnalisisSismico.*;
+import com.concretolab.service.FernandoHuancaAnalisisSismico.*;
 import javafx.animation.AnimationTimer;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -12,7 +12,7 @@ import java.util.*;
 
 public final class VistaModal extends VBox {
     private record Tramo(Box caja,Affine transform,double[] inferior,double[] superior) {}
-    private final Visor3D visor=new Visor3D();
+    private final MiajeldDelgadoVisor3D visor=new MiajeldDelgadoVisor3D();
     private final List<Tramo> tramos=new ArrayList<>();
     private final List<Piso> pisos;
     private final List<Elemento> elementos;
@@ -59,7 +59,7 @@ public final class VistaModal extends VBox {
     private void preparar(Modo modo){
         parar();fase=Math.PI/2;tramos.clear();visor.mostrar(elementos,null,e->{},true);
         var grupo=visor.capaElementos();grupo.getChildren().clear();
-        double unidad=Visor3D.unidades(),max=0;
+        double unidad=MiajeldDelgadoVisor3D.unidades(),max=0;
         for(var e:elementos){
             double base=e.getZ()-e.getAltura()/2, techo=base+e.getAltura();
             var cortes=new TreeSet<Double>();cortes.add(base);cortes.add(techo);
@@ -87,7 +87,7 @@ public final class VistaModal extends VBox {
         dibujar();
     }
     private void dibujar(){
-        double f=escala*amplitud.getValue()*Math.sin(fase),u=Visor3D.unidades();
+        double f=escala*amplitud.getValue()*Math.sin(fase),u=MiajeldDelgadoVisor3D.unidades();
         for(var tramo:tramos){
             var a=tramo.inferior;var b=tramo.superior;var t=tramo.transform;
             t.setTx(f*u*(a[0]+b[0])/2);t.setTz(f*u*(a[1]+b[1])/2);

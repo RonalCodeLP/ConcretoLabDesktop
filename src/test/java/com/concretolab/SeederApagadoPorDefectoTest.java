@@ -3,7 +3,7 @@ package com.concretolab;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.concretolab.seeder.DatabaseSeeder;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import java.io.File;
 import java.nio.file.Files;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ class SeederApagadoPorDefectoTest {
     }
 
     @Autowired ApplicationContext contexto;
-    @Autowired ProyectoService proyectos;
+    @Autowired YefriLermaProyectoService proyectos;
 
     @Test
     void noSeCreaElSeederNiLosDatos() {

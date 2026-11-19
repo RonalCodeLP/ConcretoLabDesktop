@@ -2,7 +2,7 @@ package com.concretolab.seeder;
 
 import com.concretolab.model.Elemento;
 import com.concretolab.model.Proyecto;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -23,7 +23,7 @@ public class EdificiosSismicosSeeder {
 
     private static final String SUGERENCIA = "Sismo sugerido: zona 4, categoría C, suelo S2, f'c 21 MPa, CM 1,0 y CV 2,0 kN/m² (datos ficticios)";
 
-    private final ProyectoService proyectos;
+    private final YefriLermaProyectoService proyectos;
 
     /** Definición de un edificio de pórticos: malla de columnas y secciones. */
     record Edificio(String nombre, double[] xs, double[] ys, int pisos, double alturaPiso, double lado, double anchoViga, double alturaViga,

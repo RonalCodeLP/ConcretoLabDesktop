@@ -5,9 +5,9 @@ import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 @Service
-public class ProyectoService {
+public class YefriLermaProyectoService {
     private final ProyectoRepository proyectos; private final ElementoRepository elementos;
-    public ProyectoService(ProyectoRepository p,ElementoRepository e){proyectos=p;elementos=e;}
+    public YefriLermaProyectoService(ProyectoRepository p,ElementoRepository e){proyectos=p;elementos=e;}
     @Transactional(readOnly=true) public List<Proyecto> proyectos(){return proyectos.findAll();}
     @Transactional public Proyecto crearProyecto(String nombre,String ubicacion){
         if(nombre==null||nombre.isBlank()||nombre.trim().length()>120) throw new IllegalArgumentException("Ingrese un nombre de proyecto de hasta 120 caracteres.");

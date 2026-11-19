@@ -3,7 +3,7 @@ package com.concretolab.seeder;
 import com.concretolab.model.ModeloCercha;
 import com.concretolab.model.Proyecto;
 import com.concretolab.service.ModeloCerchaService;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +15,7 @@ public class CerchaSeeder {
 
     public static final String NOMBRE = "DEMO - Cercha triangular";
 
-    private final ProyectoService proyectos;
+    private final YefriLermaProyectoService proyectos;
     private final ModeloCerchaService cerchas;
 
     @Transactional

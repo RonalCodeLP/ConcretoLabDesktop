@@ -17,7 +17,7 @@ class MezclaIntegracionTest {
  private static final Path BASE;
  static{try{BASE=Files.createTempDirectory("concretolab-mezcla-").resolve("test.db");}catch(Exception e){throw new ExceptionInInitializerError(e);}}
  @DynamicPropertySource static void db(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->"jdbc:sqlite:"+BASE.toAbsolutePath());}
- @Autowired ProyectoService proyectos; @Autowired MezclaService mezclas;
+ @Autowired YefriLermaProyectoService proyectos; @Autowired MezclaService mezclas;
  @Autowired MaterialService materiales;
  @Autowired RegistroGranulometriaService granulometrias;
  @Test void registraYCalculaConHumedadYEnsayo() throws Exception {
