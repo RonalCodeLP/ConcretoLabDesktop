@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.concretolab.controller.MezclasController"
+      styleClass="pagina">
+
+    <fx:define>
+
+        <!-- ============ Panel lateral: registrar dosificacion ============ -->
+        <VBox fx:id="panelMezcla" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-droplet"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Registrar dosificación" styleClass="drawer-titulo"/>
+                    <Label fx:id="lblSubtituloMezcla" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="DATOS GENERALES" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Nombre" styleClass="campo-label"/>
+                        <TextField fx:id="txtNombre"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Fuente o referencia" styleClass="campo-label"/>
+                        <TextField fx:id="txtReferencia"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="f’c especificada (MPa)" styleClass="campo-label"/>
+                        <TextField fx:id="txtResistencia"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="MATERIALES DE LA BIBLIOTECA" styleClass="seccion-form"/>
+                    <Label text="Seleccione materiales para copiar humedad y absorción. Las masas son en condición SSS y deben provenir de una dosificación previa."
+                           styleClass="pagina-subtitulo" wrapText="true"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Agregado fino" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbFino" onAction="#onElegirFino"
+                                  promptText="Agregado fino de biblioteca (opcional)" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <VBox styleClass="campo">
+                        <Label text="Agregado grueso" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbGrueso" onAction="#onElegirGrueso"
+                                  promptText="Agregado grueso de biblioteca (opcional)" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="DOSIFICACIÓN POR M³" styleClass="seccion-form"/>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Cemento (kg/m³)" styleClass="campo-label"/>
+                            <TextField fx:id="txtCemento"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Agua de diseño (kg/m³)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAgua"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Fino SSS (kg/m³)" styleClass="campo-label"/>
+                            <TextField fx:id="txtFinoSss"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Grueso SSS (kg/m³)" styleClass="campo-label"/>
+                            <TextField fx:id="txtGruesoSss"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label text="HUMEDAD Y ABSORCIÓN" styleClass="seccion-form"/>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Absorción fino (%)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAbsorcionFino"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Humedad total fino (%)" styleClass="campo-label"/>
+                            <TextField fx:id="txtHumedadFino"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Absorción grueso (%)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAbsorcionGrueso"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Humedad total grueso (%)" styleClass="campo-label"/>
+                            <TextField fx:id="txtHumedadGrueso"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label text="DETALLE" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Observaciones" styleClass="campo-label"/>
+                        <TextArea fx:id="txtObservaciones" prefRowCount="3" wrapText="true"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Guardar" onAction="#onGuardarMezcla" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ============ Panel lateral: registrar ensayo fisico ============ -->
+        <VBox fx:id="panelEnsayo" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-clipboard"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Registrar ensayo físico" styleClass="drawer-titulo"/>
+                    <Label fx:id="lblSubtituloEnsayo" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="PROBETA" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Identificación probeta" styleClass="campo-label"/>
+                        <TextField fx:id="txtIdentificacion"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Fecha (AAAA-MM-DD)" styleClass="campo-label"/>
+                            <TextField fx:id="txtFecha"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Edad (días)" styleClass="campo-label"/>
+                            <TextField fx:id="txtEdad"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label text="RESULTADOS" styleClass="seccion-form"/>
+
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Resistencia medida (MPa)" styleClass="campo-label"/>
+                            <TextField fx:id="txtResistenciaEnsayo"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="170.0">
+                            <Label text="Asentamiento medido (mm)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAsentamiento"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+
+                    <Label text="DETALLE" styleClass="seccion-form"/>
+
+                    <VBox styleClass="campo">
+                        <Label text="Observaciones" styleClass="campo-label"/>
+                        <TextArea fx:id="txtObservacionesEnsayo" prefRowCount="3" wrapText="true"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Guardar" onAction="#onGuardarEnsayo" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ============ Panel lateral: elegir elementos del modelo ============ -->
+        <VBox fx:id="panelElementos" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-box"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Elegir elementos" styleClass="drawer-titulo"/>
+                    <Label text="Seleccione los elementos que utilizarán esta mezcla" styleClass="drawer-subtitulo"
+                           wrapText="true"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="Use Ctrl o Shift para seleccionar varios. La suma no descuenta intersecciones; revise el metrado."
+                           styleClass="pagina-subtitulo" wrapText="true"/>
+                    <VBox styleClass="campo">
+                        <Label text="Elementos del proyecto" styleClass="campo-label"/>
+                        <ListView fx:id="lstElementos" prefHeight="320.0"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button text="Usar selección" onAction="#onUsarSeleccion" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </fx:define>
+
+    <!-- ============ Cabecera ============ -->
+    <HBox styleClass="pagina-cabecera">
+        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+            <Label text="Mezclas y ensayos" styleClass="pagina-titulo"/>
+            <Label text="1. Selecciona un proyecto   2. Registra una dosificación   3. Calcula el lote   4. Registra las pruebas físicas"
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+        </VBox>
+        <Button text="Registrar mezcla" onAction="#onNuevaMezcla" styleClass="accent,boton-principal">
+            <graphic><FontIcon iconLiteral="fth-plus"/></graphic>
+        </Button>
+    </HBox>
+
+    <!-- ============ Mezclas del proyecto ============ -->
+    <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
+        <HBox styleClass="barra-herramientas">
+            <Label text="Mezclas del proyecto" styleClass="grafico-titulo"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label text="Proyecto:" styleClass="pagina-subtitulo"/>
+            <Label fx:id="lblProyecto" text="Seleccione un proyecto" styleClass="chip,neutro"/>
+        </HBox>
+
+        <TableView fx:id="tablaMezclas" prefHeight="190.0" styleClass="tabla-compacta" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colMezcla"      text="Mezcla"  prefWidth="280.0"/>
+                <TableColumn fx:id="colResistencia" text="f’c MPa" prefWidth="120.0"/>
+                <TableColumn fx:id="colFuente"      text="Fuente"  prefWidth="260.0"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <!-- ============ Calculo del lote ============ -->
+    <VBox styleClass="tarjeta">
+        <HBox styleClass="barra-herramientas">
+            <Label text="Volumen del lote (m³):"/>
+            <TextField fx:id="txtVolumen" text="1" prefWidth="100.0"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnCalcular" text="Calcular lote" onAction="#onCalcular" styleClass="button-outlined">
+                <graphic><FontIcon iconLiteral="fth-refresh-cw"/></graphic>
+            </Button>
+            <Button fx:id="btnElementos" text="Elegir elementos del modelo" onAction="#onElegirElementos"
+                    styleClass="button-outlined">
+                <graphic><FontIcon iconLiteral="fth-box"/></graphic>
+            </Button>
+            <Button fx:id="btnPdf" text="Guardar PDF" onAction="#onExportar" styleClass="button-outlined">
+                <graphic><FontIcon iconLiteral="fth-file-text"/></graphic>
+            </Button>
+        </HBox>
+        <Label fx:id="lblResultado" text="Seleccione una mezcla." styleClass="resultado-lote"
+               wrapText="true" maxWidth="Infinity"/>
+    </VBox>
+
+    <!-- ============ Ensayos de la mezcla ============ -->
+    <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
+        <HBox styleClass="barra-herramientas">
+            <Label text="Ensayos registrados" styleClass="grafico-titulo"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnEnsayo" text="Registrar ensayo" onAction="#onNuevoEnsayo" styleClass="button-outlined">
+                <graphic><FontIcon iconLiteral="fth-plus"/></graphic>
+            </Button>
+        </HBox>
+
+        <TableView fx:id="tablaEnsayos" prefHeight="190.0" styleClass="tabla-compacta" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="colProbeta"             text="Probeta"          prefWidth="170.0"/>
+                <TableColumn fx:id="colFecha"               text="Fecha"            prefWidth="120.0"/>
+                <TableColumn fx:id="colEdad"                text="Edad (días)"      prefWidth="110.0"/>
+                <TableColumn fx:id="colResistenciaEnsayo"   text="Resistencia MPa"  prefWidth="140.0"/>
+                <TableColumn fx:id="colAsentamiento"        text="Asentamiento mm"  prefWidth="140.0"/>
+            </columns>
+        </TableView>
+    </VBox>
+
+    <Label text="Dosificación suministrada por el usuario; no es un diseño ACI calculado ni una aprobación para obra. Los resultados de ensayo se registran sin dictaminar conformidad."
+           styleClass="pagina-subtitulo" wrapText="true"/>
+</VBox>

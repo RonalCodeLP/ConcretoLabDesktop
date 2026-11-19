@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.concretolab.controller.BalanceController"
+            styleClass="pagina-scroll" fitToWidth="true" hbarPolicy="NEVER">
+    <VBox styleClass="pagina" spacing="18.0">
+
+        <HBox styleClass="pagina-cabecera" alignment="CENTER_LEFT">
+            <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+                <Label text="Balance de volúmenes" styleClass="pagina-titulo"/>
+                <Label text="Calcula cemento y agregado fino por m³ a partir de parámetros elegidos y justificados por el profesional."
+                       styleClass="pagina-subtitulo" wrapText="true"/>
+            </VBox>
+        </HBox>
+
+        <VBox styleClass="tarjeta" spacing="16.0">
+            <GridPane hgap="18.0" vgap="14.0">
+                <columnConstraints>
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0"/>
+                    <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0"/>
+                </columnConstraints>
+
+                <VBox styleClass="campo" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                    <Label text="Agua de diseño (kg/m³)" styleClass="campo-label"/>
+                    <TextField fx:id="txtAgua" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                    <Label text="Relación agua/cemento (a/c)" styleClass="campo-label"/>
+                    <TextField fx:id="txtRelacionAc" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                    <Label text="Densidad relativa del cemento" styleClass="campo-label"/>
+                    <TextField fx:id="txtDensidadCemento" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                    <Label text="Agregado grueso SSS (kg/m³)" styleClass="campo-label"/>
+                    <TextField fx:id="txtGrueso" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                    <Label text="Densidad relativa grueso SSS" styleClass="campo-label"/>
+                    <TextField fx:id="txtDensidadGrueso" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                    <Label text="Densidad relativa fino SSS" styleClass="campo-label"/>
+                    <TextField fx:id="txtDensidadFino" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+                <VBox styleClass="campo" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                    <Label text="Aire estimado (%)" styleClass="campo-label"/>
+                    <TextField fx:id="txtAire" promptText="Dato definido por el profesional"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+            </GridPane>
+
+            <HBox>
+                <Button text="Calcular balance" onAction="#onCalcular" styleClass="accent,boton-principal" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-play"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <VBox styleClass="tarjeta" spacing="8.0">
+            <Label text="Resultado" styleClass="seccion-form"/>
+            <Label fx:id="lblResultado" text="Completa los datos para calcular." wrapText="true"/>
+        </VBox>
+
+        <Label styleClass="aviso" wrapText="true"
+               text="Es un balance matemático sin aditivos ni materiales cementantes adicionales. No selecciona agua, a/c ni agregado grueso; no garantiza f’c, trabajabilidad, durabilidad o cumplimiento ACI. Requiere revisión profesional y mezcla de prueba."/>
+    </VBox>
+</ScrollPane>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.concretolab.controller.InicioController"
+            styleClass="pagina-scroll" fitToWidth="true" hbarPolicy="NEVER">
+    <VBox styleClass="pagina" spacing="18.0">
+
+        <HBox styleClass="pagina-cabecera" alignment="CENTER_LEFT">
+            <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+                <Label text="Bienvenido a ConcretoLab" styleClass="pagina-titulo"/>
+                <Label text="Organiza la información del proyecto, los materiales y las pruebas en un solo lugar."
+                       styleClass="pagina-subtitulo" wrapText="true"/>
+            </VBox>
+        </HBox>
+
+        <VBox styleClass="tarjeta" spacing="9.0">
+            <Label text="01   Proyecto y modelo" styleClass="seccion-form"/>
+            <Label text="Crea un proyecto y representa sus elementos. Puedes comenzar con una plantilla de cuatro zapatas, columnas y vigas."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <HBox><Button text="Abrir modelo" onAction="#onAbrirModelo" styleClass="accent"/></HBox>
+        </VBox>
+
+        <VBox styleClass="tarjeta" spacing="9.0">
+            <Label text="02   Materiales y granulometría" styleClass="seccion-form"/>
+            <Label text="Registra resultados reales del laboratorio. Calcula los porcentajes del tamizado a partir de las masas medidas."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <HBox><Button text="Abrir materiales" onAction="#onAbrirMateriales" styleClass="accent"/></HBox>
+        </VBox>
+
+        <VBox styleClass="tarjeta" spacing="9.0">
+            <Label text="03   Mezclas y pruebas" styleClass="seccion-form"/>
+            <Label text="Registra una dosificación existente, corrige por humedad y conserva los resultados de ensayos."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <HBox><Button text="Abrir mezclas" onAction="#onAbrirMezclas" styleClass="accent"/></HBox>
+        </VBox>
+
+        <VBox styleClass="tarjeta" spacing="9.0">
+            <Label text="04   Análisis sísmico" styleClass="seccion-form"/>
+            <Label text="Analiza el pórtico del proyecto según la E.030: modos, estático, modal espectral y derivas, con reporte PDF."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <HBox><Button text="Abrir análisis sísmico" onAction="#onAbrirSismo" styleClass="accent"/></HBox>
+        </VBox>
+
+        <Label styleClass="aviso" wrapText="true"
+               text="El sistema apoya el registro y los cálculos indicados; no diseña automáticamente según ACI ni verifica la seguridad estructural."/>
+    </VBox>
+</ScrollPane>

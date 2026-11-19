@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.concretolab.controller.GranulometriaController"
+      styleClass="pagina">
+
+    <!-- ============ Cabecera ============ -->
+    <HBox styleClass="pagina-cabecera">
+        <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+            <Label text="Calculadora de granulometría" styleClass="pagina-titulo"/>
+            <Label text="Ingresa los datos medidos del tamizado. Cada línea representa un tamiz: abertura en mm y masa retenida en gramos."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+        </VBox>
+    </HBox>
+
+    <ScrollPane fitToWidth="true" styleClass="pagina-scroll" VBox.vgrow="ALWAYS">
+        <VBox styleClass="granulometria-contenido">
+
+            <!-- ============ Datos del ensayo ============ -->
+            <VBox styleClass="tarjeta">
+                <HBox spacing="16.0">
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Agregado de la biblioteca" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbMaterial" promptText="Agregado de la biblioteca"
+                                  onAction="#onMaterialSeleccionado" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Ensayo guardado" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbHistorial" promptText="Abrir ensayo guardado"
+                                  onAction="#onHistorialSeleccionado" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="16.0">
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Identificación del ensayo" styleClass="campo-label"/>
+                        <TextField fx:id="txtIdentificacion" promptText="Identificación del ensayo"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Fecha (AAAA-MM-DD)" styleClass="campo-label"/>
+                        <TextField fx:id="txtFecha" promptText="AAAA-MM-DD"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </HBox>
+
+                <HBox spacing="16.0">
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Masa seca inicial (g)" styleClass="campo-label"/>
+                        <TextField fx:id="txtMasa" promptText="Masa seca inicial (g)"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo" HBox.hgrow="ALWAYS">
+                        <Label text="Masa en fondo (g)" styleClass="campo-label"/>
+                        <TextField fx:id="txtFondo" promptText="Masa en fondo (g)"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </HBox>
+
+                <VBox styleClass="campo">
+                    <Label text="Mediciones del tamizado (abertura mm; masa retenida g)" styleClass="campo-label"/>
+                    <TextArea fx:id="txtMediciones" prefRowCount="7"
+                              promptText="Ejemplo de formato, de mayor a menor:&#10;4.75; 10&#10;2.36; 100&#10;1.18; 250"/>
+                    <Label styleClass="campo-error" visible="false" managed="false"/>
+                </VBox>
+
+                <HBox styleClass="barra-herramientas">
+                    <Button fx:id="btnCalcular" text="Calcular resultados" onAction="#onCalcular"
+                            styleClass="accent,boton-principal">
+                        <graphic><FontIcon iconLiteral="fth-activity"/></graphic>
+                    </Button>
+                    <Button fx:id="btnGuardar" text="Guardar ensayo" onAction="#onGuardar"
+                            styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-save"/></graphic>
+                    </Button>
+                </HBox>
+            </VBox>
+
+            <!-- ============ Resultados ============ -->
+            <VBox styleClass="tarjeta">
+                <Label fx:id="lblResumen" text="El resultado se calculará al ingresar las mediciones."
+                       styleClass="texto-resultado" wrapText="true"/>
+
+                <TableView fx:id="tabla" styleClass="tabla-compacta" prefHeight="280.0" minHeight="200.0">
+                    <columns>
+                        <TableColumn fx:id="colAbertura"    text="ABERTURA MM"  prefWidth="140.0"/>
+                        <TableColumn fx:id="colRetenido"    text="RETENIDO G"   prefWidth="140.0"/>
+                        <TableColumn fx:id="colRetenidoPct" text="RETENIDO %"   prefWidth="140.0"/>
+                        <TableColumn fx:id="colAcumulado"   text="ACUMULADO %" prefWidth="140.0"/>
+                        <TableColumn fx:id="colPasa"        text="PASA %"       prefWidth="140.0"/>
+                    </columns>
+                </TableView>
+
+                <VBox styleClass="grafico">
+                    <Label text="Curva granulométrica" styleClass="grafico-titulo"/>
+                    <LineChart fx:id="grafico" styleClass="grafico-linea" legendVisible="false"
+                               animated="false" createSymbols="true" prefHeight="280.0">
+                        <xAxis>
+                            <CategoryAxis side="BOTTOM" label="Abertura de tamiz (mm)"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis side="LEFT" label="Porcentaje que pasa (%)" autoRanging="false"
+                                        lowerBound="0.0" upperBound="100.0" tickUnit="20.0"/>
+                        </yAxis>
+                    </LineChart>
+                </VBox>
+
+                <Label text="Gráfico categórico, no semilogarítmico. Esta herramienta no determina cumplimiento de una norma."
+                       styleClass="grafico-subtitulo-compacto" wrapText="true"/>
+            </VBox>
+        </VBox>
+    </ScrollPane>
+</VBox>

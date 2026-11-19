@@ -1,0 +1,22 @@
+# Compilación de Maven
+target/
+dist/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# Bases de datos locales (SQLite) y registros
+*.db
+*.db-journal
+*.log
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
