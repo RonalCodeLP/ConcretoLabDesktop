@@ -25,6 +25,7 @@ public class DatabaseSeeder implements ApplicationRunner {
     private final MezclaSeeder mezclaSeeder;
     private final CerchaSeeder cerchaSeeder;
     private final EdificiosSismicosSeeder edificiosSeeder;
+    private final EdificioPracticaSeeder edificioPracticaSeeder;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -40,8 +41,9 @@ public class DatabaseSeeder implements ApplicationRunner {
         int mezclas = mezclaSeeder.sembrar();
         int cerchas = cerchaSeeder.sembrar();
         int edificios = edificiosSeeder.sembrar();
-        log.info("Seeder: {} proyecto(s), {} material(es), {} tamizado(s), {} registro(s) de mezcla/ensayo, {} cercha(s) y {} edificio(s) sísmicos nuevos.",
-                proyectos, materiales, granulometrias, mezclas, cerchas, edificios);
-        return proyectos + materiales + granulometrias + mezclas + cerchas + edificios;
+        int practicas = edificioPracticaSeeder.sembrar();
+        log.info("Seeder: {} proyecto(s), {} material(es), {} tamizado(s), {} registro(s) de mezcla/ensayo, {} cercha(s), {} edificio(s) sísmicos y {} proyecto(s) de práctica nuevos.",
+                proyectos, materiales, granulometrias, mezclas, cerchas, edificios, practicas);
+        return proyectos + materiales + granulometrias + mezclas + cerchas + edificios + practicas;
     }
 }

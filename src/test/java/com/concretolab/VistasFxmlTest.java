@@ -20,6 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestExecutionListeners;
+import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
 /**
  * Prueba de humo: carga cada vista FXML con los controladores de Spring y llama a refrescar(), primero sin proyecto
@@ -27,6 +29,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * construir y errores al cargar datos. Se omite sola si no hay entorno gráfico.
  */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@TestExecutionListeners(DependencyInjectionTestExecutionListener.class)
 class VistasFxmlTest {
 
     private static final List<String> VISTAS = List.of(

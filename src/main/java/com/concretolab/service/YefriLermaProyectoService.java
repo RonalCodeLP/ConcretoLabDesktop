@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 @Service
 public class YefriLermaProyectoService {
-    private final ProyectoRepository proyectos; private final ElementoRepository elementos;
-    public YefriLermaProyectoService(ProyectoRepository p,ElementoRepository e){proyectos=p;elementos=e;}
+    private final ProyectoRepository proyectos; private final ElementoRepository elementos; private final VinculoGeometricoRepository vinculos;
+    public YefriLermaProyectoService(ProyectoRepository p,ElementoRepository e,VinculoGeometricoRepository v){proyectos=p;elementos=e;vinculos=v;}
     @Transactional(readOnly=true) public List<Proyecto> proyectos(){return proyectos.findAll();}
     @Transactional public Proyecto crearProyecto(String nombre,String ubicacion){
         if(nombre==null||nombre.isBlank()||nombre.trim().length()>120) throw new IllegalArgumentException("Ingrese un nombre de proyecto de hasta 120 caracteres.");
@@ -23,7 +23,7 @@ public class YefriLermaProyectoService {
         if(!Double.isFinite(e.getX())||!Double.isFinite(e.getY())||!Double.isFinite(e.getZ())) throw new IllegalArgumentException("Las posiciones deben ser números finitos.");
         return elementos.save(e);
     }
-    @Transactional public void eliminar(Long id){elementos.deleteById(id);}
+    @Transactional public void eliminar(Long id){vinculos.deleteByColumnaIdOrVigaId(id,id);elementos.deleteById(id);}
     public record Plantilla(double separacionX,double separacionY,double largoZapata,double anchoZapata,double alturaZapata,double ladoColumna,double alturaColumna,double anchoViga,double alturaViga){}
     @Transactional public void crearPlantilla(Long proyectoId,Plantilla p){
         if(proyectoId==null||!proyectos.existsById(proyectoId))throw new IllegalArgumentException("Seleccione un proyecto existente.");

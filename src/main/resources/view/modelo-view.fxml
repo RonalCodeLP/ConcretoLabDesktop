@@ -242,6 +242,16 @@
                 <graphic><FontIcon iconLiteral="fth-grid"/></graphic>
             </Button>
 
+            <Button fx:id="btnCuadricula" text="Ejes, niveles y generación" onAction="#onCuadricula"
+                    styleClass="button-outlined" maxWidth="Infinity">
+                <graphic><FontIcon iconLiteral="fth-grid"/></graphic>
+            </Button>
+
+            <HBox spacing="8.0">
+                <Button fx:id="btnMover" text="Mover en 3D" onAction="#onMoverElemento" styleClass="button-outlined"/>
+                <Button fx:id="btnDeshacerMovimiento" text="Deshacer movimiento" onAction="#onDeshacerMovimiento" styleClass="button-outlined"/>
+            </HBox>
+
             <TableView fx:id="tabla" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="colTipo" text="TIPO" prefWidth="100.0"/>
@@ -260,6 +270,7 @@
             <Label text="Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Posiciones expresadas en metros"
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>
+            <VBox fx:id="panelMovimiento" visible="false" managed="false"/>
             <Label text="La vista no realiza análisis estructural. La suma bruta no descuenta intersecciones."
                    styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
         </VBox>

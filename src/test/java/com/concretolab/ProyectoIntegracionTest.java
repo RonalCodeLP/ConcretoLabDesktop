@@ -57,11 +57,11 @@ class ProyectoIntegracionTest {
         servicio.prepararEscenarios();
         double[] pulso=new double[2501];
         for(int i=0;i<=500;i++)pulso[i]=0.980665*Math.sin(2*Math.PI*i*0.002);
-        var demos=servicio.proyectos().stream().filter(p->ProyectoService.ESCENARIOS.contains(p.getNombre())).toList();
+        var demos=servicio.proyectos().stream().filter(p->YefriLermaProyectoService.ESCENARIOS.contains(p.getNombre())).toList();
         assertEquals(3,demos.size());
         double regular=0, flexible=0;
         for(var p:demos){
-            int caso=ProyectoService.ESCENARIOS.indexOf(p.getNombre());
+            int caso=YefriLermaProyectoService.ESCENARIOS.indexOf(p.getNombre());
             var elementos=servicio.elementos(p.getId());
             var r=com.concretolab.service.EdificioCortante.simular(elementos,25000,true,80,0.05,0.002,pulso);
             int n=caso==0?4:3;

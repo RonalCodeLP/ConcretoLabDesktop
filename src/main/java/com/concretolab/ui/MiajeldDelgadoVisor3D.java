@@ -3,6 +3,9 @@ package com.concretolab.ui;
 import com.concretolab.model.Elemento;
 import java.util.List;
 import java.util.function.Consumer;
+import com.concretolab.service.MovimientoElementoService.Posicion;
+import com.concretolab.service.MovimientoElementoService.Referencias;
+import com.concretolab.service.MovimientoElementoService.Estado;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -40,16 +43,19 @@ public class MiajeldDelgadoVisor3D {
     private static final Color COLOR_LOSA = Color.web("#e2e8f0");
     private static final Color COLOR_LINEA = Color.web("#94a3b8");
 
-    private final Group contenido = new Group(), suelo = new Group(), ejes = new Group(), elementos = new Group();
+    private final Group contenido = new Group(), suelo = new Group(), ejes = new Group(), referencias = new Group(), elementos = new Group();
     private final Group mundo = new Group(contenido);
     private final Rotate rotacionX = new Rotate(-25, Rotate.X_AXIS), rotacionY = new Rotate(-35, Rotate.Y_AXIS);
     private final Translate desplazamiento = new Translate();
     private final PerspectiveCamera camara = new PerspectiveCamera(true);
     private final StackPane nodo = new StackPane();
     private double radioModelo = 400, distancia = 1200, inicioX, inicioY, anguloX, anguloY, panX, panY;
+    private Long idMovimiento;
+    private Consumer<Double> alArrastrar;
+    private double inicioArrastre;
 
     public MiajeldDelgadoVisor3D() {
-        contenido.getChildren().addAll(suelo, ejes, elementos);
+        contenido.getChildren().addAll(suelo, ejes, referencias, elementos);
         mundo.getTransforms().addAll(desplazamiento, rotacionX, rotacionY);
 
         AmbientLight ambiente = new AmbientLight(Color.gray(0.42));
@@ -104,10 +110,71 @@ public class MiajeldDelgadoVisor3D {
             caja.setTranslateY(-e.getZ() * ESCALA);
             caja.setTranslateZ(e.getY() * ESCALA);
             caja.setMaterial(material(e == seleccionado ? COLOR_SELECCION : colorDe(e.getTipo()), e == seleccionado));
-            caja.setOnMouseClicked(ev -> { if (ev.isStillSincePress() && ev.getButton() == MouseButton.PRIMARY) alSeleccionar.accept(e); });
+            caja.setUserData(e.getId());
+            caja.setOnMouseClicked(ev -> { if (idMovimiento == null && ev.isStillSincePress() && ev.getButton() == MouseButton.PRIMARY) alSeleccionar.accept(e); });
+            caja.setOnMousePressed(ev -> {
+                if (idMovimiento != null && idMovimiento.equals(e.getId()) && ev.getButton() == MouseButton.PRIMARY) {
+                    inicioArrastre = ev.getSceneX();
+                    ev.consume();
+                }
+            });
+            caja.setOnMouseDragged(ev -> {
+                if (idMovimiento != null && idMovimiento.equals(e.getId()) && ev.isPrimaryButtonDown()) {
+                    double delta = (ev.getSceneX() - inicioArrastre) * distancia / 1200 / ESCALA;
+                    inicioArrastre = ev.getSceneX();
+                    alArrastrar.accept(delta);
+                    ev.consume();
+                }
+            });
             elementos.getChildren().add(caja);
         }
         if (reencuadrar) construirReferencias(lista);
+    }
+
+    public void iniciarMovimiento(Long id, Consumer<Double> alArrastrar) {
+        this.idMovimiento = id;
+        this.alArrastrar = alArrastrar;
+    }
+
+    public void terminarMovimiento() {
+        idMovimiento = null;
+        alArrastrar = null;
+        referencias.getChildren().clear();
+    }
+
+    public void previsualizar(Long id, Posicion posicion) {
+        elementos.getChildren().stream().filter(n -> id.equals(n.getUserData())).findFirst().ifPresent(n -> {
+            n.setTranslateX(posicion.x() * ESCALA);
+            n.setTranslateY(-posicion.z() * ESCALA);
+            n.setTranslateZ(posicion.y() * ESCALA);
+        });
+    }
+
+    public void previsualizar(Estado estado) {
+        elementos.getChildren().stream().filter(n -> estado.id().equals(n.getUserData())).findFirst().ifPresent(n -> {
+            Box caja = (Box) n;
+            caja.setWidth(estado.largo() * ESCALA); caja.setDepth(estado.ancho() * ESCALA); caja.setHeight(estado.altura() * ESCALA);
+        });
+        previsualizar(estado.id(), estado.posicion());
+    }
+
+    public void mostrarReferencias(Referencias datos) {
+        referencias.getChildren().clear();
+        if (datos.ejesX().size() < 2 || datos.ejesY().size() < 2) return;
+        double x0 = datos.ejesX().get(0), x1 = datos.ejesX().get(datos.ejesX().size() - 1);
+        double y0 = datos.ejesY().get(0), y1 = datos.ejesY().get(datos.ejesY().size() - 1);
+        for (double nivel : datos.niveles()) {
+            for (double x : datos.ejesX()) lineaReferencia(x, (y0 + y1) / 2, nivel, 0.025, y1 - y0, 0.025);
+            for (double y : datos.ejesY()) lineaReferencia((x0 + x1) / 2, y, nivel, x1 - x0, 0.025, 0.025);
+        }
+    }
+
+    private void lineaReferencia(double x, double y, double z, double largo, double ancho, double alto) {
+        Box linea = new Box(largo * ESCALA, alto * ESCALA, ancho * ESCALA);
+        linea.setTranslateX(x * ESCALA); linea.setTranslateY(-z * ESCALA); linea.setTranslateZ(y * ESCALA);
+        linea.setMaterial(new PhongMaterial(Color.ORANGE));
+        linea.setMouseTransparent(true);
+        referencias.getChildren().add(linea);
     }
 
     Group capaElementos() { return elementos; }

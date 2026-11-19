@@ -3,7 +3,11 @@ package com.concretolab.controller;
 import com.concretolab.model.Elemento;
 import com.concretolab.model.Proyecto;
 import com.concretolab.service.YefriLermaProyectoService;
+import com.concretolab.service.MovimientoElementoService;
+import com.concretolab.service.MovimientoElementoService.Operacion;
 import com.concretolab.ui.Formularios;
+import com.concretolab.ui.EditorCuadricula;
+import com.concretolab.ui.EditorMovimiento;
 import com.concretolab.ui.Notificador;
 import com.concretolab.ui.Refrescable;
 import com.concretolab.ui.SesionProyecto;
@@ -39,6 +43,8 @@ public class ModeloController implements Refrescable {
     private final YefriLermaProyectoService servicio;
     private final SesionProyecto sesion;
     private final Notificador notificador;
+    private final EditorCuadricula editorCuadricula;
+    private final MovimientoElementoService movimientos;
 
     /** Se crea en initialize(): construye nodos 3D de JavaFX, que no existen todavía cuando Spring instancia el controlador. */
     private MiajeldDelgadoVisor3D visor3d;
@@ -56,6 +62,10 @@ public class ModeloController implements Refrescable {
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     @FXML private Button btnPlantilla;
+    @FXML private Button btnCuadricula;
+    @FXML private Button btnMover;
+    @FXML private Button btnDeshacerMovimiento;
+    @FXML private VBox panelMovimiento;
     @FXML private Label lblResumen;
     @FXML private StackPane contenedorVisor;
 
@@ -92,6 +102,8 @@ public class ModeloController implements Refrescable {
     private boolean sincronizando;
     /** Id del elemento en edicion; {@code null} cuando el panel registra uno nuevo. */
     private Long idEditando;
+    private EditorMovimiento editorMovimiento;
+    private Operacion ultimoMovimiento;
 
     @FXML
     public void initialize() {
@@ -105,14 +117,27 @@ public class ModeloController implements Refrescable {
         tabla.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> dibujar(false));
 
         var seleccion = tabla.getSelectionModel().selectedItemProperty();
-        btnEditar.disableProperty().bind(seleccion.isNull());
-        btnEliminar.disableProperty().bind(seleccion.isNull());
+        btnEditar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
+        btnEliminar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
+        btnMover.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
+        btnDeshacerMovimiento.setDisable(true);
+        editorMovimiento = new EditorMovimiento(movimientos, visor3d, panelMovimiento, guardado -> {
+            ultimoMovimiento = guardado;
+            btnDeshacerMovimiento.setDisable(false);
+            cargarElementos();
+            notificador.exito("Movimiento guardado.");
+        }, () -> {
+            habilitarEdicion(true);
+            dibujar(false);
+        });
 
         cmbProyecto.valueProperty().addListener((o, a, b) -> {
             if (sincronizando) {
                 return;
             }
             sesion.setProyecto(b);
+            ultimoMovimiento = null;
+            btnDeshacerMovimiento.setDisable(true);
             cargarElementos();
         });
 
@@ -126,6 +151,11 @@ public class ModeloController implements Refrescable {
     @Override
     public void refrescar() {
         Proyecto activo = sesion.getProyecto();
+        if (panelMovimiento.isVisible()) editorMovimiento.cerrar();
+        if (ultimoMovimiento != null && (activo == null || !ultimoMovimiento.vista().original().proyectoId().equals(activo.getId()))) {
+            ultimoMovimiento = null;
+            btnDeshacerMovimiento.setDisable(true);
+        }
         cargarProyectos(activo == null ? null : activo.getId());
         cargarElementos();
     }
@@ -284,6 +314,60 @@ public class ModeloController implements Refrescable {
         camposPlantilla().forEach(TextField::clear);
         notificador.abrirPanel(panelPlantilla);
         Platform.runLater(txtSeparacionX::requestFocus);
+    }
+
+    @FXML
+    private void onCuadricula() {
+        if (!hayProyecto()) {
+            return;
+        }
+        try {
+            if (editorCuadricula.abrir(cmbProyecto.getValue().getId(), List.copyOf(tabla.getItems()))) {
+                cargarElementos();
+                notificador.exito("Elementos generados.");
+            }
+        } catch (Exception e) {
+            notificador.error(mensaje(e));
+        }
+    }
+
+    @FXML
+    private void onMoverElemento() {
+        Elemento seleccionado = tabla.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) return;
+        try {
+            habilitarEdicion(false);
+            editorMovimiento.iniciar(seleccionado);
+        } catch (Exception e) {
+            editorMovimiento.cerrar();
+            notificador.error(mensaje(e));
+        }
+    }
+
+    @FXML
+    private void onDeshacerMovimiento() {
+        if (ultimoMovimiento == null) return;
+        try {
+            movimientos.deshacer(ultimoMovimiento);
+            ultimoMovimiento = null;
+            btnDeshacerMovimiento.setDisable(true);
+            cargarElementos();
+            notificador.exito("Movimiento deshecho.");
+        } catch (Exception e) {
+            ultimoMovimiento = null;
+            btnDeshacerMovimiento.setDisable(true);
+            notificador.error(mensaje(e));
+        }
+    }
+
+    private void habilitarEdicion(boolean habilitada) {
+        cmbProyecto.setDisable(!habilitada);
+        btnNuevoProyecto.setDisable(!habilitada);
+        btnNuevoElemento.setDisable(!habilitada);
+        btnPlantilla.setDisable(!habilitada);
+        btnCuadricula.setDisable(!habilitada);
+        tabla.setDisable(!habilitada);
+        btnDeshacerMovimiento.setDisable(!habilitada || ultimoMovimiento == null);
     }
 
     @FXML
