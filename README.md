@@ -38,4 +38,20 @@ mvn package
 java -jar target/concretolab-desktop-0.1.0.jar
 ```
 
+## Distribución portable para Windows
+
+En una computadora de desarrollo con JDK 17 o superior y Maven, ejecuta:
+
+```powershell
+.\CREAR_DISTRIBUCION_WINDOWS.ps1
+```
+
+Para incluir los proyectos de demostración en la primera ejecución:
+
+```powershell
+.\CREAR_DISTRIBUCION_WINDOWS.ps1 -ConDatosDemostracion
+```
+
+El resultado queda en `dist\ConcretoLab`. Comparte toda esa carpeta y ejecuta `ConcretoLab.exe`. La distribución incluye un entorno Java privado y no requiere que el usuario final instale Java ni Maven. La base de datos queda en `%USERPROFILE%\.concretolab\concretolab.db`.
+
 Al iniciar se crea `.concretolab/concretolab.db` en la carpeta del usuario. La aplicación no necesita un servidor externo ni conexión a internet durante su uso. El JAR requiere Java instalado; no es todavía un instalador con Java incluido.
