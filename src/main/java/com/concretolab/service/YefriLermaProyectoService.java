@@ -6,8 +6,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 @Service
 public class YefriLermaProyectoService {
-    private final ProyectoRepository proyectos; private final ElementoRepository elementos; private final VinculoGeometricoRepository vinculos;
-    public YefriLermaProyectoService(ProyectoRepository p,ElementoRepository e,VinculoGeometricoRepository v){proyectos=p;elementos=e;vinculos=v;}
+    private final ProyectoRepository proyectos;
+    private final ElementoRepository elementos;
+    private final VinculoGeometricoRepository vinculos;
+    private final CuadriculaProyectoRepository cuadriculas;
+    private final ExpedienteRepository expedientes;
+    private final ModeloCerchaRepository cerchas;
+    private final MezclaRepository mezclas;
+    private final EnsayoRepository ensayos;
+
+    public YefriLermaProyectoService(ProyectoRepository proyectos, ElementoRepository elementos,
+                                    VinculoGeometricoRepository vinculos, CuadriculaProyectoRepository cuadriculas,
+                                    ExpedienteRepository expedientes, ModeloCerchaRepository cerchas,
+                                    MezclaRepository mezclas, EnsayoRepository ensayos) {
+        this.proyectos = proyectos;
+        this.elementos = elementos;
+        this.vinculos = vinculos;
+        this.cuadriculas = cuadriculas;
+        this.expedientes = expedientes;
+        this.cerchas = cerchas;
+        this.mezclas = mezclas;
+        this.ensayos = ensayos;
+    }
     @Transactional(readOnly=true) public List<Proyecto> proyectos(){return proyectos.findAll();}
     @Transactional public Proyecto crearProyecto(String nombre,String ubicacion){
         if(nombre==null||nombre.isBlank()||nombre.trim().length()>120) throw new IllegalArgumentException("Ingrese un nombre de proyecto de hasta 120 caracteres.");
@@ -24,6 +44,34 @@ public class YefriLermaProyectoService {
         return elementos.save(e);
     }
     @Transactional public void eliminar(Long id){vinculos.deleteByColumnaIdOrVigaId(id,id);elementos.deleteById(id);}
+    @Transactional
+    public void yefriLermaEliminarProyecto(Long id) {
+        var proyecto = proyectos.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El proyecto ya no existe."));
+        var mezclasProyecto = mezclas.findByProyectoIdOrderByIdDesc(id);
+        for (var mezcla : mezclasProyecto) {
+            ensayos.deleteAllInBatch(ensayos.findByMezclaIdOrderByIdDesc(mezcla.getId()));
+        }
+        mezclas.deleteAllInBatch(mezclasProyecto);
+        cerchas.deleteAllInBatch(cerchas.findByProyectoIdOrderByNombreAsc(id));
+        for (var elemento : elementos.findByProyectoIdOrderById(id)) {
+            eliminar(elemento.getId());
+        }
+        cuadriculas.deleteById(id);
+        expedientes.deleteById(id);
+        proyectos.delete(proyecto);
+    }
+    @Transactional public Proyecto yefriLermaGuardarPlano(Long id, String nombre, List<Elemento> candidatos) {
+        Proyecto proyecto = id == null ? crearProyecto(nombre, "") : proyectos.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El proyecto ya no existe."));
+        if (!elementos(proyecto.getId()).isEmpty())
+            throw new IllegalArgumentException("Selecciona un proyecto vacío o crea uno para el DXF.");
+        for (Elemento candidato : candidatos) {
+            candidato.setProyectoId(proyecto.getId());
+            guardar(candidato);
+        }
+        return proyecto;
+    }
     public record Plantilla(double separacionX,double separacionY,double largoZapata,double anchoZapata,double alturaZapata,double ladoColumna,double alturaColumna,double anchoViga,double alturaViga){}
     @Transactional public void crearPlantilla(Long proyectoId,Plantilla p){
         if(proyectoId==null||!proyectos.existsById(proyectoId))throw new IllegalArgumentException("Seleccione un proyecto existente.");

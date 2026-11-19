@@ -14,12 +14,14 @@ import com.concretolab.ui.SesionProyecto;
 import com.concretolab.ui.Tablas;
 import com.concretolab.ui.MiajeldDelgadoVisor3D;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.MenuButton;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -41,6 +43,38 @@ import java.util.List;
 public class ModeloController implements Refrescable {
 
     private final YefriLermaProyectoService servicio;
+    private final com.concretolab.service.FernandoHuancaPlanoDxf importadorDxf;
+
+    @FXML private void onExportarDxf() {
+        Proyecto activo = sesion.getProyecto();
+        if (activo == null) {
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "Selecciona el proyecto que quieres exportar.").showAndWait();
+            return;
+        }
+        var selector = new javafx.stage.FileChooser();
+        selector.setTitle("Exportar modelo 3D en DXF");
+        selector.setInitialFileName("modelo-concretolab.dxf");
+        selector.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("AutoCAD DXF","*.dxf"));
+        var destino = selector.showSaveDialog(tabla.getScene().getWindow());
+        if (destino == null) return;
+        try {
+            importadorDxf.fernandoHuancaExportar(destino.toPath(),servicio.elementos(activo.getId()));
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
+                    "DXF guardado. Abre el archivo en AutoCAD y selecciona una vista isométrica.").showAndWait();
+        } catch (java.io.IOException | IllegalArgumentException ex) {
+            new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR,ex.getMessage()).showAndWait();
+        }
+    }
+
+    @FXML private void onImportarDxf() {
+        new com.concretolab.ui.MiajeldDelgadoImportacionDxf(importadorDxf, servicio)
+                .miajeldDelgadoAbrir(tabla.getScene().getWindow(), sesion.getProyecto())
+                .ifPresent(p -> {
+                    cargarProyectos(p.getId());
+                    cargarElementos();
+                });
+    }
     private final SesionProyecto sesion;
     private final Notificador notificador;
     private final EditorCuadricula editorCuadricula;
@@ -51,7 +85,8 @@ public class ModeloController implements Refrescable {
 
     // ---- cabecera
     @FXML private ComboBox<Proyecto> cmbProyecto;
-    @FXML private Button btnNuevoProyecto;
+    @FXML private MenuButton btnNuevoProyecto;
+    @FXML private Button btnEliminarProyecto;
 
     // ---- elementos
     @FXML private TableView<Elemento> tabla;
@@ -68,6 +103,7 @@ public class ModeloController implements Refrescable {
     @FXML private VBox panelMovimiento;
     @FXML private Label lblResumen;
     @FXML private StackPane contenedorVisor;
+    @FXML private Button btnExportarDxf;
 
     // ---- panel: proyecto
     @FXML private VBox panelProyecto;
@@ -130,6 +166,9 @@ public class ModeloController implements Refrescable {
             habilitarEdicion(true);
             dibujar(false);
         });
+        btnEliminarProyecto.disableProperty().bind(cmbProyecto.valueProperty().isNull().or(panelMovimiento.visibleProperty()));
+        btnExportarDxf.disableProperty().bind(cmbProyecto.valueProperty().isNull()
+                .or(Bindings.isEmpty(tabla.getItems())).or(panelMovimiento.visibleProperty()));
 
         cmbProyecto.valueProperty().addListener((o, a, b) -> {
             if (sincronizando) {
@@ -301,6 +340,26 @@ public class ModeloController implements Refrescable {
                 notificador.error(mensaje(e));
             }
         });
+    }
+
+    @FXML
+    private void onEliminarProyecto() {
+        Proyecto seleccionado = cmbProyecto.getValue();
+        if (seleccionado == null) return;
+        notificador.confirmar("Eliminar proyecto",
+                "¿Eliminar «" + seleccionado.getNombre() + "»? Se borrarán sus elementos, cerchas, mezclas y ensayos. "
+                        + "Esta acción es permanente.", "Eliminar proyecto", () -> {
+                    try {
+                        servicio.yefriLermaEliminarProyecto(seleccionado.getId());
+                        ultimoMovimiento = null;
+                        btnDeshacerMovimiento.setDisable(true);
+                        cargarProyectos(null);
+                        cargarElementos();
+                        notificador.exito("Proyecto eliminado.");
+                    } catch (Exception e) {
+                        notificador.error(mensaje(e));
+                    }
+                });
     }
 
     // ------------------------------------------------------ plantilla rectangular

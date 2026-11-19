@@ -214,8 +214,14 @@
             <Label text="Proyectos de concreto · modelo 3D esquemático" styleClass="pagina-subtitulo"/>
         </VBox>
         <ComboBox fx:id="cmbProyecto" promptText="Seleccionar proyecto" prefWidth="260.0"/>
-        <Button fx:id="btnNuevoProyecto" text="+ Proyecto" onAction="#onNuevoProyecto"
-                styleClass="accent,boton-principal"/>
+        <MenuButton fx:id="btnNuevoProyecto" text="+ Proyecto" styleClass="accent,boton-principal">
+            <items>
+                <MenuItem text="Crear proyecto vacío…" onAction="#onNuevoProyecto"/>
+                <MenuItem text="Importar proyecto desde CAD…" onAction="#onImportarDxf"/>
+            </items>
+        </MenuButton>
+        <Button fx:id="btnEliminarProyecto" text="Eliminar proyecto" onAction="#onEliminarProyecto"
+                styleClass="danger,button-outlined"/>
     </HBox>
 
     <!-- ============ Contenido ============ -->
@@ -266,7 +272,12 @@
 
         <!-- Visor 3D -->
         <VBox styleClass="tarjeta" spacing="10.0" HBox.hgrow="ALWAYS">
-            <Label text="Vista 3D esquemática" styleClass="grafico-titulo"/>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Label text="Vista 3D esquemática" styleClass="grafico-titulo"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnExportarDxf" text="Exportar DXF…" onAction="#onExportarDxf"
+                        styleClass="button-outlined"/>
+            </HBox>
             <Label text="Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Posiciones expresadas en metros"
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>

@@ -28,6 +28,28 @@ La calculadora de granulometría recibe masa inicial seca, masas retenidas por t
 
 Sigue la skill `javafx-spring-sqlite-desktop`: Spring Boot sin web como contenedor, vistas FXML en `src/main/resources/view` con un controlador `@Component` por vista (paquete `controller`), helpers reutilizables en `ui` (`Notificador`, `Formularios`, `Tablas`, `Paginador`, `Exportador`), tema AtlantaFX con estilos en `css/app.css` y menú lateral en `MainController`. El proyecto activo lo comparte `SesionProyecto`. `VistasFxmlTest` carga todas las vistas y llama a `refrescar()`.
 
+## Importar una planta estructural de AutoCAD
+
+En **Modelo 3D y metrado**, abre **+ Proyecto → Importar proyecto desde CAD**.
+
+- **DXF ASCII** se lee directamente.
+- **DWG** requiere seleccionar el ejecutable `dwgread.exe` de GNU LibreDWG. ConcretoLab convierte una copia temporal a DXF y muestra sus capas. También se puede usar `SAVEAS` en AutoCAD para exportar a DXF ASCII y abrir esa copia.
+- **RVT** se prepara en Revit con **Archivo → Exportar → Formatos CAD → DXF**. En el DXF de planta identifica los centros de columnas y ejes de vigas según los pasos de abajo. La aplicación muestra esta ruta al seleccionar un RVT.
+
+La conversión de formato no define el modelo analítico. El resultado debe conservar las capas y entidades compatibles indicadas abajo. Para intercambiar información BIM de Revit, Autodesk ofrece IFC. El importador actual procesa DXF.
+
+Para importar un modelo completo sin llenar el formulario de planta, abre `doc/portico-completo-3d.dxf`, revisa el conteo y guarda el proyecto. Es un caso de demostración con tres niveles, 18 columnas, 21 vigas y 6 zapatas.
+
+Para intercambiar un modelo propio, selecciona el proyecto y pulsa **Exportar DXF** en la cabecera del visor. El archivo contiene caras 3D en coordenadas expresadas en metros. En AutoCAD usa **Abrir** y una vista isométrica. ConcretoLab puede reconstruir los prismas a partir de las capas `CL3D_*` y sus seis caras, incluso si tienen dimensiones distintas. Conserva esas capas y la escala al editar el archivo. El DXF intercambia geometría. Los parámetros de análisis se revisan en el módulo sísmico.
+
+1. En el espacio modelo de AutoCAD, usa una planta XY en cota Z = 0. Las capas de columnas y zapatas aceptan contornos rectangulares cerrados (`LWPOLYLINE` con cuatro esquinas y lados paralelos a X/Y) o centros marcados con `POINT`. Los contornos aportan ancho y largo. Para vigas se requiere `LINE` entre dos centros de columna consecutivos, paralela a X o Y, en su propia capa.
+2. Usa `SAVEAS` y guarda una copia como **DXF ASCII**. Puedes empezar por `doc/planta-estructural-ejemplo.dxf`.
+3. En **Modelo 3D y metrado → + Proyecto → Importar proyecto desde CAD**, asigna las capas y confirma los metros por unidad de dibujo. Para el ejemplo, usa 0,001 metros por unidad, 3 pisos, 3 m por piso, columna de 0,40 m, viga de 0,30 × 0,50 m y zapata de 1,50 × 1,50 × 0,50 m.
+4. Revisa el conteo propuesto y guarda en un proyecto nuevo o vacío. Inspecciona en 3D los elementos generados.
+5. Selecciona el proyecto en **Análisis sísmico E.030**, revisa las hipótesis e introduce las cargas y parámetros estructurales. Calcula y abre **Simulación 3D** para ver las formas modales.
+
+La importación reproduce una planta de pórticos rectangulares con secciones uniformes y la misma distribución por piso. El inventario muestra las capas y tipos encontrados durante la importación. Los elementos confirmados quedan en SQLite. Bloques, polilíneas y anotaciones pueden aparecer en el inventario, pero se requiere preparar las capas estructurales con las entidades indicadas. El cálculo existente usa base empotrada y diafragma rígido por piso. Las zapatas importadas se usan para metrado y visualización.
+
 ## Datos de demostración
 
 El proyecto «DEMO - Edificación de práctica» (plantilla rectangular de 12 elementos, 3 materiales, un tamizado, una mezcla con su ensayo y una cercha) se crea con los seeders de `com.concretolab.seeder`. Su carga se controla con `app.seeder.enabled` en `application.properties`; también puedes activarla al iniciar con `java -Dapp.seeder.enabled=true -jar target/concretolab-desktop-0.1.0.jar`. Es idempotente: no duplica datos, pero si borras el proyecto DEMO se vuelve a crear mientras la opción siga activa. Los valores son ficticios y no deben usarse en obra.

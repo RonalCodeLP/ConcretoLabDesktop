@@ -1,6 +1,6 @@
 package com.concretolab.ui;
 import com.concretolab.service.OsciladorSismico;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.DiagnosticoSismico;
 import com.concretolab.model.Proyecto;
 import javafx.collections.FXCollections;
@@ -12,8 +12,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 public class PantallaSismica {
- private final ProyectoService proyectos;private final Proyecto actual;private final Consumer<Proyecto> seleccionar;
- public PantallaSismica(ProyectoService proyectos,Proyecto actual,Consumer<Proyecto> seleccionar){this.proyectos=proyectos;this.actual=actual;this.seleccionar=seleccionar;}
+ private final YefriLermaProyectoService proyectos;private final Proyecto actual;private final Consumer<Proyecto> seleccionar;
+ public PantallaSismica(YefriLermaProyectoService proyectos,Proyecto actual,Consumer<Proyecto> seleccionar){this.proyectos=proyectos;this.actual=actual;this.seleccionar=seleccionar;}
  public Parent crear(){
   Label titulo=new Label("Respuesta sísmica idealizada");titulo.getStyleClass().add("page-heading");
   Label info=new Label("Modelo educativo de una masa y un resorte. Introduce la pseudoaceleración espectral correspondiente al período y amortiguamiento, obtenida por el profesional.");info.setWrapText(true);

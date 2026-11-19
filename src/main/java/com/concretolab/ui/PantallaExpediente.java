@@ -8,8 +8,8 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import java.util.function.Consumer;
 public class PantallaExpediente {
- private final ProyectoService proyectos;private final ExpedienteService expedientes;private final Consumer<Proyecto> seleccionar;
- public PantallaExpediente(ProyectoService p,ExpedienteService e,Consumer<Proyecto> seleccionar){proyectos=p;expedientes=e;this.seleccionar=seleccionar;}
+ private final YefriLermaProyectoService proyectos;private final ExpedienteService expedientes;private final Consumer<Proyecto> seleccionar;
+ public PantallaExpediente(YefriLermaProyectoService p,ExpedienteService e,Consumer<Proyecto> seleccionar){proyectos=p;expedientes=e;this.seleccionar=seleccionar;}
  public Parent crear(Proyecto actual){
   Label titulo=new Label("Expediente estructural");titulo.getStyleClass().add("page-heading");
   Label ayuda=new Label("Registra los datos de referencia y la edición normativa que determine el profesional. Los campos vacíos indican información pendiente.");ayuda.setWrapText(true);

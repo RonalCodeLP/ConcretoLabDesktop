@@ -20,6 +20,40 @@ class ProyectoIntegracionTest {
     @Autowired YefriLermaProyectoService servicio;
     @Autowired ModeloCerchaService cerchas;
     @Autowired ExpedienteService expedientes;
+    @Autowired com.concretolab.repository.MezclaRepository mezclas;
+    @Autowired com.concretolab.repository.EnsayoRepository ensayos;
+
+    @Test void eliminaSoloElProyectoSeleccionadoYSusDatos() {
+        var eliminar = servicio.crearProyecto("Proyecto para eliminar", "");
+        var conservar = servicio.crearProyecto("Proyecto para conservar", "");
+        var plantilla = new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5);
+        servicio.crearPlantilla(eliminar.getId(), plantilla);
+        servicio.crearPlantilla(conservar.getId(), plantilla);
+
+        var cercha = new ModeloCercha();
+        cercha.setProyectoId(eliminar.getId());
+        cercha.setNombre("Cercha vinculada");
+        cercha.setNudos("A;0;0;SI;SI;0;0\nB;2;0;NO;SI;10;0");
+        cercha.setBarras("AB;A;B;200000;10");
+        cerchas.guardar(cercha);
+
+        var mezcla = new Mezcla();
+        mezcla.setProyectoId(eliminar.getId());
+        mezcla.setNombre("Mezcla vinculada");
+        var guardada = mezclas.save(mezcla);
+        var ensayo = new Ensayo();
+        ensayo.setMezclaId(guardada.getId());
+        var ensayoId = ensayos.save(ensayo).getId();
+
+        servicio.yefriLermaEliminarProyecto(eliminar.getId());
+
+        assertTrue(servicio.proyectos().stream().noneMatch(p -> p.getId().equals(eliminar.getId())));
+        assertTrue(servicio.elementos(eliminar.getId()).isEmpty());
+        assertTrue(cerchas.listar(eliminar.getId()).isEmpty());
+        assertFalse(mezclas.existsById(guardada.getId()));
+        assertFalse(ensayos.existsById(ensayoId));
+        assertEquals(12, servicio.elementos(conservar.getId()).size());
+    }
     @Test void guardaElementosYValidaDimensiones(){
         Proyecto p=servicio.crearProyecto("Proyecto de prueba","Lima");
         Elemento e=new Elemento();e.setProyectoId(p.getId());e.setTipo("ZAPATA");e.setNombre("Z1");e.setLargo(2);e.setAncho(2);e.setAltura(.5);

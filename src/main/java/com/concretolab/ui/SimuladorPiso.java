@@ -2,7 +2,7 @@ package com.concretolab.ui;
 
 import com.concretolab.model.Proyecto;
 import com.concretolab.service.EdificioCortante;
-import com.concretolab.service.ProyectoService;
+import com.concretolab.service.YefriLermaProyectoService;
 import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.control.*;
@@ -28,7 +28,7 @@ final class SimuladorPiso extends VBox {
     private double altura, dt;
     private AnimationTimer animacion;
 
-    SimuladorPiso(ProyectoService proyectos, ComboBox<Proyecto> proyecto) {
+    SimuladorPiso(YefriLermaProyectoService proyectos, ComboBox<Proyecto> proyecto) {
         super(10);
         canvas.setOnMousePressed(ev->inicioArrastre=ev.getX());
         canvas.setOnMouseDragged(ev->{angulo+=(ev.getX()-inicioArrastre)/130;inicioArrastre=ev.getX();dibujar();});
@@ -89,7 +89,7 @@ dt=numero(paso.getText()); double[] aceleracion=importado;
         getChildren().addAll(descripcion,campos,aceptar,new HBox(10,cargar,pulso),registro,calcular,resultado,canvas,tiempo,new HBox(10,reproducir,instante));
         invalidar();
     }
-    private void cargarEjemplo(Proyecto p){if(p!=null && ProyectoService.ESCENARIOS.contains(p.getNombre())){masa.setText("80");modulo.setText("25000");paso.setText("0.002");amort.setText("5");}}
+    private void cargarEjemplo(Proyecto p){if(p!=null && YefriLermaProyectoService.ESCENARIOS.contains(p.getNombre())){masa.setText("80");modulo.setText("25000");paso.setText("0.002");amort.setText("5");}}
     private void detener(){if(animacion!=null)animacion.stop();animacion=null;reproducir.setText("Reproducir");}
     private void invalidar(){detener();respuesta=null;tiempo.setDisable(true);reproducir.setDisable(true);resultado.setText("Pendiente de cálculo.");instante.setText("");canvas.getGraphicsContext2D().clearRect(0,0,canvas.getWidth(),canvas.getHeight());}
     private static double numero(String texto){double n=Double.parseDouble(texto.trim().replace(',','.'));if(!Double.isFinite(n))throw new IllegalArgumentException("Ingresa valores finitos.");return n;}
