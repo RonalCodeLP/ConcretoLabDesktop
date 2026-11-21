@@ -267,7 +267,7 @@
             </TableView>
 
             <Label fx:id="lblResumen" text="Seleccione un proyecto" styleClass="modelo-resumen"
-                   wrapText="true" maxWidth="Infinity"/>
+                   wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
         </VBox>
 
         <!-- Visor 3D -->
@@ -275,6 +275,10 @@
             <HBox alignment="CENTER_LEFT" spacing="12.0">
                 <Label text="Vista 3D esquemática" styleClass="grafico-titulo"/>
                 <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Exportar IFC…" onAction="#onExportarIfc"
+                        styleClass="button-outlined"/>
+                <Button text="Exportar ETABS (experimental)…" onAction="#onExportarEtabs"
+                        styleClass="button-outlined"/>
                 <Button fx:id="btnExportarDxf" text="Exportar DXF…" onAction="#onExportarDxf"
                         styleClass="button-outlined"/>
             </HBox>
@@ -282,7 +286,7 @@
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>
             <VBox fx:id="panelMovimiento" visible="false" managed="false"/>
-            <Label text="La vista no realiza análisis estructural. La suma bruta no descuenta intersecciones."
+            <Label text="La vista no realiza análisis estructural. El metrado descuenta cruces entre elementos; el encofrado y el acero son referenciales."
                    styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
         </VBox>
     </HBox>

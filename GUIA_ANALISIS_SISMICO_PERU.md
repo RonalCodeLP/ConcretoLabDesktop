@@ -12,7 +12,6 @@ El proyecto conserva JavaFX para la interfaz, Spring Boot para los servicios y S
 ## 2. Situación actual del proyecto
 
 - **Modelo 3D:** prismas rectangulares para representación y volumen bruto; no definen conectividad, rigidez, masas ni un modelo apto para análisis de edificios. Las intersecciones no se descuentan.
-- **Cerchas 2D:** análisis lineal de barras articuladas con cargas nodales; no incluye flexión de pórticos de concreto ni análisis sísmico del edificio.
 - **Respuesta sísmica idealizada:** sistema de un grado de libertad con valores ingresados; no está conectado a la edificación ni implementa la E.030.
 - **Concreto:** materiales, granulometría y balance de cantidades; no es una implementación completa ni validada de ACI 211.1.
 

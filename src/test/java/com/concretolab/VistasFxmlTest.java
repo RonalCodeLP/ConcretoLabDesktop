@@ -33,8 +33,8 @@ import org.springframework.test.context.support.DependencyInjectionTestExecution
 class VistasFxmlTest {
 
     private static final List<String> VISTAS = List.of(
-            "main-view", "inicio-view", "modelo-view", "cercha-view", "sismo-view",
-            "materiales-view", "granulometria-view", "balance-view", "mezclas-view");
+            "main-view", "inicio-view", "modelo-view", "sismo-view", "tiempo-historia-view",
+            "materiales-view", "granulometria-view", "balance-view", "mezclas-view", "datos-view");
 
     @DynamicPropertySource
     static void baseTemporal(DynamicPropertyRegistry registro) throws Exception {
@@ -61,6 +61,50 @@ class VistasFxmlTest {
         proyectos.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
         sesion.setProyecto(p);
         cargarTodas();
+    }
+
+    @Test
+    void sismoViewIncluyeLaPestanaSimulacionTemporalYSeConfigura() throws Exception {
+        iniciarJavaFx();
+        sesion.setProyecto(null);
+        Object padre = cargar("sismo-view");
+        var campo = padre.getClass().getDeclaredField("tiempoHistoriaController");
+        campo.setAccessible(true);
+        var th = (com.concretolab.controller.TiempoHistoriaController) campo.get(padre);
+        assertThat(th).isNotNull();
+        var norma = SismoE030Test.norma(1, 1);
+        var resultado = com.concretolab.service.FernandoHuancaAnalisisSismico.analizar(
+                SismoE030Test.entrada(SismoE030Test.porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma));
+        ejecutarEnFx(() -> th.configurar(resultado, norma));
+        assertThat(th.ultimo()).isEmpty();
+        // Flujo completo: generar y simular 7 sintéticos en segundo plano, con gráficas y animación listas.
+        ejecutarEnFx(() -> th.configurar(resultado, norma));
+        var generar = th.getClass().getDeclaredMethod("onGenerar");
+        generar.setAccessible(true);
+        ejecutarEnFx(() -> {
+            try { generar.invoke(th); } catch (Exception e) { throw new IllegalStateException(e); }
+        });
+        long limite = System.currentTimeMillis() + 120_000;
+        while (th.ultimo().isEmpty() && System.currentTimeMillis() < limite) Thread.sleep(200);
+        assertThat(th.ultimo()).isPresent();
+        assertThat(th.ultimo().get().resultados()).hasSize(7);
+        Thread.sleep(500);
+        var cmb = th.getClass().getDeclaredField("cmbRegistro");
+        cmb.setAccessible(true);
+        ejecutarEnFx(() -> {
+            try {
+                var c = (javafx.scene.control.ComboBox<?>) cmb.get(th);
+                assertThat(c.getItems()).hasSize(7);
+                assertThat(c.getSelectionModel().getSelectedIndex()).isZero();
+            } catch (IllegalAccessException e) { throw new IllegalStateException(e); }
+        });
+        var play = th.getClass().getDeclaredMethod("onPlay");
+        play.setAccessible(true);
+        ejecutarEnFx(() -> {
+            try { play.invoke(th); play.invoke(th); } catch (Exception e) { throw new IllegalStateException(e); }
+        });
+        ejecutarEnFx(th::limpiar);
+        assertThat(th.ultimo()).isEmpty();
     }
 
     private void cargarTodas() throws Exception {

@@ -63,17 +63,20 @@ public class MainController {
     @FXML private ToggleGroup menu;
     @FXML private ToggleButton navInicio;
     @FXML private ToggleButton navModelo;
-    @FXML private ToggleButton navCercha;
     @FXML private ToggleButton navSismo;
     @FXML private ToggleButton navMateriales;
     @FXML private ToggleButton navGranulometria;
     @FXML private ToggleButton navBalance;
     @FXML private ToggleButton navMezclas;
+    @FXML private ToggleButton navDatos;
     @FXML private Region indicador;
 
     @FXML private VBox marcaTextos;
     @FXML private Button btnTema;
     @FXML private Button btnContraer;
+    @FXML private Button btnAcerca;
+    @org.springframework.beans.factory.annotation.Value("${app.version:desconocida}")
+    private String version;
 
     /** Vistas ya cargadas: se construyen una sola vez y se reutilizan. */
     private final Map<String, Vista> vistas = new HashMap<>();
@@ -90,12 +93,12 @@ public class MainController {
 
         navInicio.setUserData("inicio-view");
         navModelo.setUserData("modelo-view");
-        navCercha.setUserData("cercha-view");
         navSismo.setUserData("sismo-view");
         navMateriales.setUserData("materiales-view");
         navGranulometria.setUserData("granulometria-view");
         navBalance.setUserData("balance-view");
         navMezclas.setUserData("mezclas-view");
+        navDatos.setUserData("datos-view");
         for (ToggleButton b : botonesMenu()) {
             Tooltip t = new Tooltip(b.getText());
             t.setShowDelay(Duration.millis(300));
@@ -177,6 +180,13 @@ public class MainController {
     }
 
     @FXML
+    private void onAcercaDe() {
+        boolean cifrada = context.getBean(com.concretolab.service.ClaveBaseService.class).estaCifrada();
+        com.concretolab.ui.AcercaDe.mostrar(raiz.getScene().getWindow(), version, cifrada,
+                com.concretolab.service.RespaldoDatos.carpetaDatos().toString());
+    }
+
+    @FXML
     private void onContraerMenu() {
         contraido = !contraido;
         double ancho = contraido ? ANCHO_CONTRAIDO : ANCHO_EXPANDIDO;
@@ -210,12 +220,13 @@ public class MainController {
     }
 
     private List<ToggleButton> botonesMenu() {
-        return List.of(navInicio, navModelo, navCercha, navSismo, navMateriales, navGranulometria, navBalance, navMezclas);
+        return List.of(navInicio, navModelo, navSismo, navMateriales, navGranulometria, navBalance, navMezclas, navDatos);
     }
 
     private List<ButtonBase> todosLosBotones() {
         List<ButtonBase> todos = new ArrayList<>(botonesMenu());
         todos.add(btnTema);
+        todos.add(btnAcerca);
         todos.add(btnContraer);
         return todos;
     }

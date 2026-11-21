@@ -4,6 +4,7 @@ import com.concretolab.exception.NegocioException;
 import com.concretolab.model.Material;
 import com.concretolab.model.RegistroGranulometria;
 import com.concretolab.service.GranulometriaService;
+import com.concretolab.service.HusosGranulometricos;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.RegistroGranulometriaService;
 import com.concretolab.ui.Formularios;
@@ -146,7 +147,8 @@ public class GranulometriaController implements Refrescable {
             lblResumen.setText("Masa recuperada: " + fmt(r.recuperadoG())
                     + " g · Diferencia frente a la masa inicial: " + fmt(r.diferenciaG())
                     + " g (" + fmt(r.diferenciaPorcentaje())
-                    + " %). Revise cualquier diferencia con el procedimiento del laboratorio.");
+                    + " %). Revise cualquier diferencia con el procedimiento del laboratorio.\n"
+                    + verificarHuso(r.filas()));
         } catch (IllegalArgumentException | NegocioException e) {
             limpiarResultado();
             lblResumen.setText(e.getMessage());
@@ -206,6 +208,30 @@ public class GranulometriaController implements Refrescable {
         if (material != null) {
             cmbHistorial.getItems().setAll(registros.listar(material.getId()));
         }
+    }
+
+    /** Verifica el huso NTP 400.037 / ASTM C33 según el tipo del agregado elegido (fino o grueso). */
+    private String verificarHuso(List<GranulometriaService.Fila> filas) {
+        Material m = cmbMaterial.getValue();
+        boolean fino = m != null && "AGREGADO FINO".equals(m.getTipo());
+        if (m == null) {
+            var mf = HusosGranulometricos.moduloFinura(filas);
+            return mf == null ? "Elija un agregado de la biblioteca para verificar el huso."
+                    : String.format(Locale.ROOT, "Módulo de finura calculado: %.2f. Elija un agregado para verificar el huso.", mf);
+        }
+        if (fino) {
+            return HusosGranulometricos.verificar(HusosGranulometricos.Huso.FINO, filas).mensaje();
+        }
+        StringBuilder sb = new StringBuilder("Agregado grueso: ");
+        for (var huso : List.of(HusosGranulometricos.Huso.GRUESO_57, HusosGranulometricos.Huso.GRUESO_67,
+                HusosGranulometricos.Huso.GRUESO_7)) {
+            var v = HusosGranulometricos.verificar(huso, filas);
+            if (v.cumple()) {
+                return sb.append("cumple el huso ").append(huso).append(" (NTP 400.037 / ASTM C33).").toString();
+            }
+        }
+        return sb.append("no cumple por completo los husos Nº 57, 67 ni 7 con los tamices ingresados "
+                + "(verifique que estén todos los tamices de la serie).").toString();
     }
 
     private void invalidar() {

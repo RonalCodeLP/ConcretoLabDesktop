@@ -113,7 +113,7 @@
                     </LineChart>
                 </VBox>
 
-                <Label text="Gráfico categórico, no semilogarítmico. Esta herramienta no determina cumplimiento de una norma."
+                <Label text="Gráfico categórico, no semilogarítmico. Al elegir un agregado de la biblioteca se verifica el huso NTP 400.037 / ASTM C33; la conformidad final la dictamina el laboratorio."
                        styleClass="grafico-subtitulo-compacto" wrapText="true"/>
             </VBox>
         </VBox>

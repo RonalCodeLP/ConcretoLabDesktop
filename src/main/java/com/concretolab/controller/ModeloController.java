@@ -67,6 +67,69 @@ public class ModeloController implements Refrescable {
         }
     }
 
+    @FXML private void onExportarIfc() {
+        Proyecto activo = sesion.getProyecto();
+        if (activo == null) {
+            notificador.advertencia("Seleccione el proyecto que quiere exportar.");
+            return;
+        }
+        guardarTexto("Exportar modelo en IFC", activo.getNombre() + ".ifc", "Modelo IFC (IFC2X3)", "*.ifc",
+                () -> com.concretolab.service.ExportadorIfc.generar(activo.getNombre(), servicio.elementos(activo.getId())),
+                "IFC guardado. Ábralo en un visor IFC (BIMvision, Solibri, Revit…) para verificarlo.");
+    }
+
+    @FXML private void onExportarEtabs() {
+        Proyecto activo = sesion.getProyecto();
+        if (activo == null) {
+            notificador.advertencia("Seleccione el proyecto que quiere exportar.");
+            return;
+        }
+        var dialogo = new javafx.scene.control.TextInputDialog("21");
+        dialogo.setTitle("Exportar a ETABS (experimental)");
+        dialogo.setHeaderText("Resistencia del concreto f’c (MPa) para el material del modelo");
+        dialogo.setContentText("f’c (MPa):");
+        var respuesta = dialogo.showAndWait();
+        if (respuesta.isEmpty()) return;
+        double fc;
+        try {
+            fc = Double.parseDouble(respuesta.get().trim().replace(',', '.'));
+        } catch (NumberFormatException ex) {
+            notificador.advertencia("Ingrese una f’c numérica.");
+            return;
+        }
+        double fcFinal = fc;
+        var avisos = new java.util.ArrayList<String>();
+        guardarTexto("Exportar modelo a ETABS (.e2k)", activo.getNombre() + ".e2k", "Texto de ETABS", "*.e2k",
+                () -> {
+                    var r = com.concretolab.service.ExportadorEtabs.generar(activo.getNombre(), fcFinal, servicio.elementos(activo.getId()));
+                    avisos.addAll(r.avisos());
+                    return r.texto();
+                },
+                "e2k guardado (experimental, sin verificar en ETABS). Revise el modelo al importarlo.");
+        if (!avisos.isEmpty()) {
+            var a = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, String.join("\n• ", avisos));
+            a.setHeaderText("Avisos de la exportación");
+            a.setResizable(true);
+            a.showAndWait();
+        }
+    }
+
+    private void guardarTexto(String titulo, String nombre, String descripcion, String patron,
+                              java.util.function.Supplier<String> contenido, String mensajeOk) {
+        var selector = new javafx.stage.FileChooser();
+        selector.setTitle(titulo);
+        selector.setInitialFileName(nombre.replaceAll("[\\\\/:*?\"<>|]", "_"));
+        selector.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter(descripcion, patron));
+        var destino = selector.showSaveDialog(tabla.getScene().getWindow());
+        if (destino == null) return;
+        try {
+            java.nio.file.Files.writeString(destino.toPath(), contenido.get(), java.nio.charset.StandardCharsets.UTF_8);
+            notificador.exito(mensajeOk);
+        } catch (java.io.IOException | IllegalArgumentException ex) {
+            notificador.error(ex.getMessage() == null ? "No se pudo exportar." : ex.getMessage());
+        }
+    }
+
     @FXML private void onImportarDxf() {
         new com.concretolab.ui.MiajeldDelgadoImportacionDxf(importadorDxf, servicio)
                 .miajeldDelgadoAbrir(tabla.getScene().getWindow(), sesion.getProyecto())
@@ -180,7 +243,7 @@ public class ModeloController implements Refrescable {
             cargarElementos();
         });
 
-        cmbTipo.setItems(FXCollections.observableArrayList("ZAPATA", "COLUMNA", "VIGA"));
+        cmbTipo.setItems(FXCollections.observableArrayList("ZAPATA", "COLUMNA", "VIGA", "LOSA", "MURO"));
         cmbTipo.valueProperty().addListener((o, a, b) -> Formularios.limpiarError(cmbTipo));
         Formularios.limpiarAlEditar(txtNombreProyecto, txtUbicacionProyecto, txtNombreElemento,
                 txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
@@ -347,7 +410,7 @@ public class ModeloController implements Refrescable {
         Proyecto seleccionado = cmbProyecto.getValue();
         if (seleccionado == null) return;
         notificador.confirmar("Eliminar proyecto",
-                "¿Eliminar «" + seleccionado.getNombre() + "»? Se borrarán sus elementos, cerchas, mezclas y ensayos. "
+                "¿Eliminar «" + seleccionado.getNombre() + "»? Se borrarán sus elementos, mezclas y ensayos. "
                         + "Esta acción es permanente.", "Eliminar proyecto", () -> {
                     try {
                         servicio.yefriLermaEliminarProyecto(seleccionado.getId());
@@ -499,9 +562,29 @@ public class ModeloController implements Refrescable {
             return;
         }
         tabla.getItems().setAll(servicio.elementos(p.getId()));
-        double suma = tabla.getItems().stream().mapToDouble(Elemento::volumen).sum();
-        lblResumen.setText("Suma bruta: " + volumen(suma) + " m³\nNo descuenta superposiciones.");
+        lblResumen.setText(resumenMetrado(tabla.getItems()));
         dibujar(true);
+    }
+
+    /** Metrado de concreto neto (sin doble conteo en cruces) con encofrado y acero referenciales por tipo. */
+    static String resumenMetrado(java.util.List<Elemento> elementos) {
+        if (elementos.isEmpty()) {
+            return "El proyecto no tiene elementos.";
+        }
+        var m = com.concretolab.service.MetradoNeto.calcular(elementos);
+        var sb = new StringBuilder();
+        sb.append("Concreto neto ").append(volumen(m.volumenNeto())).append(" m³ (bruto ").append(volumen(m.volumenBruto()))
+                .append(", cruces ").append(volumen(m.descontado())).append(")\n");
+        sb.append("Por tipo: concreto neto · encofrado · acero ref.\n");
+        for (var f : m.filas()) {
+            sb.append(f.tipo()).append(" ×").append(f.cantidad()).append(" · ").append(volumen(f.volumenNeto())).append(" m³ · ")
+                    .append(String.format(java.util.Locale.ROOT, "%.1f", f.encofradoM2())).append(" m² · ")
+                    .append(String.format(java.util.Locale.ROOT, "%.0f", f.aceroKg())).append(" kg\n");
+        }
+        sb.append("Total ").append(String.format(java.util.Locale.ROOT, "%.1f", m.encofradoM2()))
+                .append(" m² · ").append(String.format(java.util.Locale.ROOT, "%.0f", m.aceroKg()))
+                .append(" kg (cuantías típicas, anteproyecto)");
+        return sb.toString();
     }
 
     /** Reencuadra la camara al cargar datos, pero no al seleccionar una fila. */

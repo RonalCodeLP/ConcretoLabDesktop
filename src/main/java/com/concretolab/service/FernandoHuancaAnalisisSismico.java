@@ -32,8 +32,24 @@ public final class FernandoHuancaAnalisisSismico {
         public double derivaMaxima() { return Arrays.stream(derivasMaximas).max().orElse(0); }
         public boolean cumple() { return derivaMaxima() <= NormaE030.DERIVA_LIMITE_CONCRETO; }
     }
-    public record Resultado(List<Piso> pisos, List<Modo> modos, double pesoTotal, double ecMpa,
-                            Direccion estaticoX, Direccion estaticoY, Direccion espectralX, Direccion espectralY, List<String> advertencias) {
+    /** Separación sísmica: mínimo por norma según la altura y 2/3 del desplazamiento máximo propio (a sumar con el del vecino). */
+    public record Junta(double alturaM, double minimoNormaM, double dosTerciosPropioM) {}
+    /**
+     * Modelo dinámico del edificio con diafragma rígido: 3 grados de libertad por piso (ux, uy, rz en el centro de masas),
+     * ordenados piso a piso. Masas en kN·s²/m (el giro, en kN·s²·m), rigidez condensada en kN/m, kN y kN·m. Sirve para el
+     * análisis tiempo-historia: M·ü + C·u̇ + K·u = −M·r·ag(t).
+     */
+    public record ModeloDinamico(int pisos, double[] masas, double[][] rigidez, double[] cotas, double[] alturas,
+                                 double[] xcm, double[] ycm, List<List<double[]>> puntos, double[] periodos) {
+        /** Vector de influencia del movimiento del suelo: 1 en los GDL de traslación de la dirección (0 = X, 1 = Y). */
+        public double[] influencia(int direccion) {
+            double[] r = new double[3 * pisos];
+            for (int s = 0; s < pisos; s++) r[3 * s + direccion] = 1.0;
+            return r;
+        }
+        public int grados() { return 3 * pisos; }
+    }    public record Resultado(List<Piso> pisos, List<Modo> modos, double pesoTotal, double ecMpa,
+                            Direccion estaticoX, Direccion estaticoY, Direccion espectralX, Direccion espectralY, List<String> advertencias, Junta junta, ModeloDinamico modelo) {
         public double masaAcumuladaX() { return modos.stream().mapToDouble(Modo::masaEfectivaX).sum(); }
         public double masaAcumuladaY() { return modos.stream().mapToDouble(Modo::masaEfectivaY).sum(); }
     }
@@ -299,6 +315,11 @@ public final class FernandoHuancaAnalisisSismico {
             avisos.add("El método estático de la E.030 (" + norma.art("aplicabilidad") + ") no es aplicable a este caso (" + (norma.regular() ? "regular de más de 30 m" : "estructura irregular fuera de la zona 1") + "); use el resultado espectral.");
         if (espX.factorEscala() > 1.0001 || espY.factorEscala() > 1.0001) avisos.add("El cortante dinámico fue menor que el mínimo de la E.030 (" + norma.art("minimo") + ") y se escalaron fuerzas, no desplazamientos.");
         avisos.addAll(norma.restricciones());
+        long muros = in.elementos().stream().filter(e -> "MURO".equals(e.getTipo())).count();
+        if (muros > 0) avisos.add("El modelo tiene " + muros + " muro(s): este módulo analiza solo pórticos y NO incluye su rigidez ni su aporte al cortante. "
+                + "Con muros estructurales (placas) el sistema y el factor R cambian (E.030 Tabla 9/7); modele la estructura completa en un programa de análisis.");
+        if (in.elementos().stream().anyMatch(e -> "LOSA".equals(e.getTipo())))
+            avisos.add("Las losas del modelo se usan solo para el metrado; el peso sísmico se toma de las cargas por m² indicadas en el formulario.");
         if (norma.requiereVerificarPeriodoDeSitio()) avisos.add("Art. 14.8: en categorías A y B de la zona 4 con suelos S1 a S4 debe verificarse que el periodo del sitio Ts (cociente H/V) sea menor que 0,65·Tp; este módulo no lo calcula.");
         if (norma.suelo().interpola() && Double.isNaN(norma.vs30())) avisos.add("Sin Vs30 se usaron los valores más desfavorables del intervalo para S, Tp y TL (art. 17, nota *): S = " + String.format(Locale.ROOT, "%.2f", norma.s()) + ", Tp = " + norma.tp() + " s, TL = " + norma.tl() + " s.");
         avisos.add(norma.fraccionPerpendicular() > 0
@@ -313,8 +334,14 @@ public final class FernandoHuancaAnalisisSismico {
         double mx = modos.stream().mapToDouble(Modo::masaEfectivaX).sum(), my = modos.stream().mapToDouble(Modo::masaEfectivaY).sum();
         if (mx < 0.9 || my < 0.9) avisos.add("La masa efectiva acumulada es menor que 90 % en alguna dirección.");
         if (Math.abs(estX.periodo() - per[modoX]) / per[modoX] > 0.5) avisos.add("El periodo aproximado hn/CT difiere más de 50 % del periodo modal en X; revise el modelo.");
+        if (in.fraccionRigidez() < 1.0) avisos.add("Rigidez reducida a " + String.format(Locale.ROOT, "%.2f", in.fraccionRigidez()) + " de EI: la norma (" + norma.art("inerciaBruta") + ") pide secciones brutas sin fisurar para el análisis; con menos rigidez los periodos y desplazamientos salen mayores que los exigidos.");
+        double desplMax = 0;
+        for (var dir : List.of(estX, estY, espX, espY)) desplMax = Math.max(desplMax, dir.desplazamientosCm()[S - 1]);
+        var junta = new Junta(hn, norma.juntaMinima(hn), 2.0 / 3.0 * desplMax);
+        avisos.add("Junta sísmica (" + norma.art("junta") + "): separa el edificio de sus vecinos al menos " + String.format(Locale.ROOT, "%.1f cm", Math.max(junta.minimoNormaM(), 0) * 100) + " por norma y no menos de 2/3 de la suma de los desplazamientos máximos de ambos edificios (el propio aporta " + String.format(Locale.ROOT, "%.1f cm", junta.dosTerciosPropioM() * 100) + ").");
         avisos.add("Base empotrada: las zapatas no se modelan. Sin zonas rígidas en nudos ni muros; resultados educativos y preliminares.");
-        return new Resultado(pisosRes, modos, P, ecMpa, estX, estY, espX, espY, avisos);
+        var modeloDinamico = new ModeloDinamico(S, m.clone(), Kc.getData(), cotas.clone(), alturas.clone(), xcm.clone(), ycm.clone(), List.copyOf(puntos), per.clone());
+        return new Resultado(pisosRes, modos, P, ecMpa, estX, estY, espX, espY, avisos, junta, modeloDinamico);
     }
 
     private static double desplazamiento(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm) {

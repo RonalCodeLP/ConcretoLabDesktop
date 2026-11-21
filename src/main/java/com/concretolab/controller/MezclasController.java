@@ -6,6 +6,8 @@ import com.concretolab.model.Ensayo;
 import com.concretolab.model.Material;
 import com.concretolab.model.Mezcla;
 import com.concretolab.model.Proyecto;
+import com.concretolab.service.DisenoMezclaACI;
+import com.concretolab.service.EvaluacionResistencia;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.MezclaService;
 import com.concretolab.service.YefriLermaProyectoService;
@@ -79,6 +81,29 @@ public class MezclasController implements Refrescable {
     @FXML private TextField txtHumedadGrueso;
     @FXML private TextArea txtObservaciones;
 
+    // ---- asistente de diseno
+    @FXML private VBox panelDiseno;
+    @FXML private TextField txtFcDiseno;
+    @FXML private TextField txtAsentDiseno;
+    @FXML private TextField txtDesviacion;
+    @FXML private TextField txtNumEnsayos;
+    @FXML private ComboBox<DisenoMezclaACI.Exposicion> cmbExposicion;
+    @FXML private javafx.scene.control.CheckBox chkAire;
+    @FXML private ComboBox<DisenoMezclaACI.SeveridadAire> cmbSeveridad;
+    @FXML private ComboBox<Material> cmbFinoDiseno;
+    @FXML private ComboBox<Material> cmbGruesoDiseno;
+    @FXML private TextField txtMfDiseno;
+    @FXML private TextField txtDensFinoDiseno;
+    @FXML private TextField txtTmaDiseno;
+    @FXML private TextField txtPucDiseno;
+    @FXML private TextField txtDensGruesoDiseno;
+    @FXML private TextField txtAbsGruesoDiseno;
+    @FXML private TextField txtDensCemento;
+    @FXML private Label lblResultadoDiseno;
+    @FXML private Button btnUsarDiseno;
+    private DisenoMezclaACI.Resultado ultimoDiseno;
+    private double ultimaFc;
+
     // ---- formulario de ensayo
     @FXML private Label lblSubtituloEnsayo;
     @FXML private TextField txtIdentificacion;
@@ -150,6 +175,14 @@ public class MezclasController implements Refrescable {
         lstElementos.getSelectionModel().getSelectedItems()
                 .addListener((javafx.collections.ListChangeListener<Elemento>) c -> Formularios.limpiarError(lstElementos));
 
+        cmbExposicion.setItems(FXCollections.observableArrayList(DisenoMezclaACI.Exposicion.values()));
+        cmbExposicion.setValue(DisenoMezclaACI.Exposicion.NORMAL);
+        cmbSeveridad.setItems(FXCollections.observableArrayList(DisenoMezclaACI.SeveridadAire.values()));
+        cmbSeveridad.setValue(DisenoMezclaACI.SeveridadAire.MODERADA);
+        cmbSeveridad.disableProperty().bind(chkAire.selectedProperty().not());
+        Formularios.limpiarAlEditar(txtFcDiseno, txtAsentDiseno, txtDesviacion, txtNumEnsayos, txtMfDiseno,
+                txtDensFinoDiseno, txtTmaDiseno, txtPucDiseno, txtDensGruesoDiseno, txtAbsGruesoDiseno, txtDensCemento);
+
         Formularios.limpiarAlEditar(txtVolumen, txtNombre, txtReferencia, txtResistencia, txtCemento, txtAgua,
                 txtFinoSss, txtGruesoSss, txtAbsorcionFino, txtHumedadFino, txtAbsorcionGrueso, txtHumedadGrueso,
                 txtObservaciones, txtIdentificacion, txtFecha, txtEdad, txtResistenciaEnsayo, txtAsentamiento,
@@ -181,6 +214,139 @@ public class MezclasController implements Refrescable {
     @FXML
     private void onCalcular() {
         actualizar();
+    }
+
+    // -------------------------------------------------- asistente de diseño
+
+    @FXML
+    private void onDisenar() {
+        cmbFinoDiseno.setItems(FXCollections.observableArrayList(materiales.porTipo("AGREGADO FINO")));
+        cmbGruesoDiseno.setItems(FXCollections.observableArrayList(materiales.porTipo("AGREGADO GRUESO")));
+        ultimoDiseno = null;
+        btnUsarDiseno.setDisable(true);
+        lblResultadoDiseno.setText("Complete los datos y pulse «Calcular diseño».");
+        notificador.abrirPanel(panelDiseno);
+        Platform.runLater(txtFcDiseno::requestFocus);
+    }
+
+    @FXML
+    private void onElegirFinoDiseno() {
+        Material m = cmbFinoDiseno.getValue();
+        if (m != null) {
+            txtMfDiseno.setText(campo(m.getModuloFinura()));
+            txtDensFinoDiseno.setText(campo(m.getDensidadRelativa()));
+        }
+    }
+
+    @FXML
+    private void onElegirGruesoDiseno() {
+        Material m = cmbGruesoDiseno.getValue();
+        if (m != null) {
+            txtTmaDiseno.setText(campo(m.getTamanoMaximoMm()));
+            txtPucDiseno.setText(campo(m.getPesoUnitarioCompactado()));
+            txtDensGruesoDiseno.setText(campo(m.getDensidadRelativa()));
+            txtAbsGruesoDiseno.setText(campo(m.getAbsorcion()));
+        }
+    }
+
+    @FXML
+    private void onCalcularDiseno() {
+        List<TextField> campos = List.of(txtFcDiseno, txtAsentDiseno, txtDesviacion, txtNumEnsayos, txtMfDiseno,
+                txtDensFinoDiseno, txtTmaDiseno, txtPucDiseno, txtDensGruesoDiseno, txtAbsGruesoDiseno, txtDensCemento);
+        Formularios.limpiarErrores(campos.toArray(new TextField[0]));
+        ultimoDiseno = null;
+        btnUsarDiseno.setDisable(true);
+        boolean faltan = false;
+        for (TextField c : campos) {
+            if (c != txtDesviacion && c != txtNumEnsayos && c.getText().isBlank()) {
+                Formularios.marcarError(c, "Complete este dato.");
+                faltan = true;
+            }
+        }
+        if (faltan) {
+            lblResultadoDiseno.setText("Faltan datos: complete los campos marcados.");
+            return;
+        }
+        try {
+            double fc = num(txtFcDiseno);
+            Double s = txtDesviacion.getText().isBlank() ? null : num(txtDesviacion);
+            int n = txtNumEnsayos.getText().isBlank() ? 0 : (int) Math.round(num(txtNumEnsayos));
+            var entrada = new DisenoMezclaACI.Entrada(fc, s, n, num(txtAsentDiseno), num(txtTmaDiseno), num(txtMfDiseno),
+                    num(txtPucDiseno), num(txtDensCemento), num(txtDensFinoDiseno), num(txtDensGruesoDiseno),
+                    num(txtAbsGruesoDiseno), cmbExposicion.getValue(), chkAire.isSelected(), cmbSeveridad.getValue());
+            ultimoDiseno = DisenoMezclaACI.disenar(entrada);
+            ultimaFc = fc;
+            lblResultadoDiseno.setText(textoDiseno(ultimoDiseno));
+            btnUsarDiseno.setDisable(false);
+        } catch (NumberFormatException e) {
+            lblResultadoDiseno.setText(ERROR_NUMERO);
+        } catch (IllegalArgumentException e) {
+            lblResultadoDiseno.setText(mensaje(e));
+        }
+    }
+
+        private static String f1(double n) { return String.format(Locale.ROOT, "%.1f", n); }
+    private static String f2(double n) { return String.format(Locale.ROOT, "%.2f", n); }
+
+    private static String textoDiseno(DisenoMezclaACI.Resultado r) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("f’cr requerida: ").append(f1(r.fcrMpa())).append(" MPa\n").append(r.criterioFcr()).append("\n\n");
+        sb.append("a/c: ").append(f2(r.relacionAc())).append(" (por resistencia ").append(f2(r.relacionAcResistencia()));
+        if (r.relacionAcDurabilidad() > 0) {
+            sb.append(", máxima por durabilidad ").append(f2(r.relacionAcDurabilidad()));
+        }
+        sb.append(")\nTMA de tabla: ").append(f1(r.tmaTabla())).append(" mm · aire: ").append(f1(r.airePorcentaje())).append(" %\n\n");
+        sb.append("Cemento: ").append(f1(r.cemento())).append(" kg/m³ (").append(f1(r.bolsasCemento())).append(" bolsas de 42,5 kg)\n");
+        sb.append("Agua de mezclado: ").append(f1(r.agua())).append(" kg/m³\n");
+        sb.append("Fino SSS: ").append(f1(r.finoSss())).append(" kg/m³\n");
+        sb.append("Grueso SSS: ").append(f1(r.gruesoSss())).append(" kg/m³ (seco ").append(f1(r.gruesoSeco()))
+                .append(" kg, volumen relativo ").append(f2(r.volumenRelativoGrueso())).append(")\n");
+        sb.append("Proporción en peso: ").append(r.proporcionEnPeso()).append("\n\nAvisos:");
+        r.advertencias().forEach(a -> sb.append("\n• ").append(a));
+        return sb.toString();
+    }
+
+    @FXML
+    private void onUsarDiseno() {
+        if (ultimoDiseno == null) {
+            return;
+        }
+        Proyecto proyecto = sesion.getProyecto();
+        if (proyecto == null) {
+            notificador.advertencia("Seleccione un proyecto en «Modelo 3D y metrado» para guardar la mezcla.");
+            return;
+        }
+        var r = ultimoDiseno;
+        onNuevaMezcla();
+        txtNombre.setText("Diseño ACI f’c " + fmt(ultimaFc) + " MPa");
+        txtReferencia.setText("Asistente ACI 211.1 + E.060");
+        txtResistencia.setText(Double.toString(ultimaFc));
+        txtCemento.setText(fmt(r.cemento()));
+        txtAgua.setText(fmt(r.agua()));
+        txtFinoSss.setText(fmt(r.finoSss()));
+        txtGruesoSss.setText(fmt(r.gruesoSss()));
+        Material fino = cmbFinoDiseno.getValue();
+        Material grueso = cmbGruesoDiseno.getValue();
+        cmbFino.setItems(FXCollections.observableArrayList(materiales.porTipo("AGREGADO FINO")));
+        cmbGrueso.setItems(FXCollections.observableArrayList(materiales.porTipo("AGREGADO GRUESO")));
+        if (fino != null) {
+            cmbFino.getItems().stream().filter(m -> Objects.equals(m.getId(), fino.getId())).findFirst().ifPresent(cmbFino::setValue);
+            onElegirFino();
+        }
+        if (grueso != null) {
+            cmbGrueso.getItems().stream().filter(m -> Objects.equals(m.getId(), grueso.getId())).findFirst().ifPresent(cmbGrueso::setValue);
+            onElegirGrueso();
+        }
+        if (fino == null) {
+            txtAbsorcionFino.clear();
+            txtHumedadFino.clear();
+        }
+        if (grueso == null) {
+            txtAbsorcionGrueso.setText(txtAbsGruesoDiseno.getText());
+            txtHumedadGrueso.clear();
+        }
+        txtObservaciones.setText("Dosificación de partida (ACI 211.1). Completar humedad de obra y validar con mezcla de prueba. "
+                + String.join(" ", r.advertencias()));
     }
 
     @FXML
@@ -436,11 +602,24 @@ public class MezclasController implements Refrescable {
         }
         datosEnsayos.setAll(servicio.ensayos(m.getId()));
         try {
-            lblResultado.setText(texto());
+            lblResultado.setText(texto() + "\n\n" + evaluacion(m));
         } catch (Exception ex) {
             lblResultado.setText(mensaje(ex));
             marcarVolumen(ex);
         }
+    }
+
+    /** Evaluación E.060 (art. 5.6) con los ensayos de 28 días en el orden en que se registraron. */
+    private String evaluacion(Mezcla m) {
+        List<Double> resultados = new java.util.ArrayList<>();
+        for (int i = datosEnsayos.size() - 1; i >= 0; i--) { // la lista viene del más reciente al más antiguo
+            Ensayo e = datosEnsayos.get(i);
+            if (Math.abs(e.getEdadDias() - 28) <= 0.5) {
+                resultados.add(e.getResistenciaMpa());
+            }
+        }
+        return "Evaluación E.060 (f’c " + fmt(m.getResistencia()) + " MPa): "
+                + EvaluacionResistencia.evaluar(m.getResistencia(), resultados).mensaje();
     }
 
     private String texto() {

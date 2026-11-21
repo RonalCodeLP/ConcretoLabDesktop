@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
- * Carga el proyecto de demostración «DEMO - Edificación de práctica» (materiales, tamizado, mezcla, ensayo y cercha) y tres edificios de varios pisos para el análisis sísmico.
+ * Carga el proyecto de demostración «DEMO - Edificación de práctica» (materiales, tamizado, mezcla, y ensayo) y tres edificios de varios pisos para el análisis sísmico.
  * Está APAGADO por defecto para no tocar datos reales: se activa con {@code app.seeder.enabled=true} en application.properties
  * (o con {@code -Dapp.seeder.enabled=true}). Cada seeder es idempotente: reiniciar no duplica datos, pero si se borra el
  * proyecto DEMO volverá a crearse en el siguiente arranque mientras la opción siga activa.
@@ -23,7 +23,6 @@ public class DatabaseSeeder implements ApplicationRunner {
     private final MaterialSeeder materialSeeder;
     private final GranulometriaSeeder granulometriaSeeder;
     private final MezclaSeeder mezclaSeeder;
-    private final CerchaSeeder cerchaSeeder;
     private final EdificiosSismicosSeeder edificiosSeeder;
     private final EdificioPracticaSeeder edificioPracticaSeeder;
 
@@ -34,16 +33,15 @@ public class DatabaseSeeder implements ApplicationRunner {
 
     /** Ejecuta los seeders en orden de dependencias y devuelve cuántos registros nuevos creó. */
     public int sembrar() {
-        // Orden: el proyecto va primero; la granulometría necesita la arena; la mezcla y la cercha necesitan el proyecto.
+        // Orden: el proyecto va primero; la granulometría necesita la arena; la mezcla necesita el proyecto.
         int proyectos = proyectoSeeder.sembrar();
         int materiales = materialSeeder.sembrar();
         int granulometrias = granulometriaSeeder.sembrar();
         int mezclas = mezclaSeeder.sembrar();
-        int cerchas = cerchaSeeder.sembrar();
         int edificios = edificiosSeeder.sembrar();
         int practicas = edificioPracticaSeeder.sembrar();
-        log.info("Seeder: {} proyecto(s), {} material(es), {} tamizado(s), {} registro(s) de mezcla/ensayo, {} cercha(s), {} edificio(s) sísmicos y {} proyecto(s) de práctica nuevos.",
-                proyectos, materiales, granulometrias, mezclas, cerchas, edificios, practicas);
-        return proyectos + materiales + granulometrias + mezclas + cerchas + edificios + practicas;
+        log.info("Seeder: {} proyecto(s), {} material(es), {} tamizado(s), {} registro(s) de mezcla/ensayo, {} edificio(s) sísmicos y {} proyecto(s) de práctica nuevos.",
+                proyectos, materiales, granulometrias, mezclas, edificios, practicas);
+        return proyectos + materiales + granulometrias + mezclas + edificios + practicas;
     }
 }

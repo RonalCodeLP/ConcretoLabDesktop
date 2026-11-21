@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<?import com.concretolab.ui.VistaTiempoHistoria?>
+
+<VBox xmlns="http://javafx.com/javafx/17"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:id="raiz"
+      fx:controller="com.concretolab.controller.TiempoHistoriaController"
+      spacing="10.0" VBox.vgrow="ALWAYS">
+    <fx:define>
+        <ToggleGroup fx:id="grupoDireccion"/>
+    </fx:define>
+
+    <!-- ===== Aún no se calculó el análisis sísmico ===== -->
+    <VBox fx:id="panelVacio" styleClass="tarjeta" alignment="CENTER" VBox.vgrow="ALWAYS">
+        <FontIcon iconLiteral="fth-activity" styleClass="vacio-icono"/>
+        <Label text="Simulación temporal no disponible" styleClass="vacio-titulo"/>
+        <Label text="Primero calcule el análisis sísmico (pestaña Resumen)" styleClass="vacio-detalle" wrapText="true"/>
+    </VBox>
+
+    <ScrollPane fx:id="panelContenido" fitToWidth="true" hbarPolicy="NEVER" styleClass="pagina-scroll"
+                VBox.vgrow="ALWAYS" visible="false" managed="false">
+        <VBox spacing="12.0" styleClass="th-contenido">
+
+            <!-- ===== Origen de los registros ===== -->
+            <VBox styleClass="paso-tarjeta" spacing="8.0">
+                <Label text="Análisis tiempo-historia · suelo móvil + estructura" styleClass="paso-titulo"/>
+                <Label fx:id="lblAyuda" styleClass="paso-ayuda" wrapText="true" minHeight="-Infinity"/>
+                <Label fx:id="lblPeriodo" styleClass="chip,neutro,paso-chip" wrapText="true"/>
+                <HBox spacing="14.0">
+                    <VBox styleClass="paso-tarjeta" spacing="8.0" HBox.hgrow="ALWAYS" prefWidth="300.0" minWidth="0.0">
+                        <Label text="Sintéticos compatibles con la E.030 (7 conjuntos)" styleClass="paso-titulo" wrapText="true"/>
+                        <VBox styleClass="campo">
+                            <Label text="Semilla del generador" styleClass="campo-label"/>
+                            <TextField fx:id="txtSemilla" text="2026">
+                                <tooltip><Tooltip text="Con la misma semilla se obtienen siempre los mismos acelerogramas."/></tooltip>
+                            </TextField>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <Button fx:id="btnGenerar" text="Generar y simular" onAction="#onGenerar" styleClass="accent,boton-principal" maxWidth="Infinity">
+                            <graphic><FontIcon iconLiteral="fth-zap"/></graphic>
+                        </Button>
+                    </VBox>
+                    <VBox styleClass="paso-tarjeta" spacing="8.0" HBox.hgrow="ALWAYS" prefWidth="420.0" minWidth="0.0">
+                        <Label text="Registros importados" styleClass="paso-titulo"/>
+                        <HBox spacing="10.0">
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" minWidth="0.0">
+                                <Label text="Archivos" styleClass="campo-label"/>
+                                <ComboBox fx:id="cmbFormato" maxWidth="Infinity"/>
+                            </VBox>
+                            <VBox styleClass="campo" HBox.hgrow="ALWAYS" minWidth="0.0">
+                                <Label text="Unidad" styleClass="campo-label"/>
+                                <ComboBox fx:id="cmbUnidad" maxWidth="Infinity"/>
+                            </VBox>
+                            <VBox styleClass="campo" prefWidth="90.0" minWidth="70.0">
+                                <Label text="dt (s)" styleClass="campo-label"/>
+                                <TextField fx:id="txtDt" promptText="opcional">
+                                    <tooltip><Tooltip text="Solo si el archivo no trae el tiempo ni el paso de muestreo."/></tooltip>
+                                </TextField>
+                                <Label styleClass="campo-error" visible="false" managed="false"/>
+                            </VBox>
+                        </HBox>
+                        <Button fx:id="btnImportar" text="Importar acelerograma…" onAction="#onImportar" styleClass="button-outlined" maxWidth="Infinity">
+                            <graphic><FontIcon iconLiteral="fth-upload"/></graphic>
+                        </Button>
+                        <ListView fx:id="lstImportados" styleClass="paso-lista" prefHeight="84.0" minHeight="84.0" maxHeight="84.0"/>
+                        <HBox spacing="10.0">
+                            <Button fx:id="btnQuitar" text="Quitar" onAction="#onQuitar" styleClass="button-outlined">
+                                <graphic><FontIcon iconLiteral="fth-trash-2"/></graphic>
+                            </Button>
+                            <Button fx:id="btnSimularImportados" text="Simular registros importados" onAction="#onSimularImportados"
+                                    styleClass="accent" HBox.hgrow="ALWAYS" maxWidth="Infinity">
+                                <graphic><FontIcon iconLiteral="fth-play"/></graphic>
+                            </Button>
+                        </HBox>
+                    </VBox>
+                </HBox>
+                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                    <ProgressBar fx:id="barraProgreso" prefWidth="280.0" progress="0.0" visible="false" managed="false"/>
+                    <Label fx:id="lblProgreso" styleClass="paso-ayuda" wrapText="true"/>
+                </HBox>
+            </VBox>
+
+            <!-- ===== Resultados ===== -->
+            <VBox fx:id="panelResultados" spacing="10.0" visible="false" managed="false">
+                <Label fx:id="lblBanner" maxWidth="Infinity" wrapText="true" minHeight="-Infinity"/>
+                <TitledPane text="Notas de la verificación (límite, método, supuestos): expandir para leer" expanded="false" animated="false">
+                    <VBox fx:id="cajaAvisos" spacing="6.0" minHeight="-Infinity"/>
+                </TitledPane>
+
+                <TabPane fx:id="tabsTH" tabClosingPolicy="UNAVAILABLE" prefHeight="640.0" minHeight="640.0">
+                    <tabs>
+                        <Tab text="Animación">
+                            <VBox spacing="8.0" styleClass="th-pestana">
+                                <FlowPane hgap="10.0" vgap="8.0" alignment="CENTER_LEFT">
+                                    <Label text="Dirección"/>
+                                    <ToggleButton fx:id="tbX" text="X" toggleGroup="$grupoDireccion" selected="true"/>
+                                    <ToggleButton fx:id="tbY" text="Y" toggleGroup="$grupoDireccion"/>
+                                    <Label text="Registro"/>
+                                    <ComboBox fx:id="cmbRegistro" prefWidth="260.0"/>
+                                    <Button fx:id="btnPlay" text="Reproducir" onAction="#onPlay" styleClass="accent">
+                                        <graphic><FontIcon fx:id="iconoPlay" iconLiteral="fth-play"/></graphic>
+                                    </Button>
+                                    <Button fx:id="btnReiniciar" text="Reiniciar" onAction="#onReiniciar" styleClass="button-outlined">
+                                        <graphic><FontIcon iconLiteral="fth-rotate-ccw"/></graphic>
+                                    </Button>
+                                    <Label text="Velocidad"/>
+                                    <ComboBox fx:id="cmbVelocidad" prefWidth="90.0"/>
+                                    <Label text="Escala visual"/>
+                                    <Slider fx:id="sldEscala" min="0.25" max="4.0" value="1.0" prefWidth="140.0"/>
+                                </FlowPane>
+                                <Slider fx:id="sldTiempo" min="0.0" max="1.0" value="0.0"/>
+                                <HBox spacing="18.0" styleClass="th-lectura">
+                                    <Label fx:id="lblT"/>
+                                    <Label fx:id="lblAg"/>
+                                    <Label fx:id="lblUg"/>
+                                    <Label fx:id="lblTecho"/>
+                                    <Label fx:id="lblDeriva"/>
+                                </HBox>
+                                <VistaTiempoHistoria fx:id="vista" VBox.vgrow="ALWAYS"/>
+                                <Label fx:id="lblExageracion" styleClass="paso-ayuda" wrapText="true"/>
+                            </VBox>
+                        </Tab>
+                        <Tab text="Gráficas">
+                            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="pagina-scroll">
+                                <VBox spacing="10.0" styleClass="th-pestana">
+                                    <VBox styleClass="grafico">
+                                        <Label text="Aceleración del suelo ag(t)" styleClass="grafico-titulo"/>
+                                        <LineChart fx:id="grafAceleracion" styleClass="grafico-th,grafico-th-aceleracion" createSymbols="false"
+                                                   animated="false" legendVisible="false" prefHeight="210.0" minHeight="210.0">
+                                            <xAxis><NumberAxis label="t (s)" side="BOTTOM" autoRanging="false" forceZeroInRange="false"/></xAxis>
+                                            <yAxis><NumberAxis label="ag (m/s²)" side="LEFT" autoRanging="false" forceZeroInRange="false"/></yAxis>
+                                        </LineChart>
+                                    </VBox>
+                                    <VBox styleClass="grafico">
+                                        <Label text="Desplazamientos en el tiempo (cm)" styleClass="grafico-titulo"/>
+                                        <LineChart fx:id="grafDesplazamiento" styleClass="grafico-th,grafico-th-desplazamiento" createSymbols="false"
+                                                   animated="false" prefHeight="240.0" minHeight="240.0">
+                                            <xAxis><NumberAxis label="t (s)" side="BOTTOM" autoRanging="false" forceZeroInRange="false"/></xAxis>
+                                            <yAxis><NumberAxis label="u (cm)" side="LEFT" autoRanging="false" forceZeroInRange="false"/></yAxis>
+                                        </LineChart>
+                                    </VBox>
+                                    <VBox styleClass="grafico">
+                                        <Label fx:id="lblTituloDeriva" text="Deriva del entrepiso crítico" styleClass="grafico-titulo"/>
+                                        <LineChart fx:id="grafDeriva" styleClass="grafico-th,grafico-th-deriva" createSymbols="false"
+                                                   animated="false" prefHeight="230.0" minHeight="230.0">
+                                            <xAxis><NumberAxis label="t (s)" side="BOTTOM" autoRanging="false" forceZeroInRange="false"/></xAxis>
+                                            <yAxis><NumberAxis label="Deriva (adimensional)" side="LEFT" autoRanging="false" forceZeroInRange="false"/></yAxis>
+                                        </LineChart>
+                                    </VBox>
+                                </VBox>
+                            </ScrollPane>
+                        </Tab>
+                        <Tab text="Resultados por registro">
+                            <VBox spacing="8.0" styleClass="th-pestana">
+                                <TableView fx:id="tablaResultados" VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+                        <Tab text="Espectros">
+                            <VBox spacing="8.0" styleClass="th-pestana">
+                                <VBox styleClass="grafico" VBox.vgrow="ALWAYS">
+                                    <Label text="Espectro de diseño (R = 1) y promedio SRSS escalado, en la rejilla 0,2T a 1,5T" styleClass="grafico-titulo" wrapText="true"/>
+                                    <LineChart fx:id="grafEspectros" styleClass="grafico-th,grafico-th-espectro" createSymbols="false"
+                                               animated="false" VBox.vgrow="ALWAYS">
+                                        <xAxis><NumberAxis label="T (s)" side="BOTTOM" autoRanging="true" forceZeroInRange="false"/></xAxis>
+                                        <yAxis><NumberAxis label="Sa (g)" side="LEFT" autoRanging="true" forceZeroInRange="false"/></yAxis>
+                                    </LineChart>
+                                </VBox>
+                                <VBox fx:id="cajaEscalado" spacing="6.0" minHeight="-Infinity"/>
+                            </VBox>
+                        </Tab>
+                    </tabs>
+                </TabPane>
+            </VBox>
+        </VBox>
+    </ScrollPane>
+
+    <Label fx:id="lblAdvertencia" styleClass="sismo-aviso" wrapText="true" minHeight="-Infinity"/>
+</VBox>

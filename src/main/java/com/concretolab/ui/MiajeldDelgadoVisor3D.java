@@ -312,6 +312,8 @@ public class MiajeldDelgadoVisor3D {
         return switch (tipo) {
             case "ZAPATA" -> COLOR_ZAPATA;
             case "COLUMNA" -> COLOR_COLUMNA;
+            case "LOSA" -> Color.web("#94a3b8", 0.35); // translúcida: no tapa lo que hay debajo
+            case "MURO" -> Color.web("#f59e0b");
             default -> COLOR_VIGA;
         };
     }

@@ -24,7 +24,10 @@ public final class ReporteSismo {
         return t;
     }
 
-    public static byte[] generar(Proyecto p, Entrada in, Resultado r) {
+    public static byte[] generar(Proyecto p, Entrada in, Resultado r) { return generar(p, in, r, null); }
+
+    /** Igual que la versión sin tiempo-historia, e incluye esa sección si {@code th} no es nulo. */
+    public static byte[] generar(Proyecto p, Entrada in, Resultado r, ResumenTiempoHistoria th) {
         var n = in.norma(); ByteArrayOutputStream out = new ByteArrayOutputStream(); Document d = new Document(PageSize.A4, 40, 40, 40, 40);
         PdfWriter.getInstance(d, out); d.open();
         d.add(new Paragraph("ConcretoLab | Análisis sísmico según E.030 (educativo)", TITULO));
@@ -70,10 +73,12 @@ public final class ReporteSismo {
         d.add(tabla(new String[]{"Piso", "Δ est X (mm)", "Δ est Y (mm)", "Δ esp X (mm)", "Δ esp Y (mm)", "Deriva est X", "Deriva est Y", "Deriva esp X", "Deriva esp Y", "Estado"}, der));
         d.add(new Paragraph("Las derivas son el máximo entre el centro de masas y los nudos de cada piso.", NOTA));
 
-        d.add(new Paragraph("7. Advertencias", SECCION));
+        int sec = 7;
+        if (th != null) { seccionTiempoHistoria(d, th, sec++); }
+        d.add(new Paragraph(sec++ + ". Advertencias", SECCION));
         for (String a : r.advertencias()) d.add(new Paragraph("• " + a, CELDA));
 
-        d.add(new Paragraph("8. Referencias", SECCION));
+        d.add(new Paragraph(sec + ". Referencias", SECCION));
         for (String ref : List.of(
                 n.version() == NormaE030.Version.V2026
                         ? "RNE, Norma Técnica E.030 «Diseño Sismorresistente», texto 2026 (R.M. N° 183-2026-VIVIENDA). Tablas 1 a 14 y arts. 14, 17, 18, 22 a 26, 28, 31, 33 a 37, 39 a 45, 50 y 51."
@@ -88,6 +93,35 @@ public final class ReporteSismo {
         d.add(new Paragraph(" "));
         d.add(new Paragraph("Resultados educativos y preliminares, con base empotrada, sin muros, sin zonas rígidas y con losas como diafragma rígido. No constituyen diseño ni verificación para obra y requieren validación por un ingeniero civil colegiado con un software y criterios normativos completos.", NOTA));
         d.close(); return out.toByteArray();
+    }
+
+    private static void seccionTiempoHistoria(Document d, ResumenTiempoHistoria th, int numero) {
+        var ver = th.verificacion();
+        var esc = th.escalado();
+        d.add(new Paragraph(numero + ". Análisis tiempo-historia (arts. 46 a 49)", SECCION));
+        d.add(new Paragraph("Origen de los registros: " + th.origenRegistros() + ". Conjuntos simulados: " + ver.conjuntos()
+                + " (mínimo exigido: " + ver.conjuntosMinimos() + ")."));
+        d.add(new Paragraph("Periodo fundamental T = " + f(th.periodoFundamental(), 3) + " s (mayor entre X e Y). Rejilla de escalado: 0,2T a 1,5T = "
+                + f(0.2 * th.periodoFundamental(), 3) + " a " + f(1.5 * th.periodoFundamental(), 3) + " s. Amortiguamiento 5 % (art. 48.5). Espectro de diseño con R = 1; "
+                + "razón mínima promedio SRSS / diseño = " + f(esc.razonMinima(), 3) + (esc.cumple() ? " (cumple el escalado)." : " (NO cumple el escalado).")));
+        d.add(tabla(ResumenTiempoHistoria.CABECERA, th.filasTabla()));
+        StringBuilder fac = new StringBuilder("Factores de escala: ");
+        for (int i = 0; i < esc.factores().length; i++) fac.append(i == 0 ? "" : "; ").append(i + 1).append(" = ").append(f(esc.factores()[i], 3));
+        d.add(new Paragraph(fac.toString(), NOTA));
+        d.add(new Paragraph("Resultado del art. 49 (criterio: " + ver.criterio() + ", límite " + f(ver.limite(), 5) + "): " + th.veredicto() + ".", CABECERA));
+        List<String[]> pisos = new java.util.ArrayList<>();
+        for (int i = ver.pisosX().size() - 1; i >= 0; i--) {
+            var px = ver.pisosX().get(i); var py = ver.pisosY().get(i);
+            pisos.add(new String[]{"" + (i + 1), f(px.derivaDiseno(), 5), px.cumple() ? "Cumple" : "No cumple", f(py.derivaDiseno(), 5), py.cumple() ? "Cumple" : "No cumple"});
+        }
+        d.add(tabla(new String[]{"Piso", "Deriva diseño X", "Estado X", "Deriva diseño Y", "Estado Y"}, pisos));
+        d.add(new Paragraph("Advertencias del escalado y de la verificación:", CABECERA));
+        for (String a : esc.avisos()) d.add(new Paragraph("• " + a, CELDA));
+        for (String a : ver.avisos()) d.add(new Paragraph("• " + a, CELDA));
+        var propios = new java.util.LinkedHashSet<String>();
+        for (var res : th.resultados()) propios.addAll(res.avisos());
+        for (String a : propios) d.add(new Paragraph("• " + a, CELDA));
+        d.add(new Paragraph("• " + ResumenTiempoHistoria.ADVERTENCIA_LEGAL, CELDA));
     }
 
     private static List<String[]> filas(Resultado r, Direccion x, Direccion y) {

@@ -67,7 +67,7 @@ public final class VistaModal extends VBox {
                 double z=piso.cota()-piso.altura()*i/4;if(z>base && z<techo)cortes.add(z);}
             double z0=base;
             for(double z1:cortes.tailSet(base,false)){
-                boolean fija="ZAPATA".equals(e.getTipo()), viga="VIGA".equals(e.getTipo());
+                boolean fija="ZAPATA".equals(e.getTipo()), viga="VIGA".equals(e.getTipo()) || "LOSA".equals(e.getTipo());
                 var a=fija?new double[3]:movimiento(modo,e.getX(),e.getY(),viga?techo:z0);
                 var b=fija?new double[3]:movimiento(modo,e.getX(),e.getY(),z1);
                 var caja=new Box(e.getLargo()*unidad,(z1-z0)*unidad,e.getAncho()*unidad);

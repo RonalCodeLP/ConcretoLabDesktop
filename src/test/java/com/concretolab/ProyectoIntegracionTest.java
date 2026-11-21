@@ -1,7 +1,6 @@
 package com.concretolab;
 import com.concretolab.model.*;
 import com.concretolab.service.YefriLermaProyectoService;
-import com.concretolab.service.ModeloCerchaService;
 import com.concretolab.service.ExpedienteService;
 import java.nio.file.*;
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,6 @@ class ProyectoIntegracionTest {
     static {try{BASE=Files.createTempDirectory("concretolab-test-").resolve("test.db");}catch(Exception e){throw new ExceptionInInitializerError(e);}}
     @DynamicPropertySource static void db(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->"jdbc:sqlite:"+BASE.toAbsolutePath());}
     @Autowired YefriLermaProyectoService servicio;
-    @Autowired ModeloCerchaService cerchas;
     @Autowired ExpedienteService expedientes;
     @Autowired com.concretolab.repository.MezclaRepository mezclas;
     @Autowired com.concretolab.repository.EnsayoRepository ensayos;
@@ -29,13 +27,6 @@ class ProyectoIntegracionTest {
         var plantilla = new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5);
         servicio.crearPlantilla(eliminar.getId(), plantilla);
         servicio.crearPlantilla(conservar.getId(), plantilla);
-
-        var cercha = new ModeloCercha();
-        cercha.setProyectoId(eliminar.getId());
-        cercha.setNombre("Cercha vinculada");
-        cercha.setNudos("A;0;0;SI;SI;0;0\nB;2;0;NO;SI;10;0");
-        cercha.setBarras("AB;A;B;200000;10");
-        cerchas.guardar(cercha);
 
         var mezcla = new Mezcla();
         mezcla.setProyectoId(eliminar.getId());
@@ -49,7 +40,6 @@ class ProyectoIntegracionTest {
 
         assertTrue(servicio.proyectos().stream().noneMatch(p -> p.getId().equals(eliminar.getId())));
         assertTrue(servicio.elementos(eliminar.getId()).isEmpty());
-        assertTrue(cerchas.listar(eliminar.getId()).isEmpty());
         assertFalse(mezclas.existsById(guardada.getId()));
         assertFalse(ensayos.existsById(ensayoId));
         assertEquals(12, servicio.elementos(conservar.getId()).size());
@@ -71,15 +61,6 @@ class ProyectoIntegracionTest {
         assertEquals(4,lista.stream().filter(e->"VIGA".equals(e.getTipo())).count());
         assertThrows(IllegalArgumentException.class,()->servicio.crearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(.2,4,1.5,1.5,.5,.4,3,.3,.5)));
         assertEquals(12,servicio.elementos(p.getId()).size());
-    }
-    @Test void guardaCerchaEnSuProyectoYConservaSusDatos(){
-        Proyecto p=servicio.crearProyecto("Cercha guardada",""),otro=servicio.crearProyecto("Otro proyecto","");
-        ModeloCercha m=new ModeloCercha();m.setProyectoId(p.getId());m.setNombre("Armadura A");
-        m.setNudos("A;0;0;SI;SI;0;0\nB;2;0;NO;SI;10;0");m.setBarras("AB;A;B;200000;10");m=cerchas.guardar(m);
-        assertEquals(1,cerchas.listar(p.getId()).size());assertTrue(cerchas.listar(otro.getId()).isEmpty());
-        var datos=ModeloCerchaService.interpretar(cerchas.listar(p.getId()).get(0).getNudos(),cerchas.listar(p.getId()).get(0).getBarras());
-        assertEquals(.1,com.concretolab.service.AnalisisCercha.resolver(datos.nudos(),datos.barras()).nudos().get(1).uxMm(),1e-9);
-        m.setProyectoId(otro.getId());ModeloCercha copia=m;assertThrows(IllegalArgumentException.class,()->cerchas.guardar(copia));
     }
     @Test void guardaExpedienteYValidaFecha(){
         Proyecto p=servicio.crearProyecto("Expediente","Lima");ExpedienteEstructural e=new ExpedienteEstructural();e.setProyectoId(p.getId());e.setNorma("E.030 - versión indicada por profesional");e.setFechaProyecto("2026-11-16");expedientes.guardar(e);

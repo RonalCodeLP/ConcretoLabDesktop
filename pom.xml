@@ -12,9 +12,13 @@
   <dependencies>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-data-jpa</artifactId></dependency>
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-validation</artifactId></dependency>
-    <dependency><groupId>org.xerial</groupId><artifactId>sqlite-jdbc</artifactId><version>3.45.3.0</version></dependency>
+    <!-- SQLite con cifrado AES-256 (SQLite3MultipleCiphers, modo SQLCipher); mismo paquete org.sqlite.JDBC -->
+    <dependency><groupId>io.github.willena</groupId><artifactId>sqlite-jdbc</artifactId><version>3.46.1.0</version></dependency>
     <dependency><groupId>org.hibernate.orm</groupId><artifactId>hibernate-community-dialects</artifactId></dependency>
     <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId><optional>true</optional></dependency>
+    <!-- Migraciones de esquema y exportacion/importacion de proyectos -->
+    <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-core</artifactId></dependency>
+    <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-json</artifactId></dependency>
     <!-- Interfaz grafica -->
     <dependency><groupId>org.openjfx</groupId><artifactId>javafx-controls</artifactId><version>${javafx.version}</version></dependency>
     <dependency><groupId>org.openjfx</groupId><artifactId>javafx-fxml</artifactId><version>${javafx.version}</version></dependency>
@@ -27,6 +31,10 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
   <build><plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
+      <configuration><systemPropertyVariables><logging.file.name>${project.build.directory}/pruebas.log</logging.file.name></systemPropertyVariables></configuration>
+    </plugin>
     <plugin>
       <groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId>
       <configuration>

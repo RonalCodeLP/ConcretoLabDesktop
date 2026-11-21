@@ -110,6 +110,15 @@ public class Exportador {
         hilo.start();
     }
 
+    /** Abre una carpeta en el explorador del sistema. */
+    public void abrirCarpeta(File carpeta) {
+        if (carpeta == null || !carpeta.isDirectory()) {
+            notificador.advertencia("La carpeta todavía no existe.");
+            return;
+        }
+        abrir(carpeta);
+    }
+
     private void abrir(File archivo) {
         if (hostServices != null) {
             hostServices.showDocument(archivo.toURI().toString());

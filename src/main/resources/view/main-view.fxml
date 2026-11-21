@@ -49,10 +49,6 @@
                         </ToggleButton>
 
                         <Label text="ANÁLISIS ESTRUCTURAL" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navCercha" text="Cerchas 2D" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-triangle"/></graphic>
-                        </ToggleButton>
                         <ToggleButton fx:id="navSismo" text="Análisis sísmico E.030" toggleGroup="$menu"
                                       styleClass="nav-item" maxWidth="Infinity">
                             <graphic><FontIcon iconLiteral="fth-activity"/></graphic>
@@ -75,6 +71,12 @@
                                       styleClass="nav-item" maxWidth="Infinity">
                             <graphic><FontIcon iconLiteral="fth-droplet"/></graphic>
                         </ToggleButton>
+
+                        <Label text="SISTEMA" styleClass="nav-seccion"/>
+                        <ToggleButton fx:id="navDatos" text="Datos y copias" toggleGroup="$menu"
+                                      styleClass="nav-item" maxWidth="Infinity">
+                            <graphic><FontIcon iconLiteral="fth-database"/></graphic>
+                        </ToggleButton>
                     </VBox>
                 </StackPane>
 
@@ -84,6 +86,10 @@
                 <Button fx:id="btnTema" text="Modo oscuro" onAction="#onCambiarTema"
                         styleClass="nav-item" maxWidth="Infinity">
                     <graphic><FontIcon iconLiteral="fth-moon"/></graphic>
+                </Button>
+                <Button fx:id="btnAcerca" text="Acerca de" onAction="#onAcercaDe"
+                        styleClass="nav-item" maxWidth="Infinity">
+                    <graphic><FontIcon iconLiteral="fth-info"/></graphic>
                 </Button>
                 <Button fx:id="btnContraer" text="Contraer menu" onAction="#onContraerMenu"
                         styleClass="nav-item" maxWidth="Infinity">

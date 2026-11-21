@@ -125,6 +125,8 @@ public final class NormaE030 {
                 case "estatico" -> n ? "arts. 33 a 37" : "art. 4.5";
                 case "espectral" -> n ? "arts. 39 a 45" : "art. 4.6";
                 case "cqc" -> n ? "art. 42" : "art. 4.6.3";
+                case "inerciaBruta" -> n ? "arts. 30.2 y 36.2" : "arts. 4.2 y 4.5.4";
+                case "junta" -> n ? "art. 52" : "art. 5.3";
                 case "tablaIrregularidad" -> n ? "Tabla 13" : "Tabla 10";
                 default -> tema;
             };
@@ -145,6 +147,8 @@ public final class NormaE030 {
         public boolean requiereVerificarPeriodoDeSitio() {
             return v2026() && zona == Zona.Z4 && categoria != Categoria.C && suelo != Suelo.S0;
         }
+        /** Separación mínima entre edificios (2026: art. 52, s = 0,02·Z·S·h ≥ 0,03 m; 2018: art. 5.3, s = 0,006·h ≥ 0,03 m). */
+        public double juntaMinima(double alturaM) { return Math.max(v2026() ? 0.02 * z() * s() * alturaM : 0.006 * alturaM, 0.03); }
         /** Factor que convierte desplazamientos elásticos en inelásticos: 0,75R regular, 0,85R irregular. */
         public double factorInelastico() { return (regular() ? 0.75 : 0.85) * r(); }
         /** Fracción mínima del cortante estático que debe alcanzar el dinámico: 80 % regular, 90 % irregular. */

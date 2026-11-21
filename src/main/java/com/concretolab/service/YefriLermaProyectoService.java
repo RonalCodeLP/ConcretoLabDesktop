@@ -11,33 +11,33 @@ public class YefriLermaProyectoService {
     private final VinculoGeometricoRepository vinculos;
     private final CuadriculaProyectoRepository cuadriculas;
     private final ExpedienteRepository expedientes;
-    private final ModeloCerchaRepository cerchas;
     private final MezclaRepository mezclas;
     private final EnsayoRepository ensayos;
+    private final BitacoraService bitacora;
 
     public YefriLermaProyectoService(ProyectoRepository proyectos, ElementoRepository elementos,
                                     VinculoGeometricoRepository vinculos, CuadriculaProyectoRepository cuadriculas,
-                                    ExpedienteRepository expedientes, ModeloCerchaRepository cerchas,
-                                    MezclaRepository mezclas, EnsayoRepository ensayos) {
+                                    ExpedienteRepository expedientes,
+                                    MezclaRepository mezclas, EnsayoRepository ensayos, BitacoraService bitacora) {
         this.proyectos = proyectos;
         this.elementos = elementos;
         this.vinculos = vinculos;
         this.cuadriculas = cuadriculas;
         this.expedientes = expedientes;
-        this.cerchas = cerchas;
         this.mezclas = mezclas;
         this.ensayos = ensayos;
+        this.bitacora = bitacora;
     }
     @Transactional(readOnly=true) public List<Proyecto> proyectos(){return proyectos.findAll();}
     @Transactional public Proyecto crearProyecto(String nombre,String ubicacion){
         if(nombre==null||nombre.isBlank()||nombre.trim().length()>120) throw new IllegalArgumentException("Ingrese un nombre de proyecto de hasta 120 caracteres.");
         if(ubicacion!=null&&ubicacion.length()>200) throw new IllegalArgumentException("La ubicación no puede superar 200 caracteres.");
-        Proyecto p=new Proyecto();p.setNombre(nombre.trim());p.setUbicacion(ubicacion==null?"":ubicacion.trim());return proyectos.save(p);
+        Proyecto p=new Proyecto();p.setNombre(nombre.trim());p.setUbicacion(ubicacion==null?"":ubicacion.trim());p=proyectos.save(p);bitacora.registrar("PROYECTO_CREADO","Proyecto «"+p.getNombre()+"» (id "+p.getId()+")");return p;
     }
     @Transactional(readOnly=true) public List<Elemento> elementos(Long id){return elementos.findByProyectoIdOrderById(id);}
     @Transactional public Elemento guardar(Elemento e){
         if(e.getProyectoId()==null||!proyectos.existsById(e.getProyectoId())) throw new IllegalArgumentException("Seleccione un proyecto existente.");
-        if(!Set.of("ZAPATA","COLUMNA","VIGA").contains(e.getTipo())) throw new IllegalArgumentException("Seleccione un tipo válido.");
+        if(!Set.of("ZAPATA","COLUMNA","VIGA","LOSA","MURO").contains(e.getTipo())) throw new IllegalArgumentException("Seleccione un tipo válido.");
         if(e.getNombre()==null||e.getNombre().isBlank()) throw new IllegalArgumentException("Ingrese un nombre.");
         if(!positivo(e.getLargo())||!positivo(e.getAncho())||!positivo(e.getAltura())||!Double.isFinite(e.volumen())) throw new IllegalArgumentException("Las dimensiones deben ser números positivos y finitos.");
         if(!Double.isFinite(e.getX())||!Double.isFinite(e.getY())||!Double.isFinite(e.getZ())) throw new IllegalArgumentException("Las posiciones deben ser números finitos.");
@@ -53,13 +53,13 @@ public class YefriLermaProyectoService {
             ensayos.deleteAllInBatch(ensayos.findByMezclaIdOrderByIdDesc(mezcla.getId()));
         }
         mezclas.deleteAllInBatch(mezclasProyecto);
-        cerchas.deleteAllInBatch(cerchas.findByProyectoIdOrderByNombreAsc(id));
         for (var elemento : elementos.findByProyectoIdOrderById(id)) {
             eliminar(elemento.getId());
         }
         cuadriculas.deleteById(id);
         expedientes.deleteById(id);
         proyectos.delete(proyecto);
+        bitacora.registrar("PROYECTO_ELIMINADO", "Proyecto «" + proyecto.getNombre() + "» (id " + id + ") con sus elementos, mezclas y ensayos");
     }
     @Transactional public Proyecto yefriLermaGuardarPlano(Long id, String nombre, List<Elemento> candidatos) {
         Proyecto proyecto = id == null ? crearProyecto(nombre, "") : proyectos.findById(id)

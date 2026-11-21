@@ -10,7 +10,6 @@ import com.concretolab.seeder.ProyectoSeeder;
 import com.concretolab.service.FernandoHuancaAnalisisSismico;
 import com.concretolab.service.MaterialService;
 import com.concretolab.service.MezclaService;
-import com.concretolab.service.ModeloCerchaService;
 import com.concretolab.service.NormaE030;
 import com.concretolab.service.YefriLermaProyectoService;
 import com.concretolab.service.RegistroGranulometriaService;
@@ -39,7 +38,6 @@ class SeederDemostracionTest {
     @Autowired MaterialService materiales;
     @Autowired RegistroGranulometriaService granulometrias;
     @Autowired MezclaService mezclas;
-    @Autowired ModeloCerchaService cerchas;
     @Autowired DatabaseSeeder seeder;
 
     private Proyecto demo() {
@@ -56,7 +54,6 @@ class SeederDemostracionTest {
         var mezcla = mezclas.listar(p.getId());
         assertThat(mezcla).hasSize(1);
         assertThat(mezclas.ensayos(mezcla.get(0).getId())).hasSize(1);
-        assertThat(cerchas.listar(p.getId())).hasSize(1);
     }
 
     @Test

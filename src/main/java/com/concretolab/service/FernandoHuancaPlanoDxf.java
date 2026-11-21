@@ -20,6 +20,94 @@ public class FernandoHuancaPlanoDxf {
                         int pisos, double altoPiso, double ladoColumna, double anchoViga,
                         double altoViga, double ladoZapata, double altoZapata) {}
 
+    /** Metros por unidad según $INSUNITS del DXF; NaN si no hay unidad declarada (0) o es una que la app no convierte. */
+    public static double metrosPorUnidad(String insunits) {
+        if (insunits == null) return Double.NaN;
+        return switch (insunits.strip()) {
+            case "1" -> 0.0254;   // pulgadas
+            case "2" -> 0.3048;   // pies
+            case "4" -> 0.001;    // milímetros
+            case "5" -> 0.01;     // centímetros
+            case "6" -> 1.0;      // metros
+            case "14" -> 0.1;     // decímetros
+            default -> Double.NaN;
+        };
+    }
+
+    public static String nombreUnidad(String insunits) {
+        if (insunits == null) return "sin unidad declarada";
+        return switch (insunits.strip()) {
+            case "1" -> "pulgadas"; case "2" -> "pies"; case "4" -> "milímetros"; case "5" -> "centímetros";
+            case "6" -> "metros"; case "14" -> "decímetros"; default -> "sin unidad declarada";
+        };
+    }
+
+    /** Copia los elementos multiplicando todas sus dimensiones y coordenadas por {@code factor}. */
+    public static List<Elemento> escalar(List<Elemento> elementos, double factor) {
+        var copia = new ArrayList<Elemento>(elementos.size());
+        for (var e : elementos) {
+            var n = new Elemento();
+            n.setTipo(e.getTipo()); n.setNombre(e.getNombre());
+            n.setLargo(e.getLargo() * factor); n.setAncho(e.getAncho() * factor); n.setAltura(e.getAltura() * factor);
+            n.setX(e.getX() * factor); n.setY(e.getY() * factor); n.setZ(e.getZ() * factor);
+            copia.add(n);
+        }
+        return copia;
+    }
+
+    /**
+     * Lee el DXF con la codificación que le corresponde: UTF-8 desde AutoCAD 2007 (AC1021) y Windows-1252 en versiones
+     * anteriores. Así las capas con tilde o eñe («COLUMNAS_ÁREA») no se corrompen.
+     */
+    static String leerTexto(Path archivo) throws IOException {
+        byte[] bytes = Files.readAllBytes(archivo);
+        var m = java.util.regex.Pattern.compile("\\$ACADVER\\s+1\\s+(AC\\d+)").matcher(new String(bytes, StandardCharsets.ISO_8859_1));
+        String version = m.find() ? m.group(1) : "AC1009";
+        var charset = version.compareTo("AC1021") >= 0 ? StandardCharsets.UTF_8 : java.nio.charset.Charset.forName("windows-1252");
+        try {
+            return charset.newDecoder().onMalformedInput(java.nio.charset.CodingErrorAction.REPLACE)
+                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPLACE).decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+        } catch (java.nio.charset.CharacterCodingException ex) {
+            return new String(bytes, StandardCharsets.ISO_8859_1);
+        }
+    }
+
+    /**
+     * Busca el conversor DWG→DXF (dwgread.exe de LibreDWG) sin depender de la carpeta de compilación: la propiedad
+     * {@code concretolab.tools}, la variable CONCRETOLAB_TOOLS, la carpeta «tools» junto a la aplicación o a la carpeta de
+     * trabajo, {@code ~/.concretolab/tools}, {@code target/} (solo desarrollo) y el PATH.
+     */
+    public static Optional<Path> localizarDwgread() {
+        var carpetas = new ArrayList<Path>();
+        for (String ruta : new String[]{System.getProperty("concretolab.tools"), System.getenv("CONCRETOLAB_TOOLS")})
+            if (ruta != null && !ruta.isBlank()) carpetas.add(Path.of(ruta));
+        try {
+            var codigo = Path.of(FernandoHuancaPlanoDxf.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            Path base = Files.isRegularFile(codigo) ? codigo.getParent() : codigo;
+            if (base != null) { carpetas.add(base.resolve("tools")); carpetas.add(base.resolve("app").resolve("tools")); if (base.getParent() != null) carpetas.add(base.getParent().resolve("tools")); }
+        } catch (Exception ignorada) { /* sin ubicación del código: se siguen probando las demás */ }
+        carpetas.add(Path.of(System.getProperty("user.dir"), "tools"));
+        carpetas.add(Path.of(System.getProperty("user.home"), ".concretolab", "tools"));
+        carpetas.add(Path.of(System.getProperty("user.dir"), "target"));
+        String entorno = System.getenv("PATH");
+        if (entorno != null) for (String parte : entorno.split(java.io.File.pathSeparator)) if (!parte.isBlank()) carpetas.add(Path.of(parte));
+        for (Path carpeta : carpetas) {
+            try {
+                for (String nombre : new String[]{"dwgread.exe", "dwgread"}) {
+                    Path directo = carpeta.resolve(nombre);
+                    if (Files.isRegularFile(directo)) return Optional.of(directo);
+                }
+                if (Files.isDirectory(carpeta)) try (var hijos = Files.list(carpeta)) {
+                    for (Path hijo : (Iterable<Path>) hijos.filter(h -> h.getFileName().toString().toLowerCase().startsWith("libredwg"))::iterator) {
+                        Path interno = hijo.resolve("dwgread.exe");
+                        if (Files.isRegularFile(interno)) return Optional.of(interno);
+                    }
+                }
+            } catch (IOException | java.nio.file.InvalidPathException ignorada) { /* carpeta ilegible: siguiente */ }
+        }
+        return Optional.empty();
+    }
+
     public Plano fernandoHuancaLeerDwg(Path archivo, Path dwgread) throws IOException, InterruptedException {
         Path convertido = Files.createTempFile("concretolab-", ".dxf");
         try {
@@ -56,7 +144,7 @@ public class FernandoHuancaPlanoDxf {
         var verticesY = new ArrayList<String>();
         var curvas = new ArrayList<String>();
         // LibreDWG para Windows puede emitir CR CR LF. Conserva las líneas vacías de valores DXF.
-        String contenido = Files.readString(archivo, StandardCharsets.ISO_8859_1).replace("\r\r\n","\r\n");
+        String contenido = leerTexto(archivo).replace("\r\r\n","\r\n");
         try (var lector = new java.io.BufferedReader(new java.io.StringReader(contenido))) {
             String codigo;
             while ((codigo = lector.readLine()) != null) {
@@ -74,7 +162,7 @@ public class FernandoHuancaPlanoDxf {
                             entidad = new Entidad(tipo + " inválida", grupos.getOrDefault(8,"0"), null, null);
                         }
                         entidades.add(entidad);
-                        if ("3DFACE".equals(entidad.tipo) && entidad.capa.matches("CL3D_(COLUMNA|VIGA|ZAPATA)_[1-9][0-9]*")) {
+                        if ("3DFACE".equals(entidad.tipo) && entidad.capa.matches("CL3D_(COLUMNA|VIGA|ZAPATA|LOSA|MURO)_[1-9][0-9]*")) {
                             caras.computeIfAbsent(entidad.capa, clave -> new ArrayList<>())
                                     .add(List.of(punto(grupos,0),punto(grupos,1),punto(grupos,2),punto(grupos,3)));
                         }
@@ -136,7 +224,7 @@ public class FernandoHuancaPlanoDxf {
             String capa="CL3D_"+e.getTipo()+"_"+(++indice);
             for(var cara:carasPrisma(x,y,z,x+e.getLargo(),y+e.getAncho(),z+e.getAltura())){
                 grupo(dxf,0,"3DFACE"); grupo(dxf,8,capa);
-                grupo(dxf,62,switch(e.getTipo()){case "COLUMNA" -> 5; case "VIGA" -> 4; default -> 8;});
+                grupo(dxf,62,switch(e.getTipo()){case "COLUMNA" -> 5; case "VIGA" -> 4; case "MURO" -> 30; default -> 8;});
                 for(int i=0;i<4;i++){
                     var p=cara.get(i);
                     grupo(dxf,10+i,p.x); grupo(dxf,20+i,p.y); grupo(dxf,30+i,p.z);
@@ -166,15 +254,43 @@ public class FernandoHuancaPlanoDxf {
         return switch (tipo) {
             case "LINE" -> new Entidad(tipo, capa, punto(grupos, 0), punto(grupos, 1));
             case "POINT" -> new Entidad(tipo, capa, punto(grupos, 0), null);
-            case "LWPOLYLINE" -> rectangulo(capa, grupos, xs, ys, curvas);
+            case "LWPOLYLINE" -> polilinea(capa, grupos, xs, ys, curvas);
+            // Bloque insertado (columna dibujada como bloque): se usa su punto de inserción como centro.
+            case "INSERT" -> new Entidad("BLOQUE", capa, punto(grupos, 0), null);
+            case "CIRCLE" -> {
+                double r = numero(grupos.get(40));
+                if (r <= 0) throw new IllegalArgumentException("Círculo sin radio.");
+                var c = punto(grupos, 0);
+                yield new Entidad("CÍRCULO", capa, new Punto(c.x - r, c.y - r, c.z), new Punto(c.x + r, c.y + r, c.z));
+            }
             default -> new Entidad(tipo, capa, null, null);
         };
     }
 
+    /** Polilínea ligera: rectángulo (4 vértices, o 5 con el primero repetido) o viga (2 vértices abiertos, como LINE). */
+    private static Entidad polilinea(String capa, Map<Integer, String> grupos,
+                                    List<String> xs, List<String> ys, List<String> curvas) {
+        var tx = new ArrayList<>(xs);
+        var ty = new ArrayList<>(ys);
+        boolean cerrada = (Integer.parseInt(grupos.getOrDefault(70, "0")) & 1) != 0;
+        if (tx.size() == 5 && ty.size() == 5 && numero(tx.get(0)) == numero(tx.get(4)) && numero(ty.get(0)) == numero(ty.get(4))) {
+            tx.remove(4);
+            ty.remove(4);
+            cerrada = true;
+        }
+        boolean recta = curvas.stream().mapToDouble(FernandoHuancaPlanoDxf::numero).allMatch(n -> n == 0);
+        if (!cerrada && tx.size() == 2 && ty.size() == 2 && recta) {
+            double z = numero(grupos.getOrDefault(38, "0"));
+            return new Entidad("LINE", capa, new Punto(numero(tx.get(0)), numero(ty.get(0)), z),
+                    new Punto(numero(tx.get(1)), numero(ty.get(1)), z));
+        }
+        return rectangulo(capa, grupos, tx, ty, curvas, cerrada);
+    }
+
     private static Entidad rectangulo(String capa, Map<Integer, String> grupos,
-                                     List<String> xs, List<String> ys, List<String> curvas) {
+                                     List<String> xs, List<String> ys, List<String> curvas, boolean cerrada) {
         var noCompatible = new Entidad("LWPOLYLINE", capa, null, null);
-        if (xs.size()!=4 || ys.size()!=4 || (Integer.parseInt(grupos.getOrDefault(70,"0"))&1)==0
+        if (xs.size()!=4 || ys.size()!=4 || !cerrada
                 || curvas.stream().mapToDouble(FernandoHuancaPlanoDxf::numero).anyMatch(n->n!=0)
                 || numero(grupos.getOrDefault(210,"0"))!=0 || numero(grupos.getOrDefault(220,"0"))!=0
                 || numero(grupos.getOrDefault(230,"1"))!=1) return noCompatible;
@@ -221,8 +337,9 @@ public class FernandoHuancaPlanoDxf {
         var vigas = new ArrayList<List<Punto>>();
         var usados = new HashSet<Punto>();
         for (var e : capa(plano,d.vigas,"LINE")) {
-            var a = columna(columnas,planta(e.inicio,d.escala));
-            var b = columna(columnas,planta(e.fin,d.escala));
+            var a = columna(columnas,huellasColumnas,planta(e.inicio,d.escala));
+            var b = columna(columnas,huellasColumnas,planta(e.fin,d.escala));
+            if (a.equals(b)) throw new IllegalArgumentException("Una viga empieza y termina en la misma columna.");
             double dx = Math.abs(a.x-b.x), dy = Math.abs(a.y-b.y);
             if ((dx > 1e-6 && dy > 1e-6) || luz(a,b,huellasColumnas)<=d.anchoViga)
                 throw new IllegalArgumentException("Las vigas deben ser paralelas a X o Y y su luz libre mayor que su ancho.");
@@ -264,6 +381,59 @@ public class FernandoHuancaPlanoDxf {
         return List.copyOf(resultado);
     }
 
+    /** Capas opcionales de losas (rectángulos) y muros (líneas) con sus espesores en metros; una capa vacía no se importa. */
+    public record Extra(String losas, String muros, double espesorLosa, double espesorMuro) {
+        public static final Extra NINGUNA = new Extra("", "", Double.NaN, Double.NaN);
+    }
+
+    /**
+     * Igual que {@link #fernandoHuancaConvertir(Plano, Datos)} y además agrega, en cada piso, las losas (rectángulos de la capa
+     * de losas, con su cara superior al nivel del piso) y los muros (líneas paralelas a X o Y de la capa de muros, de piso a piso).
+     */
+    public List<Elemento> fernandoHuancaConvertir(Plano plano, Datos d, Extra extra) {
+        var base = fernandoHuancaConvertir(plano, d);
+        boolean hayLosas = extra != null && extra.losas() != null && !extra.losas().isBlank();
+        boolean hayMuros = extra != null && extra.muros() != null && !extra.muros().isBlank();
+        if (!hayLosas && !hayMuros) return base;
+        var resultado = new ArrayList<>(base);
+        if (hayLosas) {
+            if (!Double.isFinite(extra.espesorLosa()) || extra.espesorLosa() <= 0 || extra.espesorLosa() > d.altoPiso)
+                throw new IllegalArgumentException("Ingresa un espesor de losa positivo (menor que la altura de piso).");
+            var contornos = new ArrayList<Huella>();
+            for (var e : capa(plano, extra.losas(), "RECTÁNGULO")) {
+                var a = planta(e.inicio, d.escala);
+                var b = planta(e.fin, d.escala);
+                if (b.x - a.x <= 0 || b.y - a.y <= 0) throw new IllegalArgumentException("Contorno de losa sin área en la capa " + extra.losas() + ".");
+                contornos.add(new Huella(new Punto((a.x + b.x) / 2, (a.y + b.y) / 2, 0), b.x - a.x, b.y - a.y));
+            }
+            for (int piso = 1; piso <= d.pisos; piso++)
+                for (var h : contornos)
+                    agregar(resultado, "LOSA", h.centro.x, h.centro.y, piso * d.altoPiso - extra.espesorLosa() / 2, h.largo, h.ancho, extra.espesorLosa());
+        }
+        if (hayMuros) {
+            if (!Double.isFinite(extra.espesorMuro()) || extra.espesorMuro() <= 0)
+                throw new IllegalArgumentException("Ingresa un espesor de muro positivo.");
+            var tramos = new ArrayList<Punto[]>();
+            for (var e : capa(plano, extra.muros(), "LINE")) {
+                var a = planta(e.inicio, d.escala);
+                var b = planta(e.fin, d.escala);
+                double dx = Math.abs(a.x - b.x), dy = Math.abs(a.y - b.y);
+                if (dx > 1e-6 && dy > 1e-6)
+                    throw new IllegalArgumentException("Los muros deben ser paralelos a X o Y (hay uno inclinado en la capa " + extra.muros() + ").");
+                if (a.distancia(b) <= extra.espesorMuro()) throw new IllegalArgumentException("Hay un muro más corto que su espesor.");
+                tramos.add(new Punto[] {a, b});
+            }
+            for (int piso = 1; piso <= d.pisos; piso++)
+                for (var t : tramos) {
+                    boolean ejeX = Math.abs(t[0].x - t[1].x) > 1e-6;
+                    double largo = t[0].distancia(t[1]);
+                    agregar(resultado, "MURO", (t[0].x + t[1].x) / 2, (t[0].y + t[1].y) / 2, piso * d.altoPiso - d.altoPiso / 2,
+                            ejeX ? largo : extra.espesorMuro(), ejeX ? extra.espesorMuro() : largo, d.altoPiso);
+                }
+        }
+        return List.copyOf(resultado);
+    }
+
     private static double anchoEnEje(Huella h,boolean ejeX) { return ejeX?h.largo:h.ancho; }
     private static double luz(Punto a,Punto b,Map<Punto,Huella> huellas) {
         boolean ejeX=Math.abs(a.x-b.x)>1e-6;
@@ -280,7 +450,7 @@ public class FernandoHuancaPlanoDxf {
     }
     private static Map<Punto,Huella> huellas(Plano plano,String capa,double escala,double lado) {
         var huellas=new LinkedHashMap<Punto,Huella>();
-        for(var e:capa(plano,capa,"POINT","RECTÁNGULO")){
+        for(var e:capa(plano,capa,"POINT","BLOQUE","RECTÁNGULO","CÍRCULO")){
             var a=planta(e.inicio,escala);
             Huella h;
             if(e.fin==null){
@@ -302,10 +472,21 @@ public class FernandoHuancaPlanoDxf {
             throw new IllegalArgumentException("Usa una planta XY en Z=0 y coordenadas finitas.");
         return new Punto(x,y,0);
     }
-    private static Punto columna(List<Punto> columnas,Punto p) {
-        var coincidencias=columnas.stream().filter(c->c.distancia(p)<=0.01).toList();
-        if(coincidencias.size()!=1) throw new IllegalArgumentException("Cada extremo de viga debe coincidir con un eje de columna (tolerancia 1 cm).");
-        return coincidencias.get(0);
+    /**
+     * Columna a la que se ancla el extremo de una viga: la que contiene el punto en su huella (con 5 cm de holgura) o,
+     * si no, la de centro más cercano a menos de 30 cm cuando es claramente la más próxima.
+     */
+    private static Punto columna(List<Punto> columnas,Map<Punto,Huella> huellas,Punto p) {
+        var dentro=columnas.stream().filter(c->{
+            var h=huellas.get(c);
+            return Math.abs(p.x-c.x)<=h.largo/2+0.05 && Math.abs(p.y-c.y)<=h.ancho/2+0.05;
+        }).toList();
+        if(dentro.size()==1) return dentro.get(0);
+        var ordenadas=(dentro.isEmpty()?columnas:dentro).stream().sorted(Comparator.comparingDouble(c->c.distancia(p))).toList();
+        if(!ordenadas.isEmpty() && ordenadas.get(0).distancia(p)<=0.30
+                && (ordenadas.size()==1 || ordenadas.get(1).distancia(p)>=1.5*ordenadas.get(0).distancia(p)))
+            return ordenadas.get(0);
+        throw new IllegalArgumentException("Cada extremo de viga debe caer sobre una columna (o a menos de 30 cm de su centro).");
     }
     private static void agregar(List<Elemento> elementos,String tipo,double x,double y,double z,double largo,double ancho,double alto) {
         var e=new Elemento();

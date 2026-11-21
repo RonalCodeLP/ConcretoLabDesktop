@@ -54,7 +54,7 @@ public class MiajeldDelgadoImportacionDxf {
         }
 
         var inventario = inventario(plano);
-        var capasPuntos = capasCompatibles(plano,Set.of("POINT","RECTÁNGULO"));
+        var capasPuntos = capasCompatibles(plano,Set.of("POINT","BLOQUE","RECTÁNGULO","CÍRCULO"));
         var capasVigas = capasCompatibles(plano,Set.of("LINE"));
         boolean modeloCompleto = !plano.modelo3d().isEmpty();
         boolean planoVial = plano.entidades().stream().anyMatch(e->e.capa().equalsIgnoreCase("C-ROAD-CORR"))
@@ -72,11 +72,22 @@ public class MiajeldDelgadoImportacionDxf {
         var guardar = new ButtonType("Guardar en proyecto", ButtonBar.ButtonData.OK_DONE);
         var revisar = new ButtonType("Revisar modelo");
         dialogo.getDialogPane().getButtonTypes().addAll(revisar, guardar, ButtonType.CANCEL);
-        var columnas = capa(capasPuntos, "COLUMNAS","COLUMNS");
-        var vigas = capa(capasVigas, "VIGAS","BEAMS");
-        var zapatas = capa(capasPuntos, "ZAPATAS","FOOTINGS");
+        var sugerido = com.concretolab.service.DeteccionCapasDxf.sugerir(plano);
+        var columnas = capa(capasPuntos, sugerido.de(com.concretolab.service.DeteccionCapasDxf.Rol.COLUMNAS), "COLUMNAS","COLUMNS");
+        var vigas = capa(capasVigas, sugerido.de(com.concretolab.service.DeteccionCapasDxf.Rol.VIGAS), "VIGAS","BEAMS");
+        var zapatas = capa(capasPuntos, sugerido.de(com.concretolab.service.DeteccionCapasDxf.Rol.ZAPATAS), "ZAPATAS","FOOTINGS");
         zapatas.getItems().add(0,"");
         if (zapatas.getValue()==null) zapatas.setValue("");
+        var losas = capa(capasCompatibles(plano,Set.of("RECTÁNGULO")), sugerido.de(com.concretolab.service.DeteccionCapasDxf.Rol.LOSAS));
+        losas.getItems().add(0,"");
+        if (losas.getValue()==null) losas.setValue("");
+        var muros = capa(capasCompatibles(plano,Set.of("LINE")), sugerido.de(com.concretolab.service.DeteccionCapasDxf.Rol.MUROS));
+        muros.getItems().add(0,"");
+        if (muros.getValue()==null) muros.setValue("");
+        var espesorLosa = new TextField();
+        var espesorMuro = new TextField();
+        espesorLosa.disableProperty().bind(losas.valueProperty().isEqualTo(""));
+        espesorMuro.disableProperty().bind(muros.valueProperty().isEqualTo(""));
 
         var disponibles = new ComboBox<Proyecto>();
         disponibles.getItems().setAll(proyectos.proyectos());
@@ -87,20 +98,18 @@ public class MiajeldDelgadoImportacionDxf {
                 .findFirst().ifPresent(disponibles::setValue);
         var nombre = new TextField(archivo.getName().replaceFirst("(?i)\\.(dxf(?:\\.txt)?|dwg)$", ""));
         nombre.disableProperty().bind(usarExistente.selectedProperty());
-        var escala = new TextField(switch (plano.unidad()) {
-            case "4" -> "0.001";
-            case "5" -> "0.01";
-            case "6" -> "1";
-            default -> "";
-        });
+        double factorUnidad = FernandoHuancaPlanoDxf.metrosPorUnidad(plano.unidad());
+        double estimada = com.concretolab.service.DeteccionCapasDxf.unidad(plano).metrosPorUnidad();
+        double factorSugerido = Double.isNaN(factorUnidad) ? estimada : factorUnidad;
+        var escala = new TextField(Double.isNaN(factorSugerido) ? "" : java.math.BigDecimal.valueOf(factorSugerido).stripTrailingZeros().toPlainString());
         var grilla = new GridPane();
         grilla.setHgap(10);
         grilla.setVgap(7);
         var campos = new ArrayList<TextField>();
         String[] etiquetas = {"Cantidad de pisos","Altura por piso (m)","Lado de columna si hay puntos (m)",
                 "Ancho de viga (m)","Peralte de viga (m)","Lado de zapata si hay puntos (m)","Espesor de zapata (m)"};
-        grilla.addRow(0,new Label("Columnas · rectángulos o puntos"),columnas);
-        grilla.addRow(1,new Label("Vigas · LINE"),vigas);
+        grilla.addRow(0,new Label("Columnas · rectángulos, círculos, bloques o puntos"),columnas);
+        grilla.addRow(1,new Label("Vigas · líneas o polilíneas de 2 puntos"),vigas);
         grilla.addRow(2,new Label("Zapatas · rectángulos o puntos"),zapatas);
         grilla.addRow(3,new Label("Metros por unidad DXF"),escala);
         for (int fila=0;fila<etiquetas.length;fila++) {
@@ -108,15 +117,19 @@ public class MiajeldDelgadoImportacionDxf {
             grilla.addRow(4+fila,new Label(etiquetas[fila]),campo);
             campos.add(campo);
         }
+        grilla.addRow(4+etiquetas.length,new Label("Losas · rectángulos (opcional)"),losas);
+        grilla.addRow(5+etiquetas.length,new Label("Espesor de losa (m)"),espesorLosa);
+        grilla.addRow(6+etiquetas.length,new Label("Muros · líneas (opcional)"),muros);
+        grilla.addRow(7+etiquetas.length,new Label("Espesor de muro (m)"),espesorMuro);
         campos.get(2).disableProperty().bind(javafx.beans.binding.Bindings.createBooleanBinding(
                 ()->!tienePuntos(plano,columnas.getValue()),columnas.valueProperty()));
         campos.get(5).disableProperty().bind(javafx.beans.binding.Bindings.createBooleanBinding(
                 ()->!tienePuntos(plano,zapatas.getValue()),zapatas.valueProperty()));
         campos.get(6).disableProperty().bind(zapatas.valueProperty().isEqualTo(""));
-        inventario.setPrefRowCount(4);
-        inventario.setMinHeight(106);
+        inventario.setPrefRowCount(8);
+        inventario.setMinHeight(150);
         var estado = new Label(modeloCompleto
-                ? "Modelo 3D en metros recuperado del DXF. Revisa el conteo y guarda el proyecto."
+                ? "Modelo 3D recuperado del DXF (unidad: " + FernandoHuancaPlanoDxf.nombreUnidad(plano.unidad()) + (Double.isNaN(factorUnidad) ? "; se asumen metros" : "; escala a metros ×" + java.math.BigDecimal.valueOf(factorUnidad).stripTrailingZeros().toPlainString()) + "). Revisa el conteo y las dimensiones antes de guardar."
                 : "Revisa las capas y completa las dimensiones de la planta que se repetirá en altura.");
         estado.setWrapText(true);
         estado.setMinHeight(Region.USE_PREF_SIZE);
@@ -149,15 +162,19 @@ public class MiajeldDelgadoImportacionDxf {
                         if (!modeloCompleto && (columnas.getValue()==null || vigas.getValue()==null))
                             throw new IllegalArgumentException("Selecciona las capas de columnas y vigas.");
                         String z = zapatas.getValue();
-                        var candidatos = modeloCompleto ? plano.modelo3d() : lector.fernandoHuancaConvertir(plano,
+                        var candidatos = modeloCompleto ? FernandoHuancaPlanoDxf.escalar(plano.modelo3d(), Double.isNaN(factorUnidad) ? 1.0 : factorUnidad) : lector.fernandoHuancaConvertir(plano,
                                 new Datos(columnas.getValue(),vigas.getValue(),z,numero(escala),
                                 Integer.parseInt(campos.get(0).getText().strip()),numero(campos.get(1)),
                                 campos.get(2).isDisabled()?Double.NaN:numero(campos.get(2)),numero(campos.get(3)),numero(campos.get(4)),
-                                campos.get(5).isDisabled()?Double.NaN:numero(campos.get(5)),z.isBlank()?1:numero(campos.get(6))));
+                                campos.get(5).isDisabled()?Double.NaN:numero(campos.get(5)),z.isBlank()?1:numero(campos.get(6))),
+                                new FernandoHuancaPlanoDxf.Extra(losas.getValue()==null?"":losas.getValue(),muros.getValue()==null?"":muros.getValue(),
+                                espesorLosa.isDisabled()?Double.NaN:numero(espesorLosa),espesorMuro.isDisabled()?Double.NaN:numero(espesorMuro)));
                         if (boton == revisar) {
                             var conteo = candidatos.stream().collect(Collectors.groupingBy(
                                     com.concretolab.model.Elemento::getTipo,TreeMap::new,Collectors.counting()));
-                            estado.setText("Geometría propuesta · "+conteo+". Revisa dimensiones y unidades antes de guardar.");
+                            var metrado = com.concretolab.service.MetradoNeto.calcular(candidatos);
+                            estado.setText("Geometría propuesta · "+conteo+String.format(Locale.ROOT," · concreto neto %.2f m³ (bruto %.2f)",metrado.volumenNeto(),metrado.volumenBruto())
+                                    +". Revisa dimensiones y unidades antes de guardar.");
                             evento.consume();
                         } else {
                             if (usarExistente.isSelected() && disponibles.getValue()==null)
@@ -179,10 +196,10 @@ public class MiajeldDelgadoImportacionDxf {
     }
 
     private Optional<FernandoHuancaPlanoDxf.Plano> convertirDwg(Window ventana, java.io.File archivo) {
-        var rutaLocal = java.nio.file.Path.of("target","libredwg-0.14","dwgread.exe");
-        if (java.nio.file.Files.isRegularFile(rutaLocal)) return convertirDwg(ventana,archivo,rutaLocal);
+        var encontrado = FernandoHuancaPlanoDxf.localizarDwgread();
+        if (encontrado.isPresent()) return convertirDwg(ventana,archivo,encontrado.get());
         var instrucciones = new Alert(Alert.AlertType.CONFIRMATION,
-                "Para abrir DWG selecciona dwgread.exe de LibreDWG. También puedes guardar una copia DXF ASCII desde AutoCAD.",
+                "No se encontró el conversor DWG (dwgread.exe de LibreDWG). Colócalo en la carpeta tools junto a la aplicación o selecciónalo ahora. También puedes guardar una copia DXF desde AutoCAD, que es la vía más confiable.",
                 ButtonType.OK, ButtonType.CANCEL);
         instrucciones.initOwner(ventana);
         if (instrucciones.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return Optional.empty();
@@ -225,7 +242,7 @@ public class MiajeldDelgadoImportacionDxf {
     }
 
     private static boolean tienePuntos(FernandoHuancaPlanoDxf.Plano plano,String capa) {
-        return plano.entidades().stream().anyMatch(e->e.capa().equals(capa) && "POINT".equals(e.tipo()));
+        return plano.entidades().stream().anyMatch(e->e.capa().equals(capa) && ("POINT".equals(e.tipo()) || "BLOQUE".equals(e.tipo())));
     }
 
     private static List<String> capasCompatibles(FernandoHuancaPlanoDxf.Plano plano,Set<String> tipos) {
@@ -235,9 +252,7 @@ public class MiajeldDelgadoImportacionDxf {
     }
 
     private static TextArea inventario(FernandoHuancaPlanoDxf.Plano plano) {
-        var area = new TextArea(plano.entidades().stream()
-                .collect(Collectors.groupingBy(e->e.capa()+" · "+e.tipo(),TreeMap::new,Collectors.counting()))
-                .entrySet().stream().map(e->e.getKey()+": "+e.getValue()).collect(Collectors.joining("\n")));
+        var area = new TextArea(com.concretolab.service.DeteccionCapasDxf.diagnosticar(plano).texto());
         area.setEditable(false);
         return area;
     }
@@ -257,10 +272,11 @@ public class MiajeldDelgadoImportacionDxf {
         aviso.showAndWait();
     }
 
-    private static ComboBox<String> capa(List<String> capas,String... sugeridas) {
+    private static ComboBox<String> capa(List<String> capas,String detectada,String... sugeridas) {
         var combo = new ComboBox<String>();
         combo.getItems().setAll(capas);
         combo.setPromptText("Selecciona capa");
+        if (detectada != null && capas.contains(detectada)) { combo.setValue(detectada); return combo; }
         capas.stream().filter(c->Arrays.stream(sugeridas).anyMatch(c::equalsIgnoreCase)).findFirst().ifPresent(combo::setValue);
         return combo;
     }

@@ -139,6 +139,127 @@
             </HBox>
         </VBox>
 
+        <!-- ============ Panel lateral: asistente de diseño (ACI 211.1 + E.060) ============ -->
+        <VBox fx:id="panelDiseno" styleClass="drawer"
+              prefWidth="500.0" maxWidth="500.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-sliders"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Diseñar mezcla" styleClass="drawer-titulo"/>
+                    <Label text="ACI 211.1 con f’cr y durabilidad según E.060" styleClass="drawer-subtitulo" wrapText="true"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label text="1. REQUISITOS" styleClass="seccion-form"/>
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="f’c especificada (MPa)" styleClass="campo-label"/>
+                            <TextField fx:id="txtFcDiseno" promptText="Ej.: 21 (210 kg/cm²)"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Asentamiento (mm)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAsentDiseno" text="100"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Desviación estándar s (MPa)" styleClass="campo-label"/>
+                            <TextField fx:id="txtDesviacion" promptText="Vacío si no hay registro"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="N.º de ensayos del registro" styleClass="campo-label"/>
+                            <TextField fx:id="txtNumEnsayos" promptText="30 o más recomendado"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+                    <VBox styleClass="campo">
+                        <Label text="Condición de exposición (durabilidad)" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbExposicion" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <HBox spacing="14.0" alignment="CENTER_LEFT">
+                        <CheckBox fx:id="chkAire" text="Aire incorporado"/>
+                        <Label text="Severidad" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbSeveridad"/>
+                    </HBox>
+
+                    <Label text="2. AGREGADOS (copie desde la biblioteca o escriba)" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Agregado fino" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbFinoDiseno" onAction="#onElegirFinoDiseno" promptText="De la biblioteca (opcional)" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Módulo de finura" styleClass="campo-label"/>
+                            <TextField fx:id="txtMfDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Densidad relativa SSS fino" styleClass="campo-label"/>
+                            <TextField fx:id="txtDensFinoDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+                    <VBox styleClass="campo">
+                        <Label text="Agregado grueso" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbGruesoDiseno" onAction="#onElegirGruesoDiseno" promptText="De la biblioteca (opcional)" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Tamaño máx. nominal (mm)" styleClass="campo-label"/>
+                            <TextField fx:id="txtTmaDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Peso unit. compactado (kg/m³)" styleClass="campo-label"/>
+                            <TextField fx:id="txtPucDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+                    <HBox spacing="14.0">
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Densidad relativa SSS grueso" styleClass="campo-label"/>
+                            <TextField fx:id="txtDensGruesoDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                        <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="200.0">
+                            <Label text="Absorción grueso (%)" styleClass="campo-label"/>
+                            <TextField fx:id="txtAbsGruesoDiseno"/>
+                            <Label styleClass="campo-error" visible="false" managed="false"/>
+                        </VBox>
+                    </HBox>
+                    <VBox styleClass="campo">
+                        <Label text="Densidad del cemento (g/cm³)" styleClass="campo-label"/>
+                        <TextField fx:id="txtDensCemento" text="3.15"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+
+                    <Label text="3. RESULTADO POR M³ (agregados SSS)" styleClass="seccion-form"/>
+                    <Label fx:id="lblResultadoDiseno" styleClass="resultado-lote" wrapText="true" maxWidth="Infinity"
+                           minHeight="-Infinity" text="Complete los datos y pulse «Calcular diseño»."/>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Calcular diseño" onAction="#onCalcularDiseno" styleClass="button-outlined">
+                    <graphic><FontIcon iconLiteral="fth-cpu"/></graphic>
+                </Button>
+                <Button fx:id="btnUsarDiseno" text="Usar en una mezcla" onAction="#onUsarDiseno" styleClass="accent" disable="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
         <!-- ============ Panel lateral: registrar ensayo fisico ============ -->
         <VBox fx:id="panelEnsayo" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
@@ -252,7 +373,10 @@
             <Label text="1. Selecciona un proyecto   2. Registra una dosificación   3. Calcula el lote   4. Registra las pruebas físicas"
                    styleClass="pagina-subtitulo" wrapText="true"/>
         </VBox>
-        <Button text="Registrar mezcla" onAction="#onNuevaMezcla" styleClass="accent,boton-principal">
+        <Button text="Diseñar mezcla" onAction="#onDisenar" styleClass="accent,boton-principal">
+            <graphic><FontIcon iconLiteral="fth-sliders"/></graphic>
+        </Button>
+        <Button text="Registrar mezcla" onAction="#onNuevaMezcla" styleClass="button-outlined">
             <graphic><FontIcon iconLiteral="fth-plus"/></graphic>
         </Button>
     </HBox>
@@ -317,6 +441,6 @@
         </TableView>
     </VBox>
 
-    <Label text="Dosificación suministrada por el usuario; no es un diseño ACI calculado ni una aprobación para obra. Los resultados de ensayo se registran sin dictaminar conformidad."
+    <Label text="«Diseñar mezcla» da una dosificación de partida (ACI 211.1 con f’cr y durabilidad de la E.060) que debe validarse con mezclas de prueba; no es una aprobación para obra. La evaluación de ensayos aplica el criterio de aceptación de la E.060 solo a los ensayos de 28 días."
            styleClass="pagina-subtitulo" wrapText="true"/>
 </VBox>

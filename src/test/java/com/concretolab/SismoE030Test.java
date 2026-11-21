@@ -201,6 +201,28 @@ class SismoE030Test {
         assertTrue(com.concretolab.service.ReporteSismo.generar(p, in18, FernandoHuancaAnalisisSismico.analizar(in18)).length > 1000);
     }
 
+    @Test void juntaSismicaSigueLaFormulaDeCadaVersionConMinimoDeTresCentimetros() {
+        var p26 = new Parametros(Zona.Z4, Categoria.C, Suelo.S2, 8, 1, 1, 35);       // S = 1,10 sin Vs30
+        assertEquals(0.02 * 0.45 * 1.10 * 9.0, p26.juntaMinima(9.0), 1e-12);        // art. 52: s = 0,02·Z·S·h
+        assertEquals(0.03, p26.juntaMinima(1.0), 1e-12);                             // mínimo absoluto
+        var p18 = Parametros.v2018(Zona.Z4, Categoria.C, Suelo.S2_2018, 8, 1, 1, 35);
+        assertEquals(0.006 * 9.0, p18.juntaMinima(9.0), 1e-12);                      // art. 5.3: s = 0,006·h
+        assertEquals(0.03, p18.juntaMinima(3.0), 1e-12);
+        var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, p26));
+        assertEquals(9.0, r.junta().alturaM(), 1e-9);
+        assertEquals(p26.juntaMinima(9.0), r.junta().minimoNormaM(), 1e-12);
+        assertTrue(r.junta().dosTerciosPropioM() > 0);
+        assertTrue(r.advertencias().stream().anyMatch(a -> a.contains("Junta sísmica")));
+    }
+
+    @Test void avisaSiSeReduceLaRigidezPorqueLaNormaPideSeccionesBrutas() {
+        var el = porticos(2, 5, 4, 3, 0.4, 0.3, 0.5);
+        var base = entrada(el, 2, norma(1, 1));
+        var agrietada = new FernandoHuancaAnalisisSismico.Entrada(el, 21, 0.2, 0.5, 0.20, base.cargas(), norma(1, 1));
+        assertTrue(FernandoHuancaAnalisisSismico.analizar(agrietada).advertencias().stream().anyMatch(a -> a.contains("secciones brutas")));
+        assertTrue(FernandoHuancaAnalisisSismico.analizar(base).advertencias().stream().noneMatch(a -> a.contains("secciones brutas")));
+    }
+
     @Test void moduloElasticoSigueLaE060() {
         assertEquals(21538, FernandoHuancaAnalisisSismico.modulo(21), 60); // ≈ 4700·√f'c
     }
