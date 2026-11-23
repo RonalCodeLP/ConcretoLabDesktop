@@ -49,7 +49,8 @@ public final class FernandoHuancaAnalisisSismico {
         }
         public int grados() { return 3 * pisos; }
     }    public record Resultado(List<Piso> pisos, List<Modo> modos, double pesoTotal, double ecMpa,
-                            Direccion estaticoX, Direccion estaticoY, Direccion espectralX, Direccion espectralY, List<String> advertencias, Junta junta, ModeloDinamico modelo) {
+                            Direccion estaticoX, Direccion estaticoY, Direccion espectralX, Direccion espectralY, List<String> advertencias, Junta junta, ModeloDinamico modelo,
+                            ConexionVigas conexion) {
         public double masaAcumuladaX() { return modos.stream().mapToDouble(Modo::masaEfectivaX).sum(); }
         public double masaAcumuladaY() { return modos.stream().mapToDouble(Modo::masaEfectivaY).sum(); }
     }
@@ -112,6 +113,53 @@ public final class FernandoHuancaAnalisisSismico {
 
     private static Nudo fernandoHuancaNudo(Map<String, Nudo> mapa, double x, double y, double z, int piso, double hx, double hy) {
         return mapa.computeIfAbsent(Math.round(x * 1000) + "|" + Math.round(y * 1000) + "|" + Math.round(z * 1000), k -> new Nudo(x, y, z, piso, hx, hy));
+    }
+
+    /** Una viga (dirección, centro y media longitud) toca la columna de centro (nx, ny) y sección hx × hy. */
+    private static boolean fernandoHuancaEnLinea(boolean xDir, double xc, double yc, double mitad, double nx, double ny, double hx, double hy) {
+        return xDir ? Math.abs(ny - yc) <= hy / 2 + FERNANDO_HUANCA_TOL && nx >= xc - mitad - hx / 2 - FERNANDO_HUANCA_TOL && nx <= xc + mitad + hx / 2 + FERNANDO_HUANCA_TOL
+                : Math.abs(nx - xc) <= hx / 2 + FERNANDO_HUANCA_TOL && ny >= yc - mitad - hy / 2 - FERNANDO_HUANCA_TOL && ny <= yc + mitad + hy / 2 + FERNANDO_HUANCA_TOL;
+    }
+
+    /**
+     * Cómo están unidas las vigas a las columnas. {@code sueltas}: vigas que no unen al menos dos columnas (no aportan
+     * rigidez); {@code pisosSinPortico}: pisos (1 = el primero) donde ninguna viga une dos columnas, es decir, sin pórtico.
+     */
+    public record ConexionVigas(int vigas, List<Long> idsSueltas, List<String> sueltas, List<Integer> pisosSinPortico) {
+        /** Hay al menos un pórtico en cada piso: el análisis representa un edificio de pórticos. */
+        public boolean formaPorticos() { return pisosSinPortico.isEmpty() && sueltas.size() < vigas; }
+        public static ConexionVigas fernandoHuancaVacia() { return new ConexionVigas(0, List.of(), List.of(), List.of()); }
+    }
+
+    /**
+     * Revisa, con el mismo criterio que el análisis, qué vigas unen dos columnas. Sirve también antes de guardar una edición
+     * para avisar si una viga deja de llegar a las columnas.
+     *
+     * @throws IllegalArgumentException si el proyecto no tiene columnas y vigas o no se reconocen pisos
+     */
+    public static ConexionVigas fernandoHuancaConexionVigas(List<Elemento> elementos) {
+        var cols = fernandoHuancaDe(elementos, "COLUMNA"); var vigas = fernandoHuancaDe(elementos, "VIGA");
+        double[] cotas = fernandoHuancaPisos(elementos).stream().mapToDouble(PisoBase::cota).toArray();
+        boolean[] conPortico = new boolean[cotas.length];
+        List<Long> ids = new ArrayList<>(); List<String> nombres = new ArrayList<>();
+        for (Elemento v : vigas) {
+            int s = fernandoHuancaPisoEnCota(cotas, v.getZ() + v.getAltura() / 2);
+            int tocadas = 0;
+            if (s >= 0) {
+                boolean xDir = v.getLargo() >= v.getAncho();
+                double mitad = (xDir ? v.getLargo() : v.getAncho()) / 2;
+                for (Elemento c : cols) {
+                    double bot = c.getZ() - c.getAltura() / 2, top = c.getZ() + c.getAltura() / 2;
+                    boolean llega = cotas[s] > bot + FERNANDO_HUANCA_TOL && cotas[s] <= top + FERNANDO_HUANCA_TOL;
+                    if (llega && fernandoHuancaEnLinea(xDir, v.getX(), v.getY(), mitad, c.getX(), c.getY(), c.getLargo(), c.getAncho())) tocadas++;
+                }
+            }
+            if (tocadas >= 2) conPortico[s] = true;
+            else { ids.add(v.getId()); nombres.add(v.getNombre()); }
+        }
+        List<Integer> sinPortico = new ArrayList<>();
+        for (int s = 0; s < cotas.length; s++) if (!conPortico[s]) sinPortico.add(s + 1);
+        return new ConexionVigas(vigas.size(), Collections.unmodifiableList(ids), List.copyOf(nombres), List.copyOf(sinPortico));
     }
 
     private static int fernandoHuancaPisoEnCota(double[] cotas, double z) {
@@ -197,9 +245,7 @@ public final class FernandoHuancaAnalisisSismico {
             List<Nudo> cand = new ArrayList<>();
             for (Nudo n : mapa.values()) {
                 if (n.fernandoHuancaPiso != s) continue;
-                boolean enLinea = xDir ? Math.abs(n.y - yc) <= n.fernandoHuancaHy / 2 + FERNANDO_HUANCA_TOL && n.x >= xc - mitad - n.fernandoHuancaHx / 2 - FERNANDO_HUANCA_TOL && n.x <= xc + mitad + n.fernandoHuancaHx / 2 + FERNANDO_HUANCA_TOL
-                        : Math.abs(n.x - xc) <= n.fernandoHuancaHx / 2 + FERNANDO_HUANCA_TOL && n.y >= yc - mitad - n.fernandoHuancaHy / 2 - FERNANDO_HUANCA_TOL && n.y <= yc + mitad + n.fernandoHuancaHy / 2 + FERNANDO_HUANCA_TOL;
-                if (enLinea) cand.add(n);
+                if (fernandoHuancaEnLinea(xDir, xc, yc, mitad, n.x, n.y, n.fernandoHuancaHx, n.fernandoHuancaHy)) cand.add(n);
             }
             cand.sort(Comparator.comparingDouble(n -> xDir ? n.x : n.y));
             if (cand.size() < 2) { avisos.add("La viga " + v.getNombre() + " no une dos columnas y no aporta rigidez."); }
@@ -341,7 +387,8 @@ public final class FernandoHuancaAnalisisSismico {
         avisos.add("Junta sísmica (" + norma.art("junta") + "): separa el edificio de sus vecinos al menos " + String.format(Locale.ROOT, "%.1f cm", Math.max(junta.minimoNormaM(), 0) * 100) + " por norma y no menos de 2/3 de la suma de los desplazamientos máximos de ambos edificios (el propio aporta " + String.format(Locale.ROOT, "%.1f cm", junta.dosTerciosPropioM() * 100) + ").");
         avisos.add("Base empotrada: las zapatas no se modelan. Sin zonas rígidas en nudos ni muros; resultados educativos y preliminares.");
         var modeloDinamico = new ModeloDinamico(S, m.clone(), Kc.getData(), cotas.clone(), alturas.clone(), xcm.clone(), ycm.clone(), List.copyOf(puntos), per.clone());
-        return new Resultado(pisosRes, modos, P, ecMpa, estX, estY, espX, espY, avisos, junta, modeloDinamico);
+        return new Resultado(pisosRes, modos, P, ecMpa, estX, estY, espX, espY, avisos, junta, modeloDinamico,
+                fernandoHuancaConexionVigas(in.elementos()));
     }
 
     private static double fernandoHuancaDesplazamiento(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm) {

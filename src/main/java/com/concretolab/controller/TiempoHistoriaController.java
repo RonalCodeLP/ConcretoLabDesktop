@@ -484,14 +484,19 @@ public class TiempoHistoriaController {
         walterQuispesayhuaMostrar(panelResultados, true);
 
         String veredicto = r.veredicto();
+        // Con vigas que no unen columnas no hay pórtico: no se dice «CUMPLE».
+        if (walterQuispesayhuaResultado != null && !GuiaSismica.walterQuispesayhuaModeloValido(walterQuispesayhuaResultado)) {
+            veredicto = "MODELO INCOMPLETO";
+        }
         String icono = switch (veredicto) {
             case "CUMPLE" -> "fth-check-circle";
-            case "NO CUMPLE" -> "fth-x-circle";
+            case "NO CUMPLE", "MODELO INCOMPLETO" -> "fth-x-circle";
             default -> "fth-alert-triangle";
         };
         String detalle = switch (veredicto) {
             case "CUMPLE" -> " · derivas de diseño (" + ver.criterio() + " de " + ver.conjuntos() + " conjuntos) dentro de 0,00875";
             case "NO CUMPLE" -> " · alguna deriva de diseño (" + ver.criterio() + ") supera 0,00875";
+            case "MODELO INCOMPLETO" -> " · hay vigas que no unen columnas: corrija el modelo y vuelva a calcular";
             default -> " · hay " + ver.conjuntos() + " conjuntos y se requieren al menos " + ver.conjuntosMinimos();
         };
         lblBanner.setText(veredicto + " (art. 49)" + detalle);
@@ -499,7 +504,7 @@ public class TiempoHistoriaController {
         lblBanner.getStyleClass().removeAll("sismo-banner", "sismo-banner-ok", "sismo-banner-error", "sismo-banner-alerta");
         lblBanner.getStyleClass().addAll("sismo-banner", switch (veredicto) {
             case "CUMPLE" -> "sismo-banner-ok";
-            case "NO CUMPLE" -> "sismo-banner-error";
+            case "NO CUMPLE", "MODELO INCOMPLETO" -> "sismo-banner-error";
             default -> "sismo-banner-alerta";
         });
 

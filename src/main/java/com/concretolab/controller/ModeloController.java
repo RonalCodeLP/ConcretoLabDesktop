@@ -179,7 +179,7 @@ public class ModeloController implements Refrescable {
     @FXML private Button btnPlantilla;
     @FXML private Button btnCuadricula;
     @FXML private Button btnMover;
-    @FXML private Button btnDeshacerMovimiento;
+    @FXML private Button btnDeshacer;
     @FXML private VBox panelMovimiento;
     /** Texto completo del metrado: se muestra en un globo al pulsar «Metrado» para no tapar la tabla. */
     private Label lblResumen; // se crea en initialize(): un Label no puede crearse antes de iniciar JavaFX
@@ -261,7 +261,23 @@ public class ModeloController implements Refrescable {
     /** Id del elemento en edicion; {@code null} cuando el panel registra uno nuevo. */
     private Long yefriLermaIdEditando;
     private EditorMovimiento yefriLermaEditorMovimiento;
-    private Operacion yefriLermaUltimoMovimiento;
+    /** Historial de «Deshacer» (el más reciente primero): ediciones de uno o varios elementos y movimientos en 3D. */
+    private final java.util.Deque<YefriLermaPaso> yefriLermaHistorial = new java.util.ArrayDeque<>();
+    static final int YEFRI_LERMA_MAXIMO_DESHACER = 20;
+    /** La edición está habilitada (falsa mientras se mueve un elemento en 3D). */
+    private boolean yefriLermaEdicionHabilitada = true;
+
+    /** Un cambio que se puede deshacer. */
+    sealed interface YefriLermaPaso permits YefriLermaPasoEdicion, YefriLermaPasoMovimiento {
+        String descripcion();
+        Long proyectoId();
+    }
+
+    /** Edición de uno o varios elementos: estado antes y después (copias, mismos ids). */
+    record YefriLermaPasoEdicion(String descripcion, Long proyectoId, List<Elemento> antes, List<Elemento> despues) implements YefriLermaPaso { }
+
+    /** Movimiento en 3D (lo deshace MovimientoElementoService, que también revisa los vínculos viga-columna). */
+    record YefriLermaPasoMovimiento(String descripcion, Long proyectoId, Operacion operacion) implements YefriLermaPaso { }
 
     @FXML
     public void initialize() {
@@ -310,10 +326,17 @@ public class ModeloController implements Refrescable {
         btnSeleccionarTodo.disableProperty().bind(Bindings.isEmpty(tabla.getItems()).or(panelMovimiento.visibleProperty()));
         btnMetrado.disableProperty().bind(Bindings.isEmpty(yefriLermaTodos));
         Formularios.fernandoHuancaLimpiarAlEditar(txtLoteLargo, txtLoteAncho, txtLoteAltura);
-        btnDeshacerMovimiento.setDisable(true);
+        yefriLermaActualizarDeshacer();
+        // Ctrl+Z deshace el último cambio mientras se ve esta pantalla (los campos de texto tienen su propio Ctrl+Z).
+        tabla.sceneProperty().addListener((o, a, escena) -> {
+            if (escena != null) {
+                escena.getAccelerators().put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.Z,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN), this::yefriLermaDeshacerConAtajo);
+            }
+        });
         yefriLermaEditorMovimiento = new EditorMovimiento(yefriLermaMovimientos, yefriLermaVisor3d, panelMovimiento, guardado -> {
-            yefriLermaUltimoMovimiento = guardado;
-            btnDeshacerMovimiento.setDisable(false);
+            var original = guardado.vista().original();
+            yefriLermaRegistrarPaso(new YefriLermaPasoMovimiento("Mover «" + original.nombre() + "»", original.proyectoId(), guardado));
             yefriLermaCargarElementos();
             yefriLermaNotificador.exito("Movimiento guardado.");
         }, () -> {
@@ -329,8 +352,7 @@ public class ModeloController implements Refrescable {
                 return;
             }
             yefriLermaSesion.setProyecto(b);
-            yefriLermaUltimoMovimiento = null;
-            btnDeshacerMovimiento.setDisable(true);
+            yefriLermaLimpiarHistorial();
             yefriLermaCargarElementos();
         });
 
@@ -345,9 +367,8 @@ public class ModeloController implements Refrescable {
     public void refrescar() {
         Proyecto activo = yefriLermaSesion.getProyecto();
         if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
-        if (yefriLermaUltimoMovimiento != null && (activo == null || !yefriLermaUltimoMovimiento.vista().original().proyectoId().equals(activo.getId()))) {
-            yefriLermaUltimoMovimiento = null;
-            btnDeshacerMovimiento.setDisable(true);
+        if (activo == null || yefriLermaHistorial.stream().anyMatch(paso -> !activo.getId().equals(paso.proyectoId()))) {
+            yefriLermaLimpiarHistorial();
         }
         yefriLermaCargarProyectos(activo == null ? null : activo.getId());
         yefriLermaCargarElementos();
@@ -475,12 +496,24 @@ public class ModeloController implements Refrescable {
             elemento.setY(y);
             elemento.setZ(z);
             boolean esNuevo = yefriLermaIdEditando == null;
-            Elemento guardado = yefriLermaServicio.yefriLermaGuardar(elemento);
-            yefriLermaNotificador.fernandoHuancaCerrarPanel();
-            yefriLermaNotificador.exito(esNuevo
-                    ? "Elemento \"" + guardado.getNombre() + "\" registrado."
-                    : "Elemento \"" + guardado.getNombre() + "\" actualizado.");
-            yefriLermaCargarElementos();
+            Elemento anterior = esNuevo ? null : yefriLermaTodos.stream().filter(e -> elemento.getId().equals(e.getId())).findFirst().map(ModeloController::yefriLermaCopia).orElse(null);
+            Runnable guardar = () -> {
+                try {
+                    Elemento guardado = yefriLermaServicio.yefriLermaGuardar(elemento);
+                    if (anterior != null) {
+                        yefriLermaRegistrarPaso(new YefriLermaPasoEdicion("Editar «" + guardado.getNombre() + "»", p.getId(),
+                                List.of(anterior), List.of(yefriLermaCopia(guardado))));
+                    }
+                    yefriLermaNotificador.fernandoHuancaCerrarPanel();
+                    yefriLermaNotificador.exito(esNuevo
+                            ? "Elemento \"" + guardado.getNombre() + "\" registrado."
+                            : "Elemento \"" + guardado.getNombre() + "\" actualizado.");
+                    yefriLermaCargarElementos();
+                } catch (Exception e) {
+                    yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
+                }
+            };
+            yefriLermaConfirmarSiSueltaVigas(List.of(elemento), guardar);
         } catch (Exception e) {
             yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
@@ -619,16 +652,152 @@ public class ModeloController implements Refrescable {
             Formularios.fernandoHuancaMarcarError(txtLoteLargo, "Llene al menos una medida para cambiar.");
             return;
         }
+        List<Elemento> propuestos;
         try {
-            var nuevos = yefriLermaServicio.yefriLermaGuardarVarios(yefriLermaAplicarAjustes(yefriLermaLote, ajustes[0], ajustes[1], ajustes[2]));
-            Set<Long> ids = nuevos.stream().map(Elemento::getId).collect(Collectors.toSet());
-            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            propuestos = yefriLermaAplicarAjustes(yefriLermaLote, ajustes[0], ajustes[1], ajustes[2]);
+        } catch (IllegalArgumentException e) {
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
+            return;
+        }
+        List<Elemento> antes = yefriLermaLote.stream().map(ModeloController::yefriLermaCopia).toList();
+        Long proyectoId = cmbProyecto.getValue() == null ? null : cmbProyecto.getValue().getId();
+        yefriLermaConfirmarSiSueltaVigas(propuestos, () -> {
+            try {
+                var nuevos = yefriLermaServicio.yefriLermaGuardarVarios(propuestos);
+                yefriLermaRegistrarPaso(new YefriLermaPasoEdicion("Editar " + nuevos.size() + " elementos", proyectoId, antes,
+                        nuevos.stream().map(ModeloController::yefriLermaCopia).toList()));
+                Set<Long> ids = nuevos.stream().map(Elemento::getId).collect(Collectors.toSet());
+                yefriLermaNotificador.fernandoHuancaCerrarPanel();
+                yefriLermaCargarElementos();
+                yefriLermaSeleccionarIds(ids);
+                yefriLermaNotificador.exito(nuevos.size() + " elementos actualizados. Si no era lo que querías, pulsa «Deshacer» (Ctrl+Z).");
+            } catch (Exception e) {
+                yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
+            }
+        });
+    }
+
+    /**
+     * Antes de guardar: si con estos cambios alguna viga deja de unir dos columnas (por ejemplo, al poner una medida fija a
+     * vigas en X y en Y a la vez), pide confirmación. Si no, guarda directamente.
+     */
+    private void yefriLermaConfirmarSiSueltaVigas(List<Elemento> cambiados, Runnable guardar) {
+        List<String> sueltas = yefriLermaVigasQueSeSueltan(List.copyOf(yefriLermaTodos), cambiados);
+        if (sueltas.isEmpty()) {
+            guardar.run();
+            return;
+        }
+        String lista = String.join(", ", sueltas.stream().limit(6).toList()) + (sueltas.size() > 6 ? "…" : "");
+        yefriLermaNotificador.fernandoHuancaConfirmar("Vigas que quedarían sueltas",
+                "Con este cambio " + sueltas.size() + " viga(s) dejarían de unir dos columnas (" + lista + ") y el análisis sísmico ya no las "
+                        + "tomaría como pórtico.\n\nRecuerda: en una viga en dirección X, «Largo eje X» es su longitud; en una viga en Y, lo es "
+                        + "«Ancho eje Y». ¿Guardar de todos modos? (Se puede deshacer.)", "Guardar igual", guardar);
+    }
+
+    /** Nombres de las vigas que unían dos columnas y dejarían de hacerlo si se guardan {@code cambiados}. */
+    static List<String> yefriLermaVigasQueSeSueltan(List<Elemento> actuales, List<Elemento> cambiados) {
+        try {
+            var antes = new HashSet<>(com.concretolab.service.FernandoHuancaAnalisisSismico.fernandoHuancaConexionVigas(actuales).idsSueltas());
+            var porId = cambiados.stream().filter(e -> e.getId() != null).collect(Collectors.toMap(Elemento::getId, e -> e, (a, b) -> b));
+            List<Elemento> despues = new ArrayList<>(actuales.stream().map(e -> porId.getOrDefault(e.getId(), e)).toList());
+            cambiados.stream().filter(e -> e.getId() == null).forEach(despues::add);
+            var conexion = com.concretolab.service.FernandoHuancaAnalisisSismico.fernandoHuancaConexionVigas(despues);
+            List<String> nuevas = new ArrayList<>();
+            for (int i = 0; i < conexion.idsSueltas().size(); i++) {
+                Long id = conexion.idsSueltas().get(i);
+                if (id == null || !antes.contains(id)) nuevas.add(conexion.sueltas().get(i));
+            }
+            return nuevas;
+        } catch (IllegalArgumentException sinPorticos) {
+            return List.of(); // proyecto sin columnas o sin vigas: no hay pórticos que romper
+        }
+    }
+
+    // ------------------------------------------------------ deshacer
+
+    private void yefriLermaRegistrarPaso(YefriLermaPaso paso) {
+        yefriLermaHistorial.push(paso);
+        while (yefriLermaHistorial.size() > YEFRI_LERMA_MAXIMO_DESHACER) yefriLermaHistorial.removeLast();
+        yefriLermaActualizarDeshacer();
+    }
+
+    private void yefriLermaLimpiarHistorial() {
+        yefriLermaHistorial.clear();
+        yefriLermaActualizarDeshacer();
+    }
+
+    private void yefriLermaActualizarDeshacer() {
+        boolean hay = !yefriLermaHistorial.isEmpty();
+        btnDeshacer.setDisable(!hay || !yefriLermaEdicionHabilitada);
+        btnDeshacer.setTooltip(new Tooltip(hay ? "Deshacer: " + yefriLermaHistorial.peek().descripcion() + " (Ctrl+Z). Quedan "
+                + yefriLermaHistorial.size() + " paso(s)." : "No hay cambios para deshacer"));
+    }
+
+    /** Ctrl+Z: solo cuando se ve esta pantalla, sin paneles abiertos ni un movimiento en curso. */
+    private void yefriLermaDeshacerConAtajo() {
+        if (tabla.getScene() == null || !yefriLermaEdicionHabilitada || yefriLermaNotificador.fernandoHuancaHayVentanaAbierta()) return;
+        onDeshacer();
+    }
+
+    @FXML
+    private void onDeshacer() {
+        if (yefriLermaHistorial.isEmpty() || !yefriLermaEdicionHabilitada) return;
+        YefriLermaPaso paso = yefriLermaHistorial.pop();
+        try {
+            Set<Long> ids = new HashSet<>();
+            if (paso instanceof YefriLermaPasoMovimiento m) {
+                yefriLermaMovimientos.walterQuispesayhuaDeshacer(m.operacion());
+                ids.add(m.operacion().vista().original().id());
+            } else if (paso instanceof YefriLermaPasoEdicion ed) {
+                yefriLermaDeshacerEdicion(ed);
+                ed.antes().forEach(e -> ids.add(e.getId()));
+            }
             yefriLermaCargarElementos();
             yefriLermaSeleccionarIds(ids);
-            yefriLermaNotificador.exito(nuevos.size() + " elementos actualizados.");
+            yefriLermaNotificador.exito("Se deshizo: " + paso.descripcion() + ".");
         } catch (Exception e) {
-            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
+            yefriLermaCargarElementos();
+            yefriLermaNotificador.fernandoHuancaError("No se pudo deshacer «" + paso.descripcion() + "»: " + yefriLermaMensaje(e));
         }
+        yefriLermaActualizarDeshacer();
+    }
+
+    /** Vuelve a guardar el estado anterior, solo si los elementos siguen como quedaron tras ese cambio. */
+    private void yefriLermaDeshacerEdicion(YefriLermaPasoEdicion paso) {
+        var actuales = yefriLermaServicio.elementos(paso.proyectoId()).stream().collect(Collectors.toMap(Elemento::getId, e -> e));
+        for (Elemento d : paso.despues()) {
+            Elemento actual = actuales.get(d.getId());
+            if (actual == null) throw new IllegalStateException("«" + d.getNombre() + "» ya no existe.");
+            if (!yefriLermaMismoEstado(actual, d)) throw new IllegalStateException("«" + d.getNombre() + "» cambió después de ese paso.");
+        }
+        yefriLermaServicio.yefriLermaGuardarVarios(paso.antes().stream().map(ModeloController::yefriLermaCopia).toList());
+    }
+
+    static Elemento yefriLermaCopia(Elemento o) {
+        Elemento c = new Elemento();
+        c.setId(o.getId()); c.setProyectoId(o.getProyectoId()); c.setTipo(o.getTipo()); c.setNombre(o.getNombre());
+        c.setLargo(o.getLargo()); c.setAncho(o.getAncho()); c.setAltura(o.getAltura());
+        c.setX(o.getX()); c.setY(o.getY()); c.setZ(o.getZ());
+        return c;
+    }
+
+    static boolean yefriLermaMismoEstado(Elemento a, Elemento b) {
+        double t = 1e-9;
+        return Objects.equals(a.getTipo(), b.getTipo()) && Objects.equals(a.getNombre(), b.getNombre())
+                && Math.abs(a.getLargo() - b.getLargo()) < t && Math.abs(a.getAncho() - b.getAncho()) < t && Math.abs(a.getAltura() - b.getAltura()) < t
+                && Math.abs(a.getX() - b.getX()) < t && Math.abs(a.getY() - b.getY()) < t && Math.abs(a.getZ() - b.getZ()) < t;
+    }
+
+    /**
+     * Lo llama el análisis sísmico: muestra en el modelo los elementos indicados (por ejemplo, vigas que no llegan a las
+     * columnas), ya seleccionados, con un aviso. No cambia nada.
+     */
+    public void yefriLermaMostrarElementos(Set<Long> ids, String aviso) {
+        if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
+        boolean soloVigas = !ids.isEmpty() && yefriLermaTodos.stream().filter(e -> ids.contains(e.getId())).allMatch(e -> "VIGA".equals(e.getTipo()));
+        cmbFiltroTipo.setValue(soloVigas ? "Solo vigas" : YEFRI_LERMA_TODOS_LOS_TIPOS);
+        yefriLermaSeleccionarIds(ids);
+        if (aviso != null) yefriLermaNotificador.fernandoHuancaAdvertencia(aviso);
     }
 
     /**
@@ -772,8 +941,7 @@ public class ModeloController implements Refrescable {
                         + "Esta acción es permanente.", "Eliminar proyecto", () -> {
                     try {
                         yefriLermaServicio.yefriLermaEliminarProyecto(seleccionado.getId());
-                        yefriLermaUltimoMovimiento = null;
-                        btnDeshacerMovimiento.setDisable(true);
+                        yefriLermaLimpiarHistorial();
                         yefriLermaCargarProyectos(null);
                         yefriLermaCargarElementos();
                         yefriLermaNotificador.exito("Proyecto eliminado.");
@@ -824,22 +992,6 @@ public class ModeloController implements Refrescable {
         }
     }
 
-    @FXML
-    private void onDeshacerMovimiento() {
-        if (yefriLermaUltimoMovimiento == null) return;
-        try {
-            yefriLermaMovimientos.walterQuispesayhuaDeshacer(yefriLermaUltimoMovimiento);
-            yefriLermaUltimoMovimiento = null;
-            btnDeshacerMovimiento.setDisable(true);
-            yefriLermaCargarElementos();
-            yefriLermaNotificador.exito("Movimiento deshecho.");
-        } catch (Exception e) {
-            yefriLermaUltimoMovimiento = null;
-            btnDeshacerMovimiento.setDisable(true);
-            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
-        }
-    }
-
     private void yefriLermaHabilitarEdicion(boolean habilitada) {
         cmbProyecto.setDisable(!habilitada);
         btnNuevoProyecto.setDisable(!habilitada);
@@ -848,7 +1000,8 @@ public class ModeloController implements Refrescable {
         btnCuadricula.setDisable(!habilitada);
         tabla.setDisable(!habilitada);
         cmbFiltroTipo.setDisable(!habilitada);
-        btnDeshacerMovimiento.setDisable(!habilitada || yefriLermaUltimoMovimiento == null);
+        yefriLermaEdicionHabilitada = habilitada;
+        yefriLermaActualizarDeshacer();
     }
 
     @FXML

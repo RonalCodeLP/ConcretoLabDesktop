@@ -34,7 +34,19 @@ public final class GuiaSismica {
         /** La deriva no cumple: se calcula cuanto agrandar las columnas y se precarga en el modelo 3D. */
         DERIVA,
         /** Solo un consejo en texto (no hay un cambio del modelo que lo resuelva de forma directa). */
-        CONSEJO
+        CONSEJO,
+        /** El modelo está mal armado (vigas que no llegan a las columnas): se muestran esos elementos en el modelo 3D. */
+        MODELO
+    }
+
+    static final String WALTER_QUISPESAYHUA_CONSEJO_VIGAS = "Cada viga debe ir de una columna a otra. En una viga en dirección X, «Largo eje X» es "
+            + "su longitud (la luz entre columnas); en una viga en dirección Y, lo es «Ancho eje Y». Si se cambiaron varias vigas a la vez con una "
+            + "medida fija, pudieron quedar como bloques cortos sueltos. Corrija su longitud o posición (o deshaga el cambio con «Deshacer»), "
+            + "o vuelva a generarlas con «Ejes, niveles y generación», y luego calcule de nuevo.";
+
+    /** El modelo forma pórticos (en cada piso al menos una viga une dos columnas): solo así las derivas tienen sentido. */
+    public static boolean walterQuispesayhuaModeloValido(Resultado r) {
+        return r.conexion() == null || r.conexion().formaPorticos();
     }
 
     /** Una linea de la lista de verificaciones; {@code consejo} explica como mejorarla cuando no cumple. */
@@ -145,6 +157,19 @@ public final class GuiaSismica {
     /** Verifica el resultado y devuelve las lineas del semaforo. */
     public static List<Verificacion> walterQuispesayhuaVerificaciones(Parametros norma, Resultado r, UsoEdificacion uso) {
         List<Verificacion> v = new ArrayList<>();
+        var cx = r.conexion();
+        if (cx != null && !cx.sueltas().isEmpty()) {
+            String lista = String.join(", ", cx.sueltas().stream().limit(6).toList()) + (cx.sueltas().size() > 6 ? "…" : "");
+            if (!cx.formaPorticos()) {
+                v.add(new Verificacion(Nivel.ERROR, "Modelo incompleto: " + cx.sueltas().size() + " de " + cx.vigas() + " vigas no unen dos columnas"
+                        + (cx.pisosSinPortico().isEmpty() ? "" : " y el piso " + cx.pisosSinPortico().stream().map(String::valueOf).reduce((a, b) -> a + ", " + b).orElse("")
+                        + " no tiene ningún pórtico") + " (" + lista + "). Sin vigas unidas a las columnas no hay pórtico: las derivas de abajo NO son válidas.",
+                        Correccion.MODELO, WALTER_QUISPESAYHUA_CONSEJO_VIGAS));
+            } else {
+                v.add(new Verificacion(Nivel.ALERTA, cx.sueltas().size() + " viga(s) no unen dos columnas y no aportan rigidez (" + lista
+                        + "). Si no son voladizos, revise su longitud o posición.", Correccion.MODELO, WALTER_QUISPESAYHUA_CONSEJO_VIGAS));
+            }
+        }
         double lim = NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO;
         for (var par : List.of(new Object[]{"Estático", r.estaticoX()}, new Object[]{"Estático", r.estaticoY()},
                 new Object[]{"Espectral", r.espectralX()}, new Object[]{"Espectral", r.espectralY()})) {
@@ -152,6 +177,11 @@ public final class GuiaSismica {
             boolean ok = d.cumple();
             String texto = "Deriva " + par[0].toString().toLowerCase(Locale.ROOT) + " " + d.nombre()
                     + ": " + String.format(Locale.ROOT, "%.5f", d.derivaMaxima()) + (ok ? " ≤ " : " > ") + lim;
+            if (!walterQuispesayhuaModeloValido(r)) {
+                // Con vigas sueltas el número no representa un pórtico: no se muestra como «cumple».
+                v.add(new Verificacion(Nivel.ALERTA, texto + " (no válida: modelo incompleto)"));
+                continue;
+            }
             v.add(ok ? new Verificacion(Nivel.OK, texto)
                     : new Verificacion(Nivel.ERROR, texto, Correccion.DERIVA, "El edificio es demasiado flexible en " + d.nombre()
                             + ": hay que darle más rigidez lateral en esa dirección."));

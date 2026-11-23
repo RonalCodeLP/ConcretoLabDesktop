@@ -161,4 +161,9 @@ public class Notificador {
     public void fernandoHuancaCerrarPanel() {
         modalPanel.hide();
     }
+
+    /** Hay un panel lateral o un diálogo a la vista (el ModalPane conserva su contenido aunque esté oculto). */
+    public boolean fernandoHuancaHayVentanaAbierta() {
+        return (modalPanel != null && modalPanel.isDisplay()) || (modalDialogo != null && modalDialogo.isDisplay());
+    }
 }

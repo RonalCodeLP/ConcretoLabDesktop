@@ -71,6 +71,11 @@ cada elemento; se guardan todos juntos o ninguno. En el visor 3D, un clic selecc
 y el **doble clic** abre «Editar elemento», que tiene el botón «Mover en 3D». El doble clic sobre uno de varios seleccionados, en la lista o en el 3D, abre la
 edición de todos ellos.
 
+**Deshacer:** el botón «Deshacer» (o Ctrl+Z) revierte, uno por uno, hasta 20 cambios de la sesión: editar un elemento, editar varios a la vez
+y mover en 3D. Solo deshace si esos elementos siguen como quedaron (si se cambiaron después por otro camino, avisa y no toca nada); el historial
+se vacía al cambiar de proyecto o cerrar la aplicación. Antes de guardar una edición que dejaría vigas sin unir dos columnas (por ejemplo,
+una medida fija puesta a vigas en X y en Y a la vez: en una viga en X, «Largo eje X» es su longitud) se pide confirmación.
+
 ### Exportar a IFC y ETABS
 
 En «Modelo 3D y metrado», junto a «Exportar DXF…»: **IFC2X3** (columnas, vigas, losas, muros y zapatas como sólidos extruidos con material Concreto; las vigas y losas se extruyen en vertical, la forma es exacta) y **ETABS .e2k** (pisos a partir de las cotas de vigas y losas, secciones rectangulares, base empotrada; las zapatas no se exportan). El IFC se probó solo con comprobaciones estructurales del archivo, sin un visor IFC; el .e2k es **experimental** y no se ha verificado en ETABS: revise el modelo al importarlo.
@@ -137,6 +142,13 @@ La pantalla «Datos y copias» está pensada para el cliente:
 El esquema lo gestiona Flyway (`src/main/resources/db/migration`): una base creada con versiones anteriores se completa sola (V1 tablas,
 V2 bitácora, V3 columnas faltantes). Cada cambio en las entidades requiere una migración nueva. Los registros técnicos se escriben en
 `.concretolab\logs\concretolab.log`.
+
+### Modelo incompleto
+
+Si en algún piso ninguna viga une dos columnas, el resumen dice **«MODELO INCOMPLETO»** y no «CUMPLE», aunque las columnas solas den derivas
+bajas: sin vigas unidas a las columnas no hay pórtico. Las derivas se marcan «no válida» (también en la pestaña «Derivas», en la simulación
+temporal y en el PDF) y el botón «Ver en el modelo 3D» abre el modelo con esas vigas seleccionadas. Si solo algunas vigas quedan sueltas,
+se avisa como alerta (pueden ser voladizos).
 
 ### Cómo corregir lo que no cumple
 

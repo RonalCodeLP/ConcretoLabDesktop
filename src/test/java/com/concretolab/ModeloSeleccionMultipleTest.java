@@ -209,6 +209,124 @@ class ModeloSeleccionMultipleTest {
         assertThat(fxValor(() -> campo("btnMoverDesdeEditar", Button.class).isVisible())).isTrue();
     }
 
+    // ------------------------------------------------------------------ deshacer
+
+    @Test
+    void editarVariosYDeshacerDevuelveLasMedidasAnteriores() throws Exception {
+        assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).as("sin cambios no hay nada que deshacer").isTrue();
+        editarZapatas("1,5", "");
+        assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.5);
+        assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).isFalse();
+        assertThat(fxValor(() -> campo("btnDeshacer", Button.class).getTooltip().getText())).contains("Editar 4 elementos");
+        fx(() -> campo("btnDeshacer", Button.class).fire());
+        assertThat(tipo("ZAPATA")).hasSize(4).allMatch(z -> z.getLargo() == 1.2 && z.getAncho() == 1.2);
+        assertThat(tipo("COLUMNA")).allMatch(c -> c.getLargo() == 0.4);
+        assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).isTrue();
+    }
+
+    @Test
+    void ctrlZDeshaceVariosPasosEnOrdenInverso() throws Exception {
+        editarZapatas("1,5", "");           // paso 1
+        editarZapatas("", "+0,3");          // paso 2: ancho 1,2 → 1,5
+        assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.5 && z.getAncho() == 1.5);
+        fx(() -> filtro().setValue("Todos los tipos"));
+        Runnable ctrlZ = fxValor(() -> ventana.getScene().getAccelerators().get(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.Z, javafx.scene.input.KeyCombination.SHORTCUT_DOWN)));
+        assertThat(ctrlZ).as("Ctrl+Z registrado").isNotNull();
+        fx(ctrlZ);
+        assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.5 && z.getAncho() == 1.2);
+        fx(ctrlZ);
+        assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.2 && z.getAncho() == 1.2);
+        fx(ctrlZ); // sin más pasos: no hace nada
+        assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.2);
+    }
+
+    @Test
+    void editarUnElementoTambienSeDeshace() throws Exception {
+        var columna = tipo("COLUMNA").get(0);
+        fx(() -> {
+            Event.fireEvent(caja(columna.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, false));
+            Event.fireEvent(caja(columna.getId()), raton(MouseEvent.MOUSE_CLICKED, 2, false));
+        });
+        esperarFx(400);
+        fx(() -> {
+            campo("txtLargo", TextField.class).setText("0.55");
+            invocar("onGuardarElemento");
+        });
+        esperarFx(300);
+        assertThat(proyectos.elementos(proyecto.getId()).stream().filter(e -> e.getId().equals(columna.getId())).findFirst().orElseThrow().getLargo()).isEqualTo(0.55);
+        fx(() -> campo("btnDeshacer", Button.class).fire());
+        assertThat(proyectos.elementos(proyecto.getId()).stream().filter(e -> e.getId().equals(columna.getId())).findFirst().orElseThrow().getLargo()).isEqualTo(0.4);
+    }
+
+    @Test
+    void noDeshaceSiElElementoCambioDespuesPorOtroCamino() throws Exception {
+        editarZapatas("1,5", "");
+        var z = tipo("ZAPATA").get(0);
+        z.setAltura(0.9);
+        proyectos.yefriLermaGuardar(z); // cambio hecho fuera del historial
+        fx(() -> campo("btnDeshacer", Button.class).fire());
+        // no se tocó nada: la zapata cambiada sigue así y las demás también conservan el 1,5
+        assertThat(tipo("ZAPATA")).allMatch(x -> x.getLargo() == 1.5);
+        assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).as("el paso que no se pudo deshacer se descarta").isTrue();
+    }
+
+    @Test
+    void avisaAntesDeGuardarUnCambioQueSueltaLasVigasYSePuedeDeshacer() throws Exception {
+        fx(() -> {
+            filtro().setValue("Solo vigas");
+            campo("btnSeleccionarTodo", Button.class).fire();
+            campo("btnEditar", Button.class).fire();
+        });
+        esperarFx(400);
+        fx(() -> {
+            campo("txtLoteLargo", TextField.class).setText("0,6");
+            campo("txtLoteAncho", TextField.class).setText("0,6");
+            campo("btnAplicarLote", Button.class).fire();
+        });
+        esperarFx(500);
+        Button guardarIgual = fxValor(() -> botonEnVentana("Guardar igual"));
+        assertThat(guardarIgual).as("aparece la confirmación de vigas sueltas").isNotNull();
+        assertThat(tipo("VIGA")).as("todavía no se guardó nada").noneMatch(v -> v.getLargo() == 0.6 && v.getAncho() == 0.6);
+        fx(guardarIgual::fire);
+        esperarFx(500);
+        assertThat(tipo("VIGA")).allMatch(v -> v.getLargo() == 0.6 && v.getAncho() == 0.6);
+        fx(() -> campo("btnDeshacer", Button.class).fire());
+        assertThat(tipo("VIGA")).noneMatch(v -> v.getLargo() == 0.6 && v.getAncho() == 0.6);
+        assertThat(com.concretolab.service.FernandoHuancaAnalisisSismico.fernandoHuancaConexionVigas(proyectos.elementos(proyecto.getId())).sueltas()).isEmpty();
+    }
+
+    private void editarZapatas(String largo, String ancho) throws Exception {
+        fx(() -> {
+            filtro().setValue("Solo zapatas");
+            campo("btnSeleccionarTodo", Button.class).fire();
+            campo("btnEditar", Button.class).fire();
+        });
+        esperarFx(400);
+        fx(() -> {
+            campo("txtLoteLargo", TextField.class).setText(largo);
+            campo("txtLoteAncho", TextField.class).setText(ancho);
+            campo("btnAplicarLote", Button.class).fire();
+        });
+        esperarFx(500);
+    }
+
+    private Button botonEnVentana(String texto) {
+        return ventana.getScene().getRoot().lookupAll(".button").stream()
+                .filter(n -> n instanceof Button b && texto.equals(b.getText()) && b.isVisible())
+                .map(n -> (Button) n).findFirst().orElse(null);
+    }
+
+    private void invocar(String metodo) {
+        try {
+            var m = ModeloController.class.getDeclaredMethod(metodo);
+            m.setAccessible(true);
+            m.invoke(modelo);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     // ------------------------------------------------------------------ apoyo
 
     private List<Elemento> tipo(String tipo) {

@@ -719,9 +719,17 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return t;
     }
 
+    /** Veredicto del resumen: solo se dice «cumple» si el modelo forma pórticos (vigas unidas a las columnas). */
+    static String walterQuispesayhuaVeredicto(Resultado r) {
+        if (!GuiaSismica.walterQuispesayhuaModeloValido(r)) return "MODELO INCOMPLETO: las vigas no forman pórticos";
+        boolean cumple = r.estaticoX().cumple() && r.estaticoY().cumple() && r.espectralX().cumple() && r.espectralY().cumple();
+        return cumple ? "CUMPLE (preliminar)" : "NO CUMPLE";
+    }
+
     /** Banner semaforo con el veredicto de derivas. */
-    private static Label walterQuispesayhuaBanner(boolean cumple) {
-        Label b = new Label(cumple ? "CUMPLE (preliminar)" : "NO CUMPLE");
+    private static Label walterQuispesayhuaBanner(String veredicto) {
+        boolean cumple = veredicto.startsWith("CUMPLE");
+        Label b = new Label(veredicto);
         b.setGraphic(new FontIcon(cumple ? "fth-check-circle" : "fth-x-circle"));
         b.setMaxWidth(Double.MAX_VALUE);
         b.setWrapText(true);
@@ -752,14 +760,16 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             HBox fila = new HBox(8, fi, texto);
             HBox.setHgrow(texto, Priority.ALWAYS);
             if (v.correccion() != GuiaSismica.Correccion.NINGUNA) {
-                boolean enModelo = v.correccion() == GuiaSismica.Correccion.DERIVA;
+                boolean enModelo = v.correccion() == GuiaSismica.Correccion.DERIVA || v.correccion() == GuiaSismica.Correccion.MODELO;
                 FontIcon iconoBoton = new FontIcon("fth-zap");
                 if (enModelo) iconoBoton.setStyle("-fx-icon-color: white;"); // la fila en rojo no debe teñir el icono del botón
-                Button corregir = new Button("Cómo corregir", iconoBoton);
+                Button corregir = new Button(v.correccion() == GuiaSismica.Correccion.MODELO ? "Ver en el modelo 3D" : "Cómo corregir", iconoBoton);
                 corregir.getStyleClass().addAll("button-small", enModelo ? "accent" : "button-outlined");
-                corregir.setTooltip(new javafx.scene.control.Tooltip(enModelo
-                        ? "Calcula cuánto agrandar las columnas y lo lleva al modelo 3D para que lo revise"
-                        : "Ver cómo mejorar esta verificación"));
+                corregir.setTooltip(new javafx.scene.control.Tooltip(switch (v.correccion()) {
+                    case DERIVA -> "Calcula cuánto agrandar las columnas y lo lleva al modelo 3D para que lo revise";
+                    case MODELO -> "Abre el modelo 3D con las vigas que no llegan a las columnas ya seleccionadas";
+                    default -> "Ver cómo mejorar esta verificación";
+                }));
                 corregir.setMinWidth(Region.USE_PREF_SIZE);
                 corregir.setOnAction(e -> walterQuispesayhuaCorregir(v));
                 fila.getChildren().add(corregir);
@@ -774,6 +784,13 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     /** Botón «Cómo corregir»: consejo en texto o, si falla la deriva, la medida calculada y el atajo al modelo 3D. */
     private void walterQuispesayhuaCorregir(GuiaSismica.Verificacion v) {
         var ventana = tabsResultados.getScene().getWindow();
+        if (v.correccion() == GuiaSismica.Correccion.MODELO && walterQuispesayhuaResultado != null) {
+            var sueltas = walterQuispesayhuaResultado.conexion().idsSueltas().stream().filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet());
+            walterQuispesayhuaPrincipal.getObject().fernandoHuancaIrA("modelo-view");
+            walterQuispesayhuaModelo.getObject().yefriLermaMostrarElementos(sueltas, "Seleccionadas: " + sueltas.size()
+                    + " vigas que no llegan a las columnas. " + v.consejo());
+            return;
+        }
         if (v.correccion() != GuiaSismica.Correccion.DERIVA || walterQuispesayhuaEntrada == null || walterQuispesayhuaResultado == null) {
             var a = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, v.consejo());
             a.initOwner(ventana);
@@ -822,7 +839,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         Resultado r = walterQuispesayhuaResultado;
         Parametros n = walterQuispesayhuaEntrada.norma();
         walterQuispesayhuaQuitarTabsCalculados();
-        boolean cumple = r.estaticoX().cumple() && r.estaticoY().cumple() && r.espectralX().cumple() && r.espectralY().cumple();
+        String veredicto = walterQuispesayhuaVeredicto(r);
         // Resumen
         List<String[]> res = new ArrayList<>(List.of(
                 new String[]{"Versión de la norma", n.version().etiqueta},
@@ -839,7 +856,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
                 new String[]{"Deriva máxima (límite " + NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO + ")",
                         "X: " + f(Math.max(r.estaticoX().derivaMaxima(), r.espectralX().derivaMaxima()), 5)
                                 + " · Y: " + f(Math.max(r.estaticoY().derivaMaxima(), r.espectralY().derivaMaxima()), 5)},
-                new String[]{"Verificación de deriva", cumple ? "CUMPLE (preliminar)" : "NO CUMPLE"}));
+                new String[]{"Verificación de deriva", veredicto}));
         VBox avisos = new VBox(4);
         avisos.setMinHeight(Region.USE_PREF_SIZE);
         String t9 = GuiaSismica.walterQuispesayhuaAvisoTabla9(n.categoria(), n.zona(), n.version(), walterQuispesayhuaUltimoUsoA1);
@@ -859,7 +876,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         TableView<String[]> tablaResumen = tabla(new String[]{"Concepto", "Valor"}, res);
         tablaResumen.setPrefHeight(400);
         tablaResumen.setMinHeight(400);
-        VBox resumen = new VBox(12, walterQuispesayhuaBanner(cumple), walterQuispesayhuaListaVerificaciones(GuiaSismica.walterQuispesayhuaVerificaciones(n, r, walterQuispesayhuaUsoCalculado)), tablaResumen, avisos);
+        VBox resumen = new VBox(12, walterQuispesayhuaBanner(veredicto), walterQuispesayhuaListaVerificaciones(GuiaSismica.walterQuispesayhuaVerificaciones(n, r, walterQuispesayhuaUsoCalculado)), tablaResumen, avisos);
         resumen.getStyleClass().add("sismo-resumen");
         ScrollPane scroll = new ScrollPane(resumen);
         scroll.setFitToWidth(true);
@@ -883,7 +900,8 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             der.add(new String[]{"" + (i + 1), f(r.estaticoX().derivasMaximas()[i], 5), f(r.estaticoY().derivasMaximas()[i], 5),
                     f(r.espectralX().derivasMaximas()[i], 5), f(r.espectralY().derivasMaximas()[i], 5),
                     f(r.espectralX().desplazamientosCm()[i] * 1000, 1), f(r.espectralY().desplazamientosCm()[i] * 1000, 1),
-                    max <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO ? "Cumple" : "NO CUMPLE"});
+                    !GuiaSismica.walterQuispesayhuaModeloValido(r) ? "No válida"
+                            : max <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO ? "Cumple" : "NO CUMPLE"});
         }
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Derivas", tabla(new String[]{"Piso", "Est. X", "Est. Y", "Esp. X", "Esp. Y", "Δ esp. X (mm)", "Δ esp. Y (mm)", "Estado"}, der)));
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Espectro", walterQuispesayhuaEspectro(r, n)));

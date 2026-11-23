@@ -64,11 +64,20 @@ public final class ReporteSismo {
         d.add(tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, fernandoHuancaFilas(r, r.espectralX(), r.espectralY())));
 
         d.add(new Paragraph("6. Desplazamientos y derivas (inelásticos: " + f(n.factorInelastico(), 2) + " × elástico)", FERNANDO_HUANCA_SECCION));
+        // Con vigas que no unen columnas no hay pórtico: las derivas no se califican como «Cumple».
+        var conexion = r.conexion();
+        boolean modeloValido = conexion == null || conexion.formaPorticos();
+        if (!modeloValido) {
+            d.add(new Paragraph("MODELO INCOMPLETO: " + conexion.sueltas().size() + " de " + conexion.vigas() + " vigas no unen dos columnas"
+                    + (conexion.pisosSinPortico().isEmpty() ? "" : " (pisos sin ningún pórtico: " + conexion.pisosSinPortico() + ")")
+                    + ". Sin vigas unidas a las columnas no hay pórtico: estas derivas NO son válidas. Corrija la geometría y vuelva a calcular.", FERNANDO_HUANCA_CABECERA));
+        }
         List<String[]> der = new java.util.ArrayList<>();
         for (int i = 0; i < r.pisos().size(); i++) {
             double max = Math.max(Math.max(r.estaticoX().derivasMaximas()[i], r.estaticoY().derivasMaximas()[i]), Math.max(r.espectralX().derivasMaximas()[i], r.espectralY().derivasMaximas()[i]));
+            String estado = !modeloValido ? "No válida" : max <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO ? "Cumple" : "No cumple";
             der.add(new String[]{"" + (i + 1), f(r.estaticoX().desplazamientosCm()[i] * 1000, 1), f(r.estaticoY().desplazamientosCm()[i] * 1000, 1), f(r.espectralX().desplazamientosCm()[i] * 1000, 1), f(r.espectralY().desplazamientosCm()[i] * 1000, 1),
-                    f(r.estaticoX().derivasMaximas()[i], 5), f(r.estaticoY().derivasMaximas()[i], 5), f(r.espectralX().derivasMaximas()[i], 5), f(r.espectralY().derivasMaximas()[i], 5), max <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO ? "Cumple" : "No cumple"});
+                    f(r.estaticoX().derivasMaximas()[i], 5), f(r.estaticoY().derivasMaximas()[i], 5), f(r.espectralX().derivasMaximas()[i], 5), f(r.espectralY().derivasMaximas()[i], 5), estado});
         }
         d.add(tabla(new String[]{"Piso", "Δ est X (mm)", "Δ est Y (mm)", "Δ esp X (mm)", "Δ esp Y (mm)", "Deriva est X", "Deriva est Y", "Deriva esp X", "Deriva esp Y", "Estado"}, der));
         d.add(new Paragraph("Las derivas son el máximo entre el centro de masas y los nudos de cada piso.", FERNANDO_HUANCA_NOTA));
