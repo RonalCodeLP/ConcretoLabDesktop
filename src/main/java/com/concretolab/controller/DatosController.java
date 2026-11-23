@@ -43,36 +43,36 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class DatosController implements Refrescable {
 
-    private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private static final int MINIMO_CONTRASENA = 8;
+    private static final DateTimeFormatter ERICK_DELGADO_FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final int ERICK_DELGADO_MINIMO_CONTRASENA = 8;
 
-    private final RespaldoService respaldos;
-    private final IntercambioProyectoService intercambio;
+    private final RespaldoService erickDelgadoRespaldos;
+    private final IntercambioProyectoService erickDelgadoIntercambio;
     private final BitacoraService bitacora;
     private final YefriLermaProyectoService proyectos;
-    private final SesionProyecto sesion;
-    private final Notificador notificador;
+    private final SesionProyecto erickDelgadoSesion;
+    private final Notificador erickDelgadoNotificador;
     private final Exportador exportador;
 
     @FXML private Label lblRutaBase;
     @FXML private Label lblTamanoBase;
     @FXML private Label lblCifrado;
     @FXML private Button btnCambiarClave;
-    private final com.concretolab.service.ClaveBaseService claveBase;
+    private final com.concretolab.service.ClaveBaseService erickDelgadoClaveBase;
 
     @FXML
     private void onCambiarClaveBase() {
-        var respuesta = com.concretolab.ui.DialogoClaveBase.pedirCambio();
+        var respuesta = com.concretolab.ui.DialogoClaveBase.erickDelgadoPedirCambio();
         if (respuesta.isEmpty()) {
             return;
         }
         try {
-            claveBase.cambiar(respuesta.get()[0], respuesta.get()[1]);
+            erickDelgadoClaveBase.erickDelgadoCambiar(respuesta.get()[0], respuesta.get()[1]);
         } catch (IllegalArgumentException e) {
-            notificador.advertencia(e.getMessage());
+            erickDelgadoNotificador.fernandoHuancaAdvertencia(e.getMessage());
             return;
         } catch (Exception e) {
-            notificador.error("No se pudo cambiar la contraseña: " + e.getMessage());
+            erickDelgadoNotificador.fernandoHuancaError("No se pudo cambiar la contraseña: " + e.getMessage());
             return;
         }
         var aviso = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
@@ -107,77 +107,77 @@ public class DatosController implements Refrescable {
 
     private enum Modo { EXPORTAR, IMPORTAR }
 
-    private Modo modo;
-    private Proyecto proyectoAExportar;
-    private File archivoAImportar;
-    private File ultimaCarpeta = new File(System.getProperty("user.home"));
+    private Modo erickDelgadoModo;
+    private Proyecto erickDelgadoProyectoAExportar;
+    private File erickDelgadoArchivoAImportar;
+    private File erickDelgadoUltimaCarpeta = new File(System.getProperty("user.home"));
 
     @FXML
     public void initialize() {
-        colFechaCopia.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().fecha().format(FORMATO_FECHA)));
-        colTipoCopia.setCellValueFactory(c -> new SimpleStringProperty(nombreTipo(c.getValue().tipo())));
-        colTamanoCopia.setCellValueFactory(c -> new SimpleStringProperty(tamano(c.getValue().bytes())));
+        colFechaCopia.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().fecha().format(ERICK_DELGADO_FORMATO_FECHA)));
+        colTipoCopia.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoNombreTipo(c.getValue().tipo())));
+        colTamanoCopia.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoTamano(c.getValue().bytes())));
         colNombreCopia.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nombre()));
-        Tablas.configurar(tablaCopias, "Todavía no hay copias de seguridad.", copia -> { });
+        Tablas.fernandoHuancaConfigurar(tablaCopias, "Todavía no hay copias de seguridad.", copia -> { });
         btnRestaurar.disableProperty().bind(tablaCopias.getSelectionModel().selectedItemProperty().isNull());
         btnEliminarCopia.disableProperty().bind(tablaCopias.getSelectionModel().selectedItemProperty().isNull());
 
-        colFechaBitacora.setCellValueFactory(c -> new SimpleStringProperty(formatoBitacora(c.getValue().getFecha())));
-        colAccionBitacora.setCellValueFactory(c -> new SimpleStringProperty(nombreAccion(c.getValue().getAccion())));
+        colFechaBitacora.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoFormatoBitacora(c.getValue().getFecha())));
+        colAccionBitacora.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoNombreAccion(c.getValue().getAccion())));
         colDetalleBitacora.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getDetalle()));
-        Tablas.configurar(tablaBitacora, "Todavía no hay cambios registrados.", registro -> { });
+        Tablas.fernandoHuancaConfigurar(tablaBitacora, "Todavía no hay cambios registrados.", registro -> { });
 
         cmbProyecto.setConverter(new StringConverter<>() {
             @Override public String toString(Proyecto p) { return p == null ? "" : p.getNombre(); }
             @Override public Proyecto fromString(String s) { return null; }
         });
-        chkProteger.selectedProperty().addListener((obs, antes, ahora) -> actualizarCamposContrasena());
-        Formularios.limpiarAlEditar(txtContrasena, txtConfirmacion);
+        chkProteger.selectedProperty().addListener((obs, antes, ahora) -> erickDelgadoActualizarCamposContrasena());
+        Formularios.fernandoHuancaLimpiarAlEditar(txtContrasena, txtConfirmacion);
     }
 
     @Override
     public void refrescar() {
-        boolean cifrada = claveBase.estaCifrada();
+        boolean cifrada = erickDelgadoClaveBase.erickDelgadoEstaCifrada();
         lblCifrado.setText(cifrada ? "Cifrado: SÍ (AES-256). La contraseña se pide al abrir la aplicación."
                 : "Cifrado: NO. Esta base no está cifrada (modo de pruebas o abierta con otro método).");
         btnCambiarClave.setDisable(!cifrada);
-        lblRutaBase.setText("Base de datos: " + respaldos.archivoBaseDatos() + "\nRegistros: " + respaldos.carpetaRegistros());
-        lblTamanoBase.setText("Tamaño de la base: " + tamano(respaldos.tamanoBaseDatos()) + " · Copias en: " + respaldos.carpetaCopias());
-        tablaCopias.getItems().setAll(respaldos.listar());
-        Proyecto activo = sesion.getProyecto();
+        lblRutaBase.setText("Base de datos: " + erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos() + "\nRegistros: " + erickDelgadoRespaldos.erickDelgadoCarpetaRegistros());
+        lblTamanoBase.setText("Tamaño de la base: " + erickDelgadoTamano(erickDelgadoRespaldos.erickDelgadoTamanoBaseDatos()) + " · Copias en: " + erickDelgadoRespaldos.erickDelgadoCarpetaCopias());
+        tablaCopias.getItems().setAll(erickDelgadoRespaldos.erickDelgadoListar());
+        Proyecto activo = erickDelgadoSesion.getProyecto();
         cmbProyecto.getItems().setAll(proyectos.proyectos());
         cmbProyecto.getItems().stream().filter(p -> activo != null && p.getId().equals(activo.getId())).findFirst().ifPresent(cmbProyecto::setValue);
-        tablaBitacora.getItems().setAll(bitacora.recientes());
+        tablaBitacora.getItems().setAll(bitacora.erickDelgadoRecientes());
     }
 
     // ------------------------------------------------------------ carpetas
 
-    @FXML private void onAbrirCarpetaDatos() { exportador.abrirCarpeta(respaldos.archivoBaseDatos().getParent().toFile()); }
+    @FXML private void onAbrirCarpetaDatos() { exportador.fernandoHuancaAbrirCarpeta(erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos().getParent().toFile()); }
 
-    @FXML private void onAbrirCarpetaRegistros() { exportador.abrirCarpeta(respaldos.carpetaRegistros().toFile()); }
+    @FXML private void onAbrirCarpetaRegistros() { exportador.fernandoHuancaAbrirCarpeta(erickDelgadoRespaldos.erickDelgadoCarpetaRegistros().toFile()); }
 
     // ------------------------------------------------------------ copias
 
     @FXML
     private void onCrearCopia() {
-        enSegundoPlano("Creando la copia de seguridad…", () -> respaldos.crearCopia("manual"),
-                copia -> { notificador.exito("Copia creada: " + copia.nombre()); refrescar(); });
+        erickDelgadoEnSegundoPlano("Creando la copia de seguridad…", () -> erickDelgadoRespaldos.erickDelgadoCrearCopia("manual"),
+                copia -> { erickDelgadoNotificador.exito("Copia creada: " + copia.nombre()); refrescar(); });
     }
 
     @FXML
     private void onRestaurar() {
         var copia = tablaCopias.getSelectionModel().getSelectedItem();
         if (copia == null) return;
-        notificador.confirmar("Restaurar copia",
-                "Se reemplazarán todos tus datos actuales por los de la copia del " + copia.fecha().format(FORMATO_FECHA)
+        erickDelgadoNotificador.fernandoHuancaConfirmar("Restaurar copia",
+                "Se reemplazarán todos tus datos actuales por los de la copia del " + copia.fecha().format(ERICK_DELGADO_FORMATO_FECHA)
                         + ". Antes se guardará una copia de lo actual. El cambio se aplica al volver a abrir la aplicación.",
                 "Restaurar", () -> {
                     try {
-                        respaldos.programarRestauracion(copia.archivo());
-                        notificador.advertencia("Restauración programada. Cierra ConcretoLab y vuelve a abrirlo para aplicarla.");
+                        erickDelgadoRespaldos.erickDelgadoProgramarRestauracion(copia.archivo());
+                        erickDelgadoNotificador.fernandoHuancaAdvertencia("Restauración programada. Cierra ConcretoLab y vuelve a abrirlo para aplicarla.");
                         refrescar();
                     } catch (IllegalArgumentException ex) {
-                        notificador.error(ex.getMessage());
+                        erickDelgadoNotificador.fernandoHuancaError(ex.getMessage());
                     }
                 });
     }
@@ -186,13 +186,13 @@ public class DatosController implements Refrescable {
     private void onEliminarCopia() {
         var copia = tablaCopias.getSelectionModel().getSelectedItem();
         if (copia == null) return;
-        notificador.confirmar("Eliminar copia", "¿Eliminar «" + copia.nombre() + "»? No se puede deshacer.", "Eliminar", () -> {
+        erickDelgadoNotificador.fernandoHuancaConfirmar("Eliminar copia", "¿Eliminar «" + copia.nombre() + "»? No se puede deshacer.", "Eliminar", () -> {
             try {
-                respaldos.eliminarCopia(copia.archivo());
-                notificador.exito("Copia eliminada.");
+                erickDelgadoRespaldos.erickDelgadoEliminarCopia(copia.archivo());
+                erickDelgadoNotificador.exito("Copia eliminada.");
                 refrescar();
             } catch (IllegalArgumentException ex) {
-                notificador.error(ex.getMessage());
+                erickDelgadoNotificador.fernandoHuancaError(ex.getMessage());
             }
         });
     }
@@ -203,14 +203,14 @@ public class DatosController implements Refrescable {
     private void onExportar() {
         Proyecto p = cmbProyecto.getValue();
         if (p == null) {
-            notificador.advertencia("Elige primero el proyecto que quieres exportar.");
+            erickDelgadoNotificador.fernandoHuancaAdvertencia("Elige primero el proyecto que quieres exportar.");
             return;
         }
-        modo = Modo.EXPORTAR;
-        proyectoAExportar = p;
+        erickDelgadoModo = Modo.EXPORTAR;
+        erickDelgadoProyectoAExportar = p;
         lblTituloContrasena.setText("Exportar «" + p.getNombre() + "»");
         lblSubtituloContrasena.setText("Puedes protegerlo con una contraseña");
-        abrirPanelContrasena(false);
+        erickDelgadoAbrirPanelContrasena(false);
     }
 
     @FXML
@@ -218,32 +218,32 @@ public class DatosController implements Refrescable {
         var selector = new FileChooser();
         selector.setTitle("Importar proyecto");
         selector.getExtensionFilters().add(new FileChooser.ExtensionFilter("Proyecto de ConcretoLab", "*.concretolab"));
-        if (ultimaCarpeta.isDirectory()) selector.setInitialDirectory(ultimaCarpeta);
+        if (erickDelgadoUltimaCarpeta.isDirectory()) selector.setInitialDirectory(erickDelgadoUltimaCarpeta);
         File elegido = selector.showOpenDialog(tablaCopias.getScene().getWindow());
         if (elegido == null) return;
-        ultimaCarpeta = elegido.getParentFile();
-        archivoAImportar = elegido;
+        erickDelgadoUltimaCarpeta = elegido.getParentFile();
+        erickDelgadoArchivoAImportar = elegido;
         boolean cifrado;
         try {
-            cifrado = intercambio.estaCifrado(elegido.toPath());
+            cifrado = erickDelgadoIntercambio.erickDelgadoEstaCifrado(elegido.toPath());
         } catch (RuntimeException ex) {
-            notificador.error(mensaje(ex));
+            erickDelgadoNotificador.fernandoHuancaError(erickDelgadoMensaje(ex));
             return;
         }
         if (cifrado) {
-            modo = Modo.IMPORTAR;
+            erickDelgadoModo = Modo.IMPORTAR;
             lblTituloContrasena.setText("Importar proyecto protegido");
             lblSubtituloContrasena.setText(elegido.getName());
-            abrirPanelContrasena(true);
+            erickDelgadoAbrirPanelContrasena(true);
         } else {
-            importar(elegido, null);
+            erickDelgadoImportar(elegido, null);
         }
     }
 
-    private void abrirPanelContrasena(boolean soloIntroducir) {
+    private void erickDelgadoAbrirPanelContrasena(boolean soloIntroducir) {
         txtContrasena.clear();
         txtConfirmacion.clear();
-        Formularios.limpiarErrores(txtContrasena, txtConfirmacion);
+        Formularios.fernandoHuancaLimpiarErrores(txtContrasena, txtConfirmacion);
         chkProteger.setVisible(!soloIntroducir);
         chkProteger.setManaged(!soloIntroducir);
         chkProteger.setSelected(soloIntroducir);
@@ -251,99 +251,99 @@ public class DatosController implements Refrescable {
         lblAvisoContrasena.setVisible(!soloIntroducir);
         lblAvisoContrasena.setManaged(!soloIntroducir);
         btnConfirmarContrasena.setText(soloIntroducir ? "Importar" : "Elegir destino");
-        actualizarCamposContrasena();
-        notificador.abrirPanel(panelContrasena);
+        erickDelgadoActualizarCamposContrasena();
+        erickDelgadoNotificador.fernandoHuancaAbrirPanel(panelContrasena);
     }
 
-    private void actualizarCamposContrasena() {
+    private void erickDelgadoActualizarCamposContrasena() {
         boolean pedir = chkProteger.isSelected();
-        boolean importando = modo == Modo.IMPORTAR;
+        boolean importando = erickDelgadoModo == Modo.IMPORTAR;
         txtContrasena.getParent().setVisible(pedir);
         txtContrasena.getParent().setManaged(pedir);
         cajaConfirmacion.setVisible(pedir && !importando);
         cajaConfirmacion.setManaged(pedir && !importando);
     }
 
-    @FXML private void onCancelarContrasena() { limpiarContrasenas(); notificador.cerrarPanel(); }
+    @FXML private void onCancelarContrasena() { erickDelgadoLimpiarContrasenas(); erickDelgadoNotificador.fernandoHuancaCerrarPanel(); }
 
     @FXML
     private void onConfirmarContrasena() {
-        Formularios.limpiarErrores(txtContrasena, txtConfirmacion);
+        Formularios.fernandoHuancaLimpiarErrores(txtContrasena, txtConfirmacion);
         char[] contrasena = null;
         if (chkProteger.isSelected()) {
             String texto = txtContrasena.getText();
-            if (modo == Modo.EXPORTAR) {
-                if (texto.length() < MINIMO_CONTRASENA) {
-                    Formularios.marcarError(txtContrasena, "Usa al menos " + MINIMO_CONTRASENA + " caracteres.");
+            if (erickDelgadoModo == Modo.EXPORTAR) {
+                if (texto.length() < ERICK_DELGADO_MINIMO_CONTRASENA) {
+                    Formularios.fernandoHuancaMarcarError(txtContrasena, "Usa al menos " + ERICK_DELGADO_MINIMO_CONTRASENA + " caracteres.");
                     return;
                 }
                 if (!texto.equals(txtConfirmacion.getText())) {
-                    Formularios.marcarError(txtConfirmacion, "Las contraseñas no coinciden.");
+                    Formularios.fernandoHuancaMarcarError(txtConfirmacion, "Las contraseñas no coinciden.");
                     return;
                 }
             } else if (texto.isEmpty()) {
-                Formularios.marcarError(txtContrasena, "Escribe la contraseña del archivo.");
+                Formularios.fernandoHuancaMarcarError(txtContrasena, "Escribe la contraseña del archivo.");
                 return;
             }
             contrasena = texto.toCharArray();
         }
-        Modo actual = modo;
-        limpiarContrasenas();
-        notificador.cerrarPanel();
-        if (actual == Modo.EXPORTAR) exportar(proyectoAExportar, contrasena);
-        else importar(archivoAImportar, contrasena);
+        Modo actual = erickDelgadoModo;
+        erickDelgadoLimpiarContrasenas();
+        erickDelgadoNotificador.fernandoHuancaCerrarPanel();
+        if (actual == Modo.EXPORTAR) erickDelgadoExportar(erickDelgadoProyectoAExportar, contrasena);
+        else erickDelgadoImportar(erickDelgadoArchivoAImportar, contrasena);
     }
 
-    private void limpiarContrasenas() {
+    private void erickDelgadoLimpiarContrasenas() {
         txtContrasena.clear();
         txtConfirmacion.clear();
     }
 
-    private void exportar(Proyecto p, char[] contrasena) {
+    private void erickDelgadoExportar(Proyecto p, char[] contrasena) {
         var selector = new FileChooser();
         selector.setTitle("Exportar proyecto");
         selector.setInitialFileName(p.getNombre().replaceAll("[\\\\/:*?\"<>|]", "_") + ".concretolab");
         selector.getExtensionFilters().add(new FileChooser.ExtensionFilter("Proyecto de ConcretoLab", "*.concretolab"));
-        if (ultimaCarpeta.isDirectory()) selector.setInitialDirectory(ultimaCarpeta);
+        if (erickDelgadoUltimaCarpeta.isDirectory()) selector.setInitialDirectory(erickDelgadoUltimaCarpeta);
         File elegido = selector.showSaveDialog(tablaCopias.getScene().getWindow());
         if (elegido == null) {
-            borrar(contrasena);
+            erickDelgadoBorrar(contrasena);
             return;
         }
         File destino = elegido.getName().toLowerCase(Locale.ROOT).endsWith(".concretolab") ? elegido : new File(elegido.getParentFile(), elegido.getName() + ".concretolab");
-        ultimaCarpeta = destino.getParentFile();
-        enSegundoPlano("Exportando el proyecto…", () -> intercambio.exportar(p.getId(), destino.toPath(), contrasena),
+        erickDelgadoUltimaCarpeta = destino.getParentFile();
+        erickDelgadoEnSegundoPlano("Exportando el proyecto…", () -> erickDelgadoIntercambio.erickDelgadoExportar(p.getId(), destino.toPath(), contrasena),
                 ruta -> {
-                    notificador.exito("Proyecto exportado" + (contrasena != null && contrasena.length > 0 ? " y protegido con contraseña" : "") + ": " + destino.getName());
+                    erickDelgadoNotificador.exito("Proyecto exportado" + (contrasena != null && contrasena.length > 0 ? " y protegido con contraseña" : "") + ": " + destino.getName());
                     refrescar();
-                }, () -> borrar(contrasena));
+                }, () -> erickDelgadoBorrar(contrasena));
     }
 
-    private void importar(File archivo, char[] contrasena) {
-        enSegundoPlano("Importando el proyecto…", () -> intercambio.importar(archivo.toPath(), contrasena),
+    private void erickDelgadoImportar(File archivo, char[] contrasena) {
+        erickDelgadoEnSegundoPlano("Importando el proyecto…", () -> erickDelgadoIntercambio.erickDelgadoImportar(archivo.toPath(), contrasena),
                 resultado -> {
-                    sesion.setProyecto(resultado.proyecto());
-                    notificador.exito("Proyecto importado: «" + resultado.proyecto().getNombre() + "» · " + resultado.elementos() + " elementos, "
+                    erickDelgadoSesion.setProyecto(resultado.proyecto());
+                    erickDelgadoNotificador.exito("Proyecto importado: «" + resultado.proyecto().getNombre() + "» · " + resultado.elementos() + " elementos, "
                             + resultado.mezclas() + " mezclas, " + resultado.ensayos() + " ensayos.");
-                    resultado.avisos().forEach(notificador::advertencia);
+                    resultado.avisos().forEach(erickDelgadoNotificador::fernandoHuancaAdvertencia);
                     refrescar();
-                }, () -> borrar(contrasena));
+                }, () -> erickDelgadoBorrar(contrasena));
     }
 
     // ------------------------------------------------------------ bitácora
 
-    @FXML private void onActualizarBitacora() { tablaBitacora.getItems().setAll(bitacora.recientes()); }
+    @FXML private void onActualizarBitacora() { tablaBitacora.getItems().setAll(bitacora.erickDelgadoRecientes()); }
 
     // ------------------------------------------------------------ utilidades
 
     /** Ejecuta la operación fuera del hilo de JavaFX y avisa del resultado; los errores del usuario salen como mensaje claro. */
-    private <T> void enSegundoPlano(String mensajeInicio, java.util.concurrent.Callable<T> trabajo, java.util.function.Consumer<T> alTerminar) {
-        enSegundoPlano(mensajeInicio, trabajo, alTerminar, () -> { });
+    private <T> void erickDelgadoEnSegundoPlano(String mensajeInicio, java.util.concurrent.Callable<T> trabajo, java.util.function.Consumer<T> alTerminar) {
+        erickDelgadoEnSegundoPlano(mensajeInicio, trabajo, alTerminar, () -> { });
     }
 
-    private <T> void enSegundoPlano(String mensajeInicio, java.util.concurrent.Callable<T> trabajo,
+    private <T> void erickDelgadoEnSegundoPlano(String mensajeInicio, java.util.concurrent.Callable<T> trabajo,
                                     java.util.function.Consumer<T> alTerminar, Runnable alFinalizar) {
-        notificador.info(mensajeInicio);
+        erickDelgadoNotificador.fernandoHuancaInfo(mensajeInicio);
         Task<T> tarea = new Task<>() {
             @Override protected T call() throws Exception { return trabajo.call(); }
         };
@@ -352,29 +352,29 @@ public class DatosController implements Refrescable {
             alFinalizar.run();
             Throwable causa = tarea.getException();
             log.warn("Operación de datos fallida", causa);
-            notificador.error(mensaje(causa));
+            erickDelgadoNotificador.fernandoHuancaError(erickDelgadoMensaje(causa));
         });
         Thread hilo = new Thread(tarea, "datos");
         hilo.setDaemon(true);
         hilo.start();
     }
 
-    private static String mensaje(Throwable ex) {
+    private static String erickDelgadoMensaje(Throwable ex) {
         return ex instanceof IllegalArgumentException && ex.getMessage() != null ? ex.getMessage()
                 : "No se pudo completar la operación: " + (ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage());
     }
 
-    private static void borrar(char[] contrasena) {
+    private static void erickDelgadoBorrar(char[] contrasena) {
         if (contrasena != null) Arrays.fill(contrasena, '\0');
     }
 
-    private static String tamano(long bytes) {
+    private static String erickDelgadoTamano(long bytes) {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return String.format(Locale.ROOT, "%.1f KB", bytes / 1024.0);
         return String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0));
     }
 
-    private static String nombreTipo(String tipo) {
+    private static String erickDelgadoNombreTipo(String tipo) {
         return switch (tipo == null ? "" : tipo) {
             case "inicio" -> "Al abrir la aplicación";
             case "cierre" -> "Al cerrarla";
@@ -384,7 +384,7 @@ public class DatosController implements Refrescable {
         };
     }
 
-    private static String nombreAccion(String accion) {
+    private static String erickDelgadoNombreAccion(String accion) {
         return switch (accion == null ? "" : accion) {
             case "PROYECTO_CREADO" -> "Proyecto creado";
             case "PROYECTO_ELIMINADO" -> "Proyecto eliminado";
@@ -396,9 +396,9 @@ public class DatosController implements Refrescable {
         };
     }
 
-    private static String formatoBitacora(String iso) {
+    private static String erickDelgadoFormatoBitacora(String iso) {
         try {
-            return LocalDateTime.parse(iso).format(FORMATO_FECHA);
+            return LocalDateTime.parse(iso).format(ERICK_DELGADO_FORMATO_FECHA);
         } catch (RuntimeException e) {
             return iso;
         }

@@ -13,9 +13,9 @@ import org.apache.commons.math3.linear.*;
 public final class FernandoHuancaAnalisisSismico {
     private FernandoHuancaAnalisisSismico() {}
 
-    public static final double G = 9.80665;        // m/s²
-    public static final double PESO_CONCRETO = 24; // kN/m³ (E.020: 2400 kgf/m³)
-    private static final double TOL = 0.05;        // m, tolerancia para agrupar cotas y ubicar nudos
+    public static final double FERNANDO_HUANCA_G = 9.80665;        // m/s²
+    public static final double FERNANDO_HUANCA_PESO_CONCRETO = 24; // kN/m³ (E.020: 2400 kgf/m³)
+    private static final double FERNANDO_HUANCA_TOL = 0.05;        // m, tolerancia para agrupar cotas y ubicar nudos
 
     /** Piso detectado: cota de entrepiso (cara superior de vigas) y área envolvente por defecto. */
     public record PisoBase(double cota, double areaPorDefecto) {}
@@ -30,7 +30,7 @@ public final class FernandoHuancaAnalisisSismico {
     public record Direccion(String nombre, double periodo, double cortanteBase, double[] fuerzas, double[] cortantes,
                             double[] desplazamientosCm, double[] derivasCm, double[] derivasMaximas, double factorEscala, double[] razonTorsion) {
         public double derivaMaxima() { return Arrays.stream(derivasMaximas).max().orElse(0); }
-        public boolean cumple() { return derivaMaxima() <= NormaE030.DERIVA_LIMITE_CONCRETO; }
+        public boolean cumple() { return derivaMaxima() <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO; }
     }
     /** Separación sísmica: mínimo por norma según la altura y 2/3 del desplazamiento máximo propio (a sumar con el del vecino). */
     public record Junta(double alturaM, double minimoNormaM, double dosTerciosPropioM) {}
@@ -55,33 +55,33 @@ public final class FernandoHuancaAnalisisSismico {
     }
 
     /** E.060: Ec = 15 000·√f'c con f'c en kgf/cm²; se devuelve en MPa. */
-    public static double modulo(double fcMpa) { return 15000 * Math.sqrt(fcMpa / 0.0980665) * 0.0980665; }
+    public static double fernandoHuancaModulo(double fcMpa) { return 15000 * Math.sqrt(fcMpa / 0.0980665) * 0.0980665; }
 
     // ---------- Geometría ----------
 
-    private static List<Elemento> de(List<Elemento> l, String tipo) { return l.stream().filter(e -> tipo.equals(e.getTipo())).toList(); }
+    private static List<Elemento> fernandoHuancaDe(List<Elemento> l, String tipo) { return l.stream().filter(e -> tipo.equals(e.getTipo())).toList(); }
 
-    private static double[] niveles(List<Elemento> vigas) {
+    private static double[] fernandoHuancaNiveles(List<Elemento> vigas) {
         double[] tops = vigas.stream().mapToDouble(v -> v.getZ() + v.getAltura() / 2).sorted().toArray();
         List<Double> res = new ArrayList<>(); List<Double> grupo = new ArrayList<>();
         for (double t : tops) {
-            if (!grupo.isEmpty() && t - grupo.get(0) > TOL) { res.add(grupo.stream().mapToDouble(d -> d).average().orElse(0)); grupo.clear(); }
+            if (!grupo.isEmpty() && t - grupo.get(0) > FERNANDO_HUANCA_TOL) { res.add(grupo.stream().mapToDouble(d -> d).average().orElse(0)); grupo.clear(); }
             grupo.add(t);
         }
         if (!grupo.isEmpty()) res.add(grupo.stream().mapToDouble(d -> d).average().orElse(0));
         return res.stream().mapToDouble(d -> d).toArray();
     }
 
-    private static double baseColumnas(List<Elemento> cols) { return cols.stream().mapToDouble(c -> c.getZ() - c.getAltura() / 2).min().orElse(0); }
+    private static double fernandoHuancaBaseColumnas(List<Elemento> cols) { return cols.stream().mapToDouble(c -> c.getZ() - c.getAltura() / 2).min().orElse(0); }
 
     /** Pisos del modelo, para que la pantalla ofrezca la tabla de cargas. */
-    public static List<PisoBase> pisos(List<Elemento> elementos) {
-        var cols = de(elementos, "COLUMNA"); var vigas = de(elementos, "VIGA");
+    public static List<PisoBase> fernandoHuancaPisos(List<Elemento> elementos) {
+        var cols = fernandoHuancaDe(elementos, "COLUMNA"); var vigas = fernandoHuancaDe(elementos, "VIGA");
         if (cols.isEmpty() || vigas.isEmpty()) throw new IllegalArgumentException("El análisis sísmico necesita al menos una columna y una viga en el proyecto.");
-        double base = baseColumnas(cols); List<PisoBase> res = new ArrayList<>();
-        for (double n : niveles(vigas)) {
-            if (n <= base + TOL) continue;
-            double[] r = envolvente(cols, vigas, n);
+        double base = fernandoHuancaBaseColumnas(cols); List<PisoBase> res = new ArrayList<>();
+        for (double n : fernandoHuancaNiveles(vigas)) {
+            if (n <= base + FERNANDO_HUANCA_TOL) continue;
+            double[] r = fernandoHuancaEnvolvente(cols, vigas, n);
             if (r[0] > r[1] || r[2] > r[3]) continue;
             res.add(new PisoBase(n, (r[1] - r[0]) * (r[3] - r[2])));
         }
@@ -90,38 +90,38 @@ public final class FernandoHuancaAnalisisSismico {
     }
 
     /** {xmin, xmax, ymin, ymax} de las columnas que llegan al nivel y de las vigas de ese nivel. */
-    private static double[] envolvente(List<Elemento> cols, List<Elemento> vigas, double nivel) {
+    private static double[] fernandoHuancaEnvolvente(List<Elemento> cols, List<Elemento> vigas, double nivel) {
         double[] r = {Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
-        for (Elemento c : cols) if (c.getZ() - c.getAltura() / 2 < nivel - TOL && c.getZ() + c.getAltura() / 2 >= nivel - TOL) ampliar(r, c);
-        for (Elemento v : vigas) if (Math.abs(v.getZ() + v.getAltura() / 2 - nivel) <= TOL) ampliar(r, v);
+        for (Elemento c : cols) if (c.getZ() - c.getAltura() / 2 < nivel - FERNANDO_HUANCA_TOL && c.getZ() + c.getAltura() / 2 >= nivel - FERNANDO_HUANCA_TOL) fernandoHuancaAmpliar(r, c);
+        for (Elemento v : vigas) if (Math.abs(v.getZ() + v.getAltura() / 2 - nivel) <= FERNANDO_HUANCA_TOL) fernandoHuancaAmpliar(r, v);
         return r;
     }
-    private static void ampliar(double[] r, Elemento e) {
+    private static void fernandoHuancaAmpliar(double[] r, Elemento e) {
         r[0] = Math.min(r[0], e.getX() - e.getLargo() / 2); r[1] = Math.max(r[1], e.getX() + e.getLargo() / 2);
         r[2] = Math.min(r[2], e.getY() - e.getAncho() / 2); r[3] = Math.max(r[3], e.getY() + e.getAncho() / 2);
     }
 
     private static final class Nudo {
-        final double x, y, z, hx, hy; final int piso; // piso -1 = base empotrada
-        int[][] gdl; double[][] coef;
-        Nudo(double x, double y, double z, int piso, double hx, double hy) { this.x = x; this.y = y; this.z = z; this.piso = piso; this.hx = hx; this.hy = hy; }
+        final double x, y, fernandoHuancaZ, fernandoHuancaHx, fernandoHuancaHy; final int fernandoHuancaPiso; // piso -1 = base empotrada
+        int[][] fernandoHuancaGdl; double[][] fernandoHuancaCoef;
+        Nudo(double x, double y, double z, int piso, double hx, double hy) { this.x = x; this.y = y; this.fernandoHuancaZ = z; this.fernandoHuancaPiso = piso; this.fernandoHuancaHx = hx; this.fernandoHuancaHy = hy; }
     }
     private record Barra(Nudo a, Nudo b, double l2, double l3, double[] e1, double[] e2, double[] e3) {}
     /** Masa puntual de un piso: peso (kN), posición, inercia propia (kN·m²). */
     private record Peso(double w, double x, double y, double inercia) {}
 
-    private static Nudo nudo(Map<String, Nudo> mapa, double x, double y, double z, int piso, double hx, double hy) {
+    private static Nudo fernandoHuancaNudo(Map<String, Nudo> mapa, double x, double y, double z, int piso, double hx, double hy) {
         return mapa.computeIfAbsent(Math.round(x * 1000) + "|" + Math.round(y * 1000) + "|" + Math.round(z * 1000), k -> new Nudo(x, y, z, piso, hx, hy));
     }
 
-    private static int pisoEnCota(double[] cotas, double z) {
-        for (int s = 0; s < cotas.length; s++) if (Math.abs(cotas[s] - z) <= TOL) return s;
+    private static int fernandoHuancaPisoEnCota(double[] cotas, double z) {
+        for (int s = 0; s < cotas.length; s++) if (Math.abs(cotas[s] - z) <= FERNANDO_HUANCA_TOL) return s;
         return -2;
     }
 
     // ---------- Rigidez de barra ----------
 
-    private static double[][] rigidezLocal(double L, double E, double Gm, double A, double iy, double iz, double J) {
+    private static double[][] fernandoHuancaRigidezLocal(double L, double E, double Gm, double A, double iy, double iz, double J) {
         double[][] k = new double[12][12];
         double ea = E * A / L, gj = Gm * J / L;
         double a1 = 12 * E * iz / (L * L * L), a2 = 6 * E * iz / (L * L), a3 = 4 * E * iz / L, a4 = 2 * E * iz / L;
@@ -138,33 +138,33 @@ public final class FernandoHuancaAnalisisSismico {
         return k;
     }
 
-    private static double torsion(double l2, double l3) {
+    private static double fernandoHuancaTorsion(double l2, double l3) {
         double a = Math.max(l2, l3), b = Math.min(l2, l3);
         return a * Math.pow(b, 3) * (1.0 / 3 - 0.21 * (b / a) * (1 - Math.pow(b, 4) / (12 * Math.pow(a, 4))));
     }
 
     // ---------- Análisis ----------
 
-    public static Resultado analizar(Entrada in) {
+    public static Resultado fernandoHuancaAnalizar(Entrada in) {
         var norma = in.norma();
         if (norma == null) throw new IllegalArgumentException("Seleccione los parámetros de la E.030.");
         if (!(in.fcMpa() >= 10 && in.fcMpa() <= 100)) throw new IllegalArgumentException("f'c debe estar entre 10 y 100 MPa.");
         if (!(in.fraccionRigidez() > 0 && in.fraccionRigidez() <= 1)) throw new IllegalArgumentException("La fracción de rigidez debe estar en (0, 1].");
         if (!(in.poisson() >= 0 && in.poisson() < 0.5)) throw new IllegalArgumentException("El módulo de Poisson debe estar entre 0 y 0,5.");
         if (!(in.espesorLosa() >= 0)) throw new IllegalArgumentException("El espesor de losa no puede ser negativo.");
-        var cols = de(in.elementos(), "COLUMNA"); var vigas = de(in.elementos(), "VIGA");
-        List<PisoBase> base = pisos(in.elementos());
+        var cols = fernandoHuancaDe(in.elementos(), "COLUMNA"); var vigas = fernandoHuancaDe(in.elementos(), "VIGA");
+        List<PisoBase> base = fernandoHuancaPisos(in.elementos());
         final int S = base.size();
         if (in.cargas() == null || in.cargas().size() != S) throw new IllegalArgumentException("Defina las cargas de los " + S + " pisos.");
         for (CargaPiso c : in.cargas()) if (!(c.area() > 0) || !(c.cmAdicional() >= 0) || !(c.cv() >= 0)) throw new IllegalArgumentException("Use área de losa positiva y cargas no negativas en todos los pisos.");
         List<String> avisos = new ArrayList<>();
-        double zBase = baseColumnas(cols);
+        double zBase = fernandoHuancaBaseColumnas(cols);
         double[] cotas = base.stream().mapToDouble(PisoBase::cota).toArray();
         double[] alturas = new double[S];
         for (int s = 0; s < S; s++) alturas[s] = cotas[s] - (s == 0 ? zBase : cotas[s - 1]);
         double hn = cotas[S - 1] - zBase;
 
-        double ecMpa = modulo(in.fcMpa()), E = ecMpa * 1000, Gm = E / (2 * (1 + in.poisson())); // kN/m²
+        double ecMpa = fernandoHuancaModulo(in.fcMpa()), E = ecMpa * 1000, Gm = E / (2 * (1 + in.poisson())); // kN/m²
 
         // Nudos y barras
         Map<String, Nudo> mapa = new LinkedHashMap<>(); List<Barra> barras = new ArrayList<>();
@@ -172,33 +172,33 @@ public final class FernandoHuancaAnalisisSismico {
         for (Elemento c : cols) {
             double bot = c.getZ() - c.getAltura() / 2, top = c.getZ() + c.getAltura() / 2;
             List<Integer> niv = new ArrayList<>();
-            for (int s = 0; s < S; s++) if (cotas[s] > bot + TOL && cotas[s] <= top + TOL) niv.add(s);
+            for (int s = 0; s < S; s++) if (cotas[s] > bot + FERNANDO_HUANCA_TOL && cotas[s] <= top + FERNANDO_HUANCA_TOL) niv.add(s);
             if (niv.isEmpty()) { avisos.add("La columna " + c.getNombre() + " no llega a ningún nivel de vigas y se ignoró."); continue; }
-            int pb = Math.abs(bot - zBase) <= TOL ? -1 : pisoEnCota(cotas, bot);
+            int pb = Math.abs(bot - zBase) <= FERNANDO_HUANCA_TOL ? -1 : fernandoHuancaPisoEnCota(cotas, bot);
             if (pb == -2) { avisos.add("La columna " + c.getNombre() + " inicia en una cota no reconocida; se consideró empotrada."); pb = -1; }
-            Nudo previo = nudo(mapa, c.getX(), c.getY(), pb < 0 ? bot : cotas[pb], pb, c.getLargo(), c.getAncho());
+            Nudo previo = fernandoHuancaNudo(mapa, c.getX(), c.getY(), pb < 0 ? bot : cotas[pb], pb, c.getLargo(), c.getAncho());
             for (int s : niv) {
-                Nudo sig = nudo(mapa, c.getX(), c.getY(), cotas[s], s, c.getLargo(), c.getAncho());
-                double L = sig.z - previo.z;
+                Nudo sig = fernandoHuancaNudo(mapa, c.getX(), c.getY(), cotas[s], s, c.getLargo(), c.getAncho());
+                double L = sig.fernandoHuancaZ - previo.fernandoHuancaZ;
                 if (!(L > 1e-6)) continue;
                 barras.add(new Barra(previo, sig, c.getLargo(), c.getAncho(), new double[]{0, 0, 1}, new double[]{1, 0, 0}, new double[]{0, 1, 0}));
-                double w = c.getLargo() * c.getAncho() * L * PESO_CONCRETO;
-                if (previo.piso >= 0) pesos.get(previo.piso).add(new Peso(w / 2, c.getX(), c.getY(), 0));
+                double w = c.getLargo() * c.getAncho() * L * FERNANDO_HUANCA_PESO_CONCRETO;
+                if (previo.fernandoHuancaPiso >= 0) pesos.get(previo.fernandoHuancaPiso).add(new Peso(w / 2, c.getX(), c.getY(), 0));
                 pesos.get(s).add(new Peso(w / 2, c.getX(), c.getY(), 0));
                 previo = sig;
             }
         }
         if (barras.isEmpty()) throw new IllegalArgumentException("No se pudo formar ninguna columna entre niveles.");
         for (Elemento v : vigas) {
-            int s = pisoEnCota(cotas, v.getZ() + v.getAltura() / 2);
+            int s = fernandoHuancaPisoEnCota(cotas, v.getZ() + v.getAltura() / 2);
             if (s < 0) { avisos.add("La viga " + v.getNombre() + " no está en un piso reconocido y se ignoró."); continue; }
             boolean xDir = v.getLargo() >= v.getAncho();
             double xc = v.getX(), yc = v.getY(), mitad = (xDir ? v.getLargo() : v.getAncho()) / 2;
             List<Nudo> cand = new ArrayList<>();
             for (Nudo n : mapa.values()) {
-                if (n.piso != s) continue;
-                boolean enLinea = xDir ? Math.abs(n.y - yc) <= n.hy / 2 + TOL && n.x >= xc - mitad - n.hx / 2 - TOL && n.x <= xc + mitad + n.hx / 2 + TOL
-                        : Math.abs(n.x - xc) <= n.hx / 2 + TOL && n.y >= yc - mitad - n.hy / 2 - TOL && n.y <= yc + mitad + n.hy / 2 + TOL;
+                if (n.fernandoHuancaPiso != s) continue;
+                boolean enLinea = xDir ? Math.abs(n.y - yc) <= n.fernandoHuancaHy / 2 + FERNANDO_HUANCA_TOL && n.x >= xc - mitad - n.fernandoHuancaHx / 2 - FERNANDO_HUANCA_TOL && n.x <= xc + mitad + n.fernandoHuancaHx / 2 + FERNANDO_HUANCA_TOL
+                        : Math.abs(n.x - xc) <= n.fernandoHuancaHx / 2 + FERNANDO_HUANCA_TOL && n.y >= yc - mitad - n.fernandoHuancaHy / 2 - FERNANDO_HUANCA_TOL && n.y <= yc + mitad + n.fernandoHuancaHy / 2 + FERNANDO_HUANCA_TOL;
                 if (enLinea) cand.add(n);
             }
             cand.sort(Comparator.comparingDouble(n -> xDir ? n.x : n.y));
@@ -206,18 +206,18 @@ public final class FernandoHuancaAnalisisSismico {
             for (int i = 0; i + 1 < cand.size(); i++)
                 barras.add(new Barra(cand.get(i), cand.get(i + 1), xDir ? v.getAncho() : v.getLargo(), v.getAltura(),
                         xDir ? new double[]{1, 0, 0} : new double[]{0, 1, 0}, xDir ? new double[]{0, 1, 0} : new double[]{-1, 0, 0}, new double[]{0, 0, 1}));
-            double w = v.getLargo() * v.getAncho() * v.getAltura() * PESO_CONCRETO;
+            double w = v.getLargo() * v.getAncho() * v.getAltura() * FERNANDO_HUANCA_PESO_CONCRETO;
             pesos.get(s).add(new Peso(w, xc, yc, w * (v.getLargo() * v.getLargo() + v.getAncho() * v.getAncho()) / 12));
         }
 
         // Pisos: peso, centro de masas e inercia polar
         List<Piso> pisosRes = new ArrayList<>(); double[] W = new double[S], xcm = new double[S], ycm = new double[S], I = new double[S];
         for (int s = 0; s < S; s++) {
-            double[] r = envolvente(cols, vigas, cotas[s]);
+            double[] r = fernandoHuancaEnvolvente(cols, vigas, cotas[s]);
             double lx = r[1] - r[0], ly = r[3] - r[2], areaBox = lx * ly;
             CargaPiso cp = in.cargas().get(s);
             double pct = s == S - 1 ? 0.25 : norma.categoria().porcentajeCv; // art. 31: azoteas y techos, 25 % de la carga viva
-            double ws = cp.area() * (in.espesorLosa() * PESO_CONCRETO + cp.cmAdicional() + cp.cv() * pct), esc = Math.sqrt(cp.area() / areaBox);
+            double ws = cp.area() * (in.espesorLosa() * FERNANDO_HUANCA_PESO_CONCRETO + cp.cmAdicional() + cp.cv() * pct), esc = Math.sqrt(cp.area() / areaBox);
             pesos.get(s).add(new Peso(ws, (r[0] + r[1]) / 2, (r[2] + r[3]) / 2, ws * (lx * lx + ly * ly) * esc * esc / 12));
             double w = 0, mx = 0, my = 0;
             for (Peso p : pesos.get(s)) { w += p.w(); mx += p.w() * p.x(); my += p.w() * p.y(); }
@@ -232,22 +232,22 @@ public final class FernandoHuancaAnalisisSismico {
         int nm = 3 * S, sig = nm;
         Map<Integer, List<Nudo>> porPiso = new HashMap<>();
         for (Nudo n : mapa.values()) {
-            n.gdl = new int[6][]; n.coef = new double[6][];
-            if (n.piso < 0) { for (int c = 0; c < 6; c++) { n.gdl[c] = new int[0]; n.coef[c] = new double[0]; } continue; }
-            int s = n.piso; double dx = n.x - xcm[s], dy = n.y - ycm[s];
-            n.gdl[0] = new int[]{3 * s, 3 * s + 2}; n.coef[0] = new double[]{1, -dy};
-            n.gdl[1] = new int[]{3 * s + 1, 3 * s + 2}; n.coef[1] = new double[]{1, dx};
-            n.gdl[2] = new int[]{sig++}; n.coef[2] = new double[]{1};
-            n.gdl[3] = new int[]{sig++}; n.coef[3] = new double[]{1};
-            n.gdl[4] = new int[]{sig++}; n.coef[4] = new double[]{1};
-            n.gdl[5] = new int[]{3 * s + 2}; n.coef[5] = new double[]{1};
+            n.fernandoHuancaGdl = new int[6][]; n.fernandoHuancaCoef = new double[6][];
+            if (n.fernandoHuancaPiso < 0) { for (int c = 0; c < 6; c++) { n.fernandoHuancaGdl[c] = new int[0]; n.fernandoHuancaCoef[c] = new double[0]; } continue; }
+            int s = n.fernandoHuancaPiso; double dx = n.x - xcm[s], dy = n.y - ycm[s];
+            n.fernandoHuancaGdl[0] = new int[]{3 * s, 3 * s + 2}; n.fernandoHuancaCoef[0] = new double[]{1, -dy};
+            n.fernandoHuancaGdl[1] = new int[]{3 * s + 1, 3 * s + 2}; n.fernandoHuancaCoef[1] = new double[]{1, dx};
+            n.fernandoHuancaGdl[2] = new int[]{sig++}; n.fernandoHuancaCoef[2] = new double[]{1};
+            n.fernandoHuancaGdl[3] = new int[]{sig++}; n.fernandoHuancaCoef[3] = new double[]{1};
+            n.fernandoHuancaGdl[4] = new int[]{sig++}; n.fernandoHuancaCoef[4] = new double[]{1};
+            n.fernandoHuancaGdl[5] = new int[]{3 * s + 2}; n.fernandoHuancaCoef[5] = new double[]{1};
             porPiso.computeIfAbsent(s, k -> new ArrayList<>()).add(n);
         }
         int N = sig; double[][] K = new double[N][N];
         for (Barra b : barras) {
-            double dx = b.b().x - b.a().x, dy = b.b().y - b.a().y, dz = b.b().z - b.a().z, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            double dx = b.b().x - b.a().x, dy = b.b().y - b.a().y, dz = b.b().fernandoHuancaZ - b.a().fernandoHuancaZ, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
             double A = b.l2() * b.l3(), iz = b.l3() * Math.pow(b.l2(), 3) / 12, iy = b.l2() * Math.pow(b.l3(), 3) / 12, f = in.fraccionRigidez();
-            double[][] kl = rigidezLocal(L, E, Gm, A, iy * f, iz * f, torsion(b.l2(), b.l3()));
+            double[][] kl = fernandoHuancaRigidezLocal(L, E, Gm, A, iy * f, iz * f, fernandoHuancaTorsion(b.l2(), b.l3()));
             double[][] R = {b.e1(), b.e2(), b.e3()}, T = new double[12][12];
             for (int blk = 0; blk < 4; blk++) for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) T[3 * blk + i][3 * blk + j] = R[i][j];
             double[][] kg = new Array2DRowRealMatrix(T, false).transpose().multiply(new Array2DRowRealMatrix(kl, false)).multiply(new Array2DRowRealMatrix(T, false)).getData();
@@ -256,7 +256,7 @@ public final class FernandoHuancaAnalisisSismico {
                 for (int d2 = 0; d2 < 12; d2++) {
                     Nudo n2 = d2 < 6 ? b.a() : b.b(); double v = kg[d1][d2];
                     if (v == 0) continue;
-                    int[] g1 = n1.gdl[d1 % 6], g2 = n2.gdl[d2 % 6]; double[] c1 = n1.coef[d1 % 6], c2 = n2.coef[d2 % 6];
+                    int[] g1 = n1.fernandoHuancaGdl[d1 % 6], g2 = n2.fernandoHuancaGdl[d2 % 6]; double[] c1 = n1.fernandoHuancaCoef[d1 % 6], c2 = n2.fernandoHuancaCoef[d2 % 6];
                     for (int p = 0; p < g1.length; p++) for (int q = 0; q < g2.length; q++) K[g1[p]][g2[q]] += v * c1[p] * c2[q];
                 }
             }
@@ -277,14 +277,14 @@ public final class FernandoHuancaAnalisisSismico {
 
         // Modos de vibración: K φ = ω² M φ con M diagonal
         double[] m = new double[nm];
-        for (int s = 0; s < S; s++) { m[3 * s] = W[s] / G; m[3 * s + 1] = W[s] / G; m[3 * s + 2] = I[s] / G; }
+        for (int s = 0; s < S; s++) { m[3 * s] = W[s] / FERNANDO_HUANCA_G; m[3 * s + 1] = W[s] / FERNANDO_HUANCA_G; m[3 * s + 2] = I[s] / FERNANDO_HUANCA_G; }
         double[][] Ad = new double[nm][nm];
         for (int i = 0; i < nm; i++) for (int j = 0; j < nm; j++) Ad[i][j] = Kc.getEntry(i, j) / Math.sqrt(m[i] * m[j]);
         EigenDecomposition ed = new EigenDecomposition(new Array2DRowRealMatrix(Ad, false));
         Integer[] orden = new Integer[nm]; for (int i = 0; i < nm; i++) orden[i] = i;
         Arrays.sort(orden, Comparator.comparingDouble(ed::getRealEigenvalue));
         double[] omega = new double[nm], per = new double[nm], gx = new double[nm], gy = new double[nm]; double[][] phi = new double[nm][nm];
-        double masaTotal = P / G; List<Modo> modos = new ArrayList<>();
+        double masaTotal = P / FERNANDO_HUANCA_G; List<Modo> modos = new ArrayList<>();
         for (int n = 0; n < nm; n++) {
             double lam = ed.getRealEigenvalue(orden[n]);
             if (!(lam > 1e-9)) throw new IllegalArgumentException("El modelo tiene modos de cuerpo rígido: revise los apoyos.");
@@ -326,7 +326,7 @@ public final class FernandoHuancaAnalisisSismico {
                 ? "Combinación direccional de los arts. 28.1, 33.3 y 43: 100 % en la dirección analizada y 30 % en la perpendicular (suma de absolutos en el estático, raíz de la suma de cuadrados en el espectral)."
                 : "Versión 2018: cada dirección se analiza por separado con el 100 % de la acción; esa versión no pide combinar un 30 % en la dirección perpendicular.");
         for (Direccion d : List.of(estX, estY, espX, espY)) {
-            double lim = NormaE030.DERIVA_LIMITE_CONCRETO; double rmax = 1; boolean aplica = false;
+            double lim = NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO; double rmax = 1; boolean aplica = false;
             for (int s = 0; s < S; s++) if (d.derivasMaximas()[s] > 0.5 * lim) { aplica = true; rmax = Math.max(rmax, d.razonTorsion()[s]); }
             if (aplica && rmax > 1.3 && norma.ip() > (rmax > 1.5 ? 0.60 : 0.75) + 1e-9)
                 avisos.add("Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", rmax) + " en " + (d == estX || d == estY ? "estático " : "espectral ") + d.nombre() + ": posible irregularidad torsional (" + (norma.version() == NormaE030.Version.V2026 ? "Tabla 12" : "Tabla 9") + ": Ip = " + (rmax > 1.5 ? "0,60 extrema" : "0,75") + "). Revise Ip.");
@@ -344,19 +344,19 @@ public final class FernandoHuancaAnalisisSismico {
         return new Resultado(pisosRes, modos, P, ecMpa, estX, estY, espX, espY, avisos, junta, modeloDinamico);
     }
 
-    private static double desplazamiento(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm) {
+    private static double fernandoHuancaDesplazamiento(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm) {
         if (s < 0) return 0;
         return dir == 0 ? u[3 * s] - (y - ycm[s]) * u[3 * s + 2] : u[3 * s + 1] + (x - xcm[s]) * u[3 * s + 2];
     }
 
-    private static double deriva(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm, double h) {
-        return (desplazamiento(u, dir, s, x, y, xcm, ycm) - desplazamiento(u, dir, s - 1, x, y, xcm, ycm)) / h;
+    private static double fernandoHuancaDeriva(double[] u, int dir, int s, double x, double y, double[] xcm, double[] ycm, double h) {
+        return (fernandoHuancaDesplazamiento(u, dir, s, x, y, xcm, ycm) - fernandoHuancaDesplazamiento(u, dir, s - 1, x, y, xcm, ycm)) / h;
     }
 
     // ---------- Método estático (E.030 2026, arts. 33 a 37) ----------
 
     /** Razón Δmáx/Δprom entre los nudos extremos en planta (perpendiculares a la dirección de análisis); 1 si no hay dos extremos. */
-    private static double razonTorsion(List<double[]> pts, double[] derivaAbs, int dir) {
+    private static double fernandoHuancaRazonTorsion(List<double[]> pts, double[] derivaAbs, int dir) {
         int a = -1, b = -1; double min = Double.MAX_VALUE, max = -Double.MAX_VALUE;
         for (int i = 1; i < pts.size(); i++) {
             double c = dir == 0 ? pts.get(i)[1] : pts.get(i)[0];
@@ -404,11 +404,11 @@ public final class FernandoHuancaAnalisisSismico {
                 for (int g = 0; g < 2; g++) {
                     double[] u = conTorsion[d][g], principal = new double[pts.size()];
                     for (int p = 0; p < pts.size(); p++) {
-                        principal[p] = Math.abs(deriva(u, d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
-                        double cruce = Math.abs(deriva(sinTorsion[cruzada], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
+                        principal[p] = Math.abs(fernandoHuancaDeriva(u, d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
+                        double cruce = Math.abs(fernandoHuancaDeriva(sinTorsion[cruzada], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
                         total[p] = Math.max(total[p], principal[p] + norma.fraccionPerpendicular() * cruce);
                     }
-                    razon[s] = Math.max(razon[s], razonTorsion(pts, principal, d));
+                    razon[s] = Math.max(razon[s], fernandoHuancaRazonTorsion(pts, principal, d));
                     desp = Math.max(desp, Math.abs(u[3 * s + d]) * factorIne + norma.fraccionPerpendicular() * Math.abs(sinTorsion[cruzada][3 * s + d]) * factorIne);
                 }
                 dCm[s] = desp; derCm[s] = total[0]; for (double v : total) derMax[s] = Math.max(derMax[s], v);
@@ -443,13 +443,13 @@ public final class FernandoHuancaAnalisisSismico {
         for (int L = 0; L < 2; L++) {
             double[][] u = new double[nm][3 * S];
             for (int n = 0; n < nm; n++) {
-                double sa = norma.saSobreG(per[n]) * G, amp = gamma[L][n] * sa / (omega[n] * omega[n]);
+                double sa = norma.saSobreG(per[n]) * FERNANDO_HUANCA_G, amp = gamma[L][n] * sa / (omega[n] * omega[n]);
                 for (int i = 0; i < 3 * S; i++) u[n][i] = amp * phi[n][i];
             }
             for (int s = 0; s < S; s++) {
                 double[] rf = new double[nm], rq = new double[nm];
                 for (int n = 0; n < nm; n++) {
-                    double sa = norma.saSobreG(per[n]) * G;
+                    double sa = norma.saSobreG(per[n]) * FERNANDO_HUANCA_G;
                     rf[n] = m[3 * s] * phi[n][3 * s + L] * gamma[L][n] * sa;
                     for (int j = s; j < S; j++) rq[n] += m[3 * j] * phi[n][3 * j + L] * gamma[L][n] * sa;
                 }
@@ -460,7 +460,7 @@ public final class FernandoHuancaAnalisisSismico {
                     List<double[]> pts = puntos.get(s); derCqc[L][d][s] = new double[pts.size()];
                     for (int p = 0; p < pts.size(); p++) {
                         double[] rder = new double[nm];
-                        for (int n = 0; n < nm; n++) rder[n] = deriva(u[n], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s]);
+                        for (int n = 0; n < nm; n++) rder[n] = fernandoHuancaDeriva(u[n], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s]);
                         derCqc[L][d][s][p] = cqc(rho, rder) * factorIne;
                     }
                 }
@@ -479,12 +479,12 @@ public final class FernandoHuancaAnalisisSismico {
                 f[s] = fuerza[d][s] * escala; q[s] = cort[d][s] * escala;
                 List<double[]> pts = puntos.get(s); double[] principal = new double[pts.size()];
                 for (int p = 0; p < pts.size(); p++) {
-                    principal[p] = derCqc[d][d][s][p] + Math.abs(deriva(utorsion[d], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
+                    principal[p] = derCqc[d][d][s][p] + Math.abs(fernandoHuancaDeriva(utorsion[d], d, s, pts.get(p)[0], pts.get(p)[1], xcm, ycm, alturas[s])) * factorIne;
                     double v = Math.hypot(principal[p], norma.fraccionPerpendicular() * derCqc[cruzada][d][s][p]);
                     if (p == 0) derCm[s] = v;
                     derMax[s] = Math.max(derMax[s], v);
                 }
-                razon[s] = razonTorsion(pts, principal, d);
+                razon[s] = fernandoHuancaRazonTorsion(pts, principal, d);
                 dCm[s] = Math.hypot(dCmCqc[d][d][s] + Math.abs(utorsion[d][3 * s + d]) * factorIne, norma.fraccionPerpendicular() * dCmCqc[cruzada][d][s]);
             }
             res[d] = new Direccion(d == 0 ? "X" : "Y", periodoUsado[d], q[0], f, q, dCm, derCm, derMax, escala, razon);

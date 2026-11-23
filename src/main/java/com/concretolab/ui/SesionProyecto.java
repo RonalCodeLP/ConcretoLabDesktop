@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class SesionProyecto {
-    private final ObjectProperty<Proyecto> actual = new SimpleObjectProperty<>();
+    private final ObjectProperty<Proyecto> fernandoHuancaActual = new SimpleObjectProperty<>();
 
-    public ObjectProperty<Proyecto> proyectoProperty() { return actual; }
-    public Proyecto getProyecto() { return actual.get(); }
-    public void setProyecto(Proyecto p) { actual.set(p); }
+    public ObjectProperty<Proyecto> proyectoProperty() { return fernandoHuancaActual; }
+    public Proyecto getProyecto() { return fernandoHuancaActual.get(); }
+    public void setProyecto(Proyecto p) { fernandoHuancaActual.set(p); }
 }

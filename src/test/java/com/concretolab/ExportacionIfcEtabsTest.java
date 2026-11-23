@@ -41,7 +41,7 @@ class ExportacionIfcEtabsTest {
 
     @Test
     void ifcTieneEstructuraValidaYReferenciasResueltas() {
-        String ifc = ExportadorIfc.generar("Edificio de prueba ñandú", modelo());
+        String ifc = ExportadorIfc.erickDelgadoGenerar("Edificio de prueba ñandú", modelo());
         assertThat(ifc).startsWith("ISO-10303-21;").contains("FILE_SCHEMA(('IFC2X3'));").endsWith("END-ISO-10303-21;\n");
         assertThat(ifc).contains("IFCPROJECT(", "IFCBUILDINGSTOREY(", "IFCRELCONTAINEDINSPATIALSTRUCTURE(");
         assertThat(count(ifc, "IFCCOLUMN(")).isEqualTo(8);
@@ -71,17 +71,17 @@ class ExportacionIfcEtabsTest {
 
     @Test
     void ifcEsReproducibleEnSusGuidYRechazaProyectosVacios() {
-        String a = ExportadorIfc.generar("P", modelo());
-        String b = ExportadorIfc.generar("P", modelo());
+        String a = ExportadorIfc.erickDelgadoGenerar("P", modelo());
+        String b = ExportadorIfc.erickDelgadoGenerar("P", modelo());
         var g = Pattern.compile("IFCCOLUMN\\('([^']+)'");
         var ma = g.matcher(a); var mb = g.matcher(b);
         while (ma.find()) { assertThat(mb.find()).isTrue(); assertThat(mb.group(1)).isEqualTo(ma.group(1)); }
-        assertThatThrownBy(() -> ExportadorIfc.generar("P", List.of())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExportadorIfc.erickDelgadoGenerar("P", List.of())).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void etabsDefinePisosSeccionesApoyosYAvisaDeLoNoExportado() {
-        var r = ExportadorEtabs.generar("P", 21, modelo());
+        var r = ExportadorEtabs.erickDelgadoGenerar("P", 21, modelo());
         String t = r.texto();
         assertThat(t).contains("UNITS  \"KN\"  \"M\"  \"C\"")
                 .contains("STORY  \"PISO2\"  HEIGHT 3  MASTERSTORY \"Yes\"")
@@ -102,10 +102,10 @@ class ExportacionIfcEtabsTest {
 
     @Test
     void etabsValidaEntradas() {
-        assertThatThrownBy(() -> ExportadorEtabs.generar("P", 0, modelo())).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> ExportadorEtabs.generar("P", 21, List.of())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExportadorEtabs.erickDelgadoGenerar("P", 0, modelo())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExportadorEtabs.erickDelgadoGenerar("P", 21, List.of())).isInstanceOf(IllegalArgumentException.class);
         var soloZapata = List.of(el("ZAPATA", "Z", 0, 0, -0.25, 1, 1, 0.5));
-        assertThatThrownBy(() -> ExportadorEtabs.generar("P", 21, soloZapata)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ExportadorEtabs.erickDelgadoGenerar("P", 21, soloZapata)).isInstanceOf(IllegalArgumentException.class);
     }
 
     private static int count(String texto, String parte) {

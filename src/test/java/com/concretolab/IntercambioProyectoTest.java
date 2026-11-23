@@ -69,9 +69,9 @@ class IntercambioProyectoTest {
     @BeforeEach
     void prepararOrigen() {
         nombreOrigen = "Origen " + UUID.randomUUID();
-        Proyecto p = proyectos.crearProyecto(nombreOrigen, "Lima, Perú");
+        Proyecto p = proyectos.yefriLermaCrearProyecto(nombreOrigen, "Lima, Perú");
         origen = p.getId();
-        proyectos.crearPlantilla(origen, new YefriLermaProyectoService.Plantilla(5, 4, 1.5, 1.5, .5, .4, 3, .3, .5));
+        proyectos.yefriLermaCrearPlantilla(origen, new YefriLermaProyectoService.Plantilla(5, 4, 1.5, 1.5, .5, .4, 3, .3, .5));
         List<Elemento> els = proyectos.elementos(origen);
         List<Elemento> columnas = els.stream().filter(e -> e.getTipo().equals("COLUMNA")).toList();
         List<Elemento> vigas = els.stream().filter(e -> e.getTipo().equals("VIGA")).toList();
@@ -186,9 +186,9 @@ class IntercambioProyectoTest {
     @Test
     void exportaEImportaSinCifrarConservaTodo() {
         Path archivo = carpeta.resolve("sin-cifrar.concretolab");
-        assertThat(intercambio.exportar(origen, archivo, null)).isEqualTo(archivo);
-        assertThat(intercambio.estaCifrado(archivo)).isFalse();
-        var r = intercambio.importar(archivo, null);
+        assertThat(intercambio.erickDelgadoExportar(origen, archivo, null)).isEqualTo(archivo);
+        assertThat(intercambio.erickDelgadoEstaCifrado(archivo)).isFalse();
+        var r = intercambio.erickDelgadoImportar(archivo, null);
         assertThat(r.proyecto().getNombre()).isEqualTo(nombreOrigen + " (importado)");
         verificarCopia(r);
     }
@@ -196,18 +196,18 @@ class IntercambioProyectoTest {
     @Test
     void exportaEImportaConContrasena() {
         Path archivo = carpeta.resolve("cifrado.concretolab");
-        intercambio.exportar(origen, archivo, "secreta123".toCharArray());
-        assertThat(intercambio.estaCifrado(archivo)).isTrue();
-        assertThatThrownBy(() -> intercambio.importar(archivo, null)).isInstanceOf(IllegalArgumentException.class);
-        verificarCopia(intercambio.importar(archivo, "secreta123".toCharArray()));
+        intercambio.erickDelgadoExportar(origen, archivo, "secreta123".toCharArray());
+        assertThat(intercambio.erickDelgadoEstaCifrado(archivo)).isTrue();
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(archivo, null)).isInstanceOf(IllegalArgumentException.class);
+        verificarCopia(intercambio.erickDelgadoImportar(archivo, "secreta123".toCharArray()));
     }
 
     @Test
     void contrasenaIncorrectaNoImportaNada() {
         Path archivo = carpeta.resolve("cifrado2.concretolab");
-        intercambio.exportar(origen, archivo, "buena".toCharArray());
+        intercambio.erickDelgadoExportar(origen, archivo, "buena".toCharArray());
         int antes = proyectos.proyectos().size();
-        assertThatThrownBy(() -> intercambio.importar(archivo, "mala".toCharArray()))
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(archivo, "mala".toCharArray()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Contraseña incorrecta o archivo dañado.");
         assertThat(proyectos.proyectos()).hasSize(antes);
@@ -216,10 +216,10 @@ class IntercambioProyectoTest {
     @Test
     void nombreDuplicadoAgregaSufijoImportado() {
         Path archivo = carpeta.resolve("dup.concretolab");
-        intercambio.exportar(origen, archivo, null);
-        var uno = intercambio.importar(archivo, null);
-        var dos = intercambio.importar(archivo, null);
-        var tres = intercambio.importar(archivo, null);
+        intercambio.erickDelgadoExportar(origen, archivo, null);
+        var uno = intercambio.erickDelgadoImportar(archivo, null);
+        var dos = intercambio.erickDelgadoImportar(archivo, null);
+        var tres = intercambio.erickDelgadoImportar(archivo, null);
         assertThat(uno.proyecto().getNombre()).isEqualTo(nombreOrigen + " (importado)");
         assertThat(dos.proyecto().getNombre()).isEqualTo(nombreOrigen + " (importado 2)");
         assertThat(tres.proyecto().getNombre()).isEqualTo(nombreOrigen + " (importado 3)");
@@ -229,7 +229,7 @@ class IntercambioProyectoTest {
     @Test
     void archivoManipuladoSeRechaza() throws Exception {
         Path archivo = carpeta.resolve("original.concretolab");
-        intercambio.exportar(origen, archivo, null);
+        intercambio.erickDelgadoExportar(origen, archivo, null);
         Map<String, byte[]> entradas = leerZip(Files.readAllBytes(archivo));
         byte[] datos = entradas.get("datos.json");
         for (int i = 0; i < datos.length; i++) {
@@ -241,7 +241,7 @@ class IntercambioProyectoTest {
         Path manipulado = carpeta.resolve("manipulado.concretolab");
         Files.write(manipulado, escribirZip(entradas));
         int antes = proyectos.proyectos().size();
-        assertThatThrownBy(() -> intercambio.importar(manipulado, null))
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(manipulado, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("El archivo fue modificado o está dañado.");
         assertThat(proyectos.proyectos()).hasSize(antes);
@@ -250,13 +250,13 @@ class IntercambioProyectoTest {
     @Test
     void zipConEntradaFueraDeRutaSeRechaza() throws Exception {
         Path archivo = carpeta.resolve("ok.concretolab");
-        intercambio.exportar(origen, archivo, null);
+        intercambio.erickDelgadoExportar(origen, archivo, null);
         Map<String, byte[]> entradas = leerZip(Files.readAllBytes(archivo));
         entradas.put("../x", "malicioso".getBytes(StandardCharsets.UTF_8));
         Path malo = carpeta.resolve("ruta.concretolab");
         Files.write(malo, escribirZip(entradas));
         int antes = proyectos.proyectos().size();
-        assertThatThrownBy(() -> intercambio.importar(malo, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(malo, null)).isInstanceOf(IllegalArgumentException.class);
         assertThat(proyectos.proyectos()).hasSize(antes);
     }
 
@@ -271,7 +271,7 @@ class IntercambioProyectoTest {
         Path archivo = carpeta.resolve("tipo-malo.concretolab");
         Files.write(archivo, zipConDatos(json, 1));
         int antes = proyectos.proyectos().size();
-        assertThatThrownBy(() -> intercambio.importar(archivo, null))
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(archivo, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("tipo no válido");
         assertThat(proyectos.proyectos()).hasSize(antes);
@@ -286,7 +286,7 @@ class IntercambioProyectoTest {
         Path archivo = carpeta.resolve("dim-mala.concretolab");
         Files.write(archivo, zipConDatos(json, 1));
         int antes = proyectos.proyectos().size();
-        assertThatThrownBy(() -> intercambio.importar(archivo, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(archivo, null)).isInstanceOf(IllegalArgumentException.class);
         assertThat(proyectos.proyectos()).hasSize(antes);
     }
 
@@ -295,7 +295,7 @@ class IntercambioProyectoTest {
         String json = "{\"proyecto\":{\"nombre\":\"Futuro\"},\"elementos\":[]}";
         Path archivo = carpeta.resolve("futuro.concretolab");
         Files.write(archivo, zipConDatos(json, 2));
-        assertThatThrownBy(() -> intercambio.importar(archivo, null))
+        assertThatThrownBy(() -> intercambio.erickDelgadoImportar(archivo, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("versión más nueva");
     }
@@ -303,7 +303,7 @@ class IntercambioProyectoTest {
     @Test
     void exportarProyectoInexistenteFalla() {
         Path archivo = carpeta.resolve("nada.concretolab");
-        assertThatThrownBy(() -> intercambio.exportar(-12345L, archivo, null)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> intercambio.erickDelgadoExportar(-12345L, archivo, null)).isInstanceOf(IllegalArgumentException.class);
         assertThat(Files.exists(archivo)).isFalse();
     }
 
@@ -311,7 +311,7 @@ class IntercambioProyectoTest {
     void exportarNoDejaTemporalesEnLaCarpeta() throws Exception {
         Path destino = carpeta.resolve("limpio");
         Path archivo = destino.resolve("p.concretolab");
-        intercambio.exportar(origen, archivo, null);
+        intercambio.erickDelgadoExportar(origen, archivo, null);
         try (var lista = Files.list(destino)) {
             assertThat(lista.map(p -> p.getFileName().toString()).toList()).containsExactly("p.concretolab");
         }

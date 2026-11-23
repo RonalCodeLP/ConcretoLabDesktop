@@ -37,190 +37,190 @@ import java.util.function.Function;
  */
 public class Autocompletar<T> {
 
-    private static final Duration PAUSA = Duration.millis(180);
-    private static final int FILAS_VISIBLES = 7;
-    private static final double ALTO_FILA = 54;
+    private static final Duration YEFRI_LERMA_PAUSA = Duration.millis(180);
+    private static final int YEFRI_LERMA_FILAS_VISIBLES = 7;
+    private static final double YEFRI_LERMA_ALTO_FILA = 54;
 
     private final TextField campo;
-    private final Function<String, List<T>> buscador;
-    private final Consumer<T> alSeleccionar;
+    private final Function<String, List<T>> yefriLermaBuscador;
+    private final Consumer<T> yefriLermaAlSeleccionar;
 
-    private Function<T, String> titulo = String::valueOf;
-    private Function<T, String> detalle = t -> null;
-    private Function<T, String> extra = t -> null;
-    private Function<T, Node> icono = t -> new FontIcon(Feather.SEARCH);
-    private int minimoCaracteres = 1;
+    private Function<T, String> yefriLermaTitulo = String::valueOf;
+    private Function<T, String> yefriLermaDetalle = t -> null;
+    private Function<T, String> yefriLermaExtra = t -> null;
+    private Function<T, Node> yefriLermaIcono = t -> new FontIcon(Feather.SEARCH);
+    private int yefriLermaMinimoCaracteres = 1;
 
-    private final Popup popup = new Popup();
-    private final ListView<T> lista = new ListView<>();
-    private final PauseTransition espera = new PauseTransition(PAUSA);
-    private boolean suspendido;
-    private String consulta = "";
+    private final Popup yefriLermaPopup = new Popup();
+    private final ListView<T> yefriLermaLista = new ListView<>();
+    private final PauseTransition yefriLermaEspera = new PauseTransition(YEFRI_LERMA_PAUSA);
+    private boolean yefriLermaSuspendido;
+    private String yefriLermaConsulta = "";
 
     public Autocompletar(TextField campo, Function<String, List<T>> buscador, Consumer<T> alSeleccionar) {
         this.campo = campo;
-        this.buscador = buscador;
-        this.alSeleccionar = alSeleccionar;
-        construirPopup();
-        instalarEventos();
+        this.yefriLermaBuscador = buscador;
+        this.yefriLermaAlSeleccionar = alSeleccionar;
+        yefriLermaConstruirPopup();
+        yefriLermaInstalarEventos();
     }
 
     // ------------------------------------------------------- configuracion
 
     /** Textos de cada sugerencia: titulo (resaltado), detalle gris y valor a la derecha. */
-    public Autocompletar<T> presentacion(Function<T, String> titulo, Function<T, String> detalle,
+    public Autocompletar<T> yefriLermaPresentacion(Function<T, String> titulo, Function<T, String> detalle,
                                          Function<T, String> extra) {
-        this.titulo = titulo;
-        this.detalle = detalle;
-        this.extra = extra;
+        this.yefriLermaTitulo = titulo;
+        this.yefriLermaDetalle = detalle;
+        this.yefriLermaExtra = extra;
         return this;
     }
 
-    public Autocompletar<T> icono(Function<T, Node> icono) {
-        this.icono = icono;
+    public Autocompletar<T> yefriLermaIcono(Function<T, Node> icono) {
+        this.yefriLermaIcono = icono;
         return this;
     }
 
-    public Autocompletar<T> minimoCaracteres(int minimo) {
-        this.minimoCaracteres = minimo;
+    public Autocompletar<T> yefriLermaMinimoCaracteres(int minimo) {
+        this.yefriLermaMinimoCaracteres = minimo;
         return this;
     }
 
     /** Cambia el texto del campo sin disparar una busqueda. */
     public void setTexto(String texto) {
-        suspendido = true;
+        yefriLermaSuspendido = true;
         campo.setText(texto);
         campo.positionCaret(campo.getLength());
-        suspendido = false;
-        ocultar();
+        yefriLermaSuspendido = false;
+        yefriLermaOcultar();
     }
 
-    public void ocultar() {
-        espera.stop();
-        popup.hide();
+    public void yefriLermaOcultar() {
+        yefriLermaEspera.stop();
+        yefriLermaPopup.hide();
     }
 
     // -------------------------------------------------------------- interno
 
-    private void construirPopup() {
-        lista.getStyleClass().add("autocompletar-lista");
-        lista.setCellFactory(lv -> new Celda());
-        lista.setFocusTraversable(false);
+    private void yefriLermaConstruirPopup() {
+        yefriLermaLista.getStyleClass().add("autocompletar-lista");
+        yefriLermaLista.setCellFactory(lv -> new Celda());
+        yefriLermaLista.setFocusTraversable(false);
         Label sinResultados = new Label("Sin coincidencias");
         sinResultados.getStyleClass().add("autocompletar-vacio");
-        lista.setPlaceholder(sinResultados);
-        lista.setOnMouseClicked(e -> elegir(lista.getSelectionModel().getSelectedItem()));
+        yefriLermaLista.setPlaceholder(sinResultados);
+        yefriLermaLista.setOnMouseClicked(e -> yefriLermaElegir(yefriLermaLista.getSelectionModel().getSelectedItem()));
 
-        VBox contenedor = new VBox(lista);
+        VBox contenedor = new VBox(yefriLermaLista);
         contenedor.getStyleClass().add("autocompletar");
         // El popup es otra ventana: necesita la hoja de estilos de la aplicacion.
         contenedor.getStylesheets().add(
                 Objects.requireNonNull(getClass().getResource("/css/app.css")).toExternalForm());
-        popup.getContent().add(contenedor);
-        popup.setAutoHide(true);
-        popup.setAutoFix(true);
+        yefriLermaPopup.getContent().add(contenedor);
+        yefriLermaPopup.setAutoHide(true);
+        yefriLermaPopup.setAutoFix(true);
     }
 
-    private void instalarEventos() {
-        espera.setOnFinished(e -> buscar());
+    private void yefriLermaInstalarEventos() {
+        yefriLermaEspera.setOnFinished(e -> yefriLermaBuscar());
         campo.textProperty().addListener((obs, a, b) -> {
-            if (!suspendido) {
-                espera.playFromStart();
+            if (!yefriLermaSuspendido) {
+                yefriLermaEspera.playFromStart();
             }
         });
         campo.focusedProperty().addListener((obs, a, enfocado) -> {
             if (!enfocado) {
-                ocultar();
+                yefriLermaOcultar();
             }
         });
         campo.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             switch (e.getCode()) {
                 case DOWN -> {
-                    if (!popup.isShowing()) {
-                        buscar();
+                    if (!yefriLermaPopup.isShowing()) {
+                        yefriLermaBuscar();
                     } else {
-                        mover(1);
+                        yefriLermaMover(1);
                     }
                     e.consume();
                 }
                 case UP -> {
-                    mover(-1);
+                    yefriLermaMover(-1);
                     e.consume();
                 }
                 case ENTER -> {
-                    if (popup.isShowing() && lista.getSelectionModel().getSelectedItem() != null) {
-                        elegir(lista.getSelectionModel().getSelectedItem());
+                    if (yefriLermaPopup.isShowing() && yefriLermaLista.getSelectionModel().getSelectedItem() != null) {
+                        yefriLermaElegir(yefriLermaLista.getSelectionModel().getSelectedItem());
                         e.consume();
                     }
                 }
                 case ESCAPE -> {
-                    if (popup.isShowing()) {
-                        ocultar();
+                    if (yefriLermaPopup.isShowing()) {
+                        yefriLermaOcultar();
                         e.consume();
                     }
                 }
-                case TAB -> ocultar();
+                case TAB -> yefriLermaOcultar();
                 default -> { }
             }
         });
     }
 
-    private void buscar() {
+    private void yefriLermaBuscar() {
         String texto = campo.getText() == null ? "" : campo.getText().trim();
-        if (texto.length() < minimoCaracteres || campo.getScene() == null) {
-            popup.hide();
+        if (texto.length() < yefriLermaMinimoCaracteres || campo.getScene() == null) {
+            yefriLermaPopup.hide();
             return;
         }
-        consulta = texto;
-        List<T> resultados = buscador.apply(texto);
-        lista.getItems().setAll(resultados);
-        lista.getSelectionModel().clearSelection();
+        yefriLermaConsulta = texto;
+        List<T> resultados = yefriLermaBuscador.apply(texto);
+        yefriLermaLista.getItems().setAll(resultados);
+        yefriLermaLista.getSelectionModel().clearSelection();
         if (!resultados.isEmpty()) {
-            lista.getSelectionModel().selectFirst();
+            yefriLermaLista.getSelectionModel().selectFirst();
         }
-        lista.setPrefHeight(resultados.isEmpty()
-                ? ALTO_FILA
-                : Math.min(resultados.size(), FILAS_VISIBLES) * ALTO_FILA + 6);
-        mostrar();
+        yefriLermaLista.setPrefHeight(resultados.isEmpty()
+                ? YEFRI_LERMA_ALTO_FILA
+                : Math.min(resultados.size(), YEFRI_LERMA_FILAS_VISIBLES) * YEFRI_LERMA_ALTO_FILA + 6);
+        yefriLermaMostrar();
     }
 
-    private void mostrar() {
+    private void yefriLermaMostrar() {
         Bounds b = campo.localToScreen(campo.getBoundsInLocal());
         if (b == null) {
             return;
         }
-        lista.setPrefWidth(Math.max(campo.getWidth(), 360));
-        if (!popup.isShowing()) {
-            popup.show(campo, b.getMinX(), b.getMaxY() + 4);
+        yefriLermaLista.setPrefWidth(Math.max(campo.getWidth(), 360));
+        if (!yefriLermaPopup.isShowing()) {
+            yefriLermaPopup.show(campo, b.getMinX(), b.getMaxY() + 4);
         } else {
-            popup.setX(b.getMinX());
-            popup.setY(b.getMaxY() + 4);
+            yefriLermaPopup.setX(b.getMinX());
+            yefriLermaPopup.setY(b.getMaxY() + 4);
         }
     }
 
-    private void mover(int delta) {
-        if (!popup.isShowing() || lista.getItems().isEmpty()) {
+    private void yefriLermaMover(int delta) {
+        if (!yefriLermaPopup.isShowing() || yefriLermaLista.getItems().isEmpty()) {
             return;
         }
-        int actual = lista.getSelectionModel().getSelectedIndex();
-        int nuevo = Math.max(0, Math.min(lista.getItems().size() - 1, actual + delta));
-        lista.getSelectionModel().select(nuevo);
-        lista.scrollTo(Math.max(0, nuevo - FILAS_VISIBLES + 1));
+        int actual = yefriLermaLista.getSelectionModel().getSelectedIndex();
+        int nuevo = Math.max(0, Math.min(yefriLermaLista.getItems().size() - 1, actual + delta));
+        yefriLermaLista.getSelectionModel().select(nuevo);
+        yefriLermaLista.scrollTo(Math.max(0, nuevo - YEFRI_LERMA_FILAS_VISIBLES + 1));
     }
 
-    private void elegir(T item) {
+    private void yefriLermaElegir(T item) {
         if (item == null) {
             return;
         }
-        ocultar();
-        alSeleccionar.accept(item);
+        yefriLermaOcultar();
+        yefriLermaAlSeleccionar.accept(item);
     }
 
     /** Parte {@code texto} en tramos normales y resaltados segun las palabras buscadas. */
-    private TextFlow resaltar(String texto) {
+    private TextFlow yefriLermaResaltar(String texto) {
         String minusculas = texto.toLowerCase(Locale.ROOT);
         boolean[] marcado = new boolean[texto.length()];
-        for (String palabra : consulta.toLowerCase(Locale.ROOT).split("\\s+")) {
+        for (String palabra : yefriLermaConsulta.toLowerCase(Locale.ROOT).split("\\s+")) {
             if (palabra.isEmpty()) {
                 continue;
             }
@@ -256,13 +256,13 @@ public class Autocompletar<T> {
                 setGraphic(null);
                 return;
             }
-            StackPane caja = new StackPane(icono.apply(item));
+            StackPane caja = new StackPane(yefriLermaIcono.apply(item));
             caja.getStyleClass().add("autocompletar-icono");
 
-            VBox textos = new VBox(2, resaltar(titulo.apply(item)));
-            String d = detalle.apply(item);
+            VBox textos = new VBox(2, yefriLermaResaltar(yefriLermaTitulo.apply(item)));
+            String d = yefriLermaDetalle.apply(item);
             if (d != null && !d.isBlank()) {
-                TextFlow detalleFlujo = resaltar(d);
+                TextFlow detalleFlujo = yefriLermaResaltar(d);
                 detalleFlujo.getStyleClass().setAll("autocompletar-detalle");
                 textos.getChildren().add(detalleFlujo);
             }
@@ -270,7 +270,7 @@ public class Autocompletar<T> {
 
             HBox fila = new HBox(12, caja, textos);
             fila.setAlignment(Pos.CENTER_LEFT);
-            String valor = extra.apply(item);
+            String valor = yefriLermaExtra.apply(item);
             if (valor != null) {
                 Label lblExtra = new Label(valor);
                 lblExtra.getStyleClass().add("autocompletar-extra");

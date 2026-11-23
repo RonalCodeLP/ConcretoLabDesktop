@@ -37,12 +37,12 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class GranulometriaController implements Refrescable {
 
-    private static final String RESUMEN_INICIAL = "El resultado se calculará al ingresar las mediciones.";
-    private static final String RESUMEN_INVALIDO = "Los datos cambiaron. Calcula nuevamente los resultados.";
+    private static final String YEFRI_LERMA_RESUMEN_INICIAL = "El resultado se calculará al ingresar las mediciones.";
+    private static final String YEFRI_LERMA_RESUMEN_INVALIDO = "Los datos cambiaron. Calcula nuevamente los resultados.";
 
     private final MaterialService materiales;
-    private final RegistroGranulometriaService registros;
-    private final Notificador notificador;
+    private final RegistroGranulometriaService yefriLermaRegistros;
+    private final Notificador yefriLermaNotificador;
 
     @FXML private ComboBox<Material> cmbMaterial;
     @FXML private ComboBox<RegistroGranulometria> cmbHistorial;
@@ -65,36 +65,36 @@ public class GranulometriaController implements Refrescable {
 
     @FXML private LineChart<String, Number> grafico;
 
-    private final ObservableList<GranulometriaService.Fila> filas = FXCollections.observableArrayList();
+    private final ObservableList<GranulometriaService.Fila> yefriLermaFilas = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        columna(colAbertura, f -> fmt(f.aberturaMm()));
-        columna(colRetenido, f -> fmt(f.retenidoG()));
-        columna(colRetenidoPct, f -> fmt(f.retenidoPorcentaje()));
-        columna(colAcumulado, f -> fmt(f.retenidoAcumulado()));
-        columna(colPasa, f -> fmt(f.pasaPorcentaje()));
+        yefriLermaColumna(colAbertura, f -> yefriLermaFmt(f.aberturaMm()));
+        yefriLermaColumna(colRetenido, f -> yefriLermaFmt(f.retenidoG()));
+        yefriLermaColumna(colRetenidoPct, f -> yefriLermaFmt(f.retenidoPorcentaje()));
+        yefriLermaColumna(colAcumulado, f -> yefriLermaFmt(f.retenidoAcumulado()));
+        yefriLermaColumna(colPasa, f -> yefriLermaFmt(f.pasaPorcentaje()));
 
-        Tablas.configurar(tabla, "Pulse «Calcular resultados» para ver la tabla de tamizado.", f -> { });
-        tabla.setItems(filas);
+        Tablas.fernandoHuancaConfigurar(tabla, "Pulse «Calcular resultados» para ver la tabla de tamizado.", f -> { });
+        tabla.setItems(yefriLermaFilas);
 
         txtFecha.setText(LocalDate.now().toString());
-        lblResumen.setText(RESUMEN_INICIAL);
+        lblResumen.setText(YEFRI_LERMA_RESUMEN_INICIAL);
 
         // Cualquier cambio en los datos de calculo invalida el resultado mostrado.
-        txtMasa.textProperty().addListener((obs, a, b) -> invalidar());
-        txtFondo.textProperty().addListener((obs, a, b) -> invalidar());
-        txtMediciones.textProperty().addListener((obs, a, b) -> invalidar());
+        txtMasa.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
+        txtFondo.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
+        txtMediciones.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
 
-        Formularios.limpiarAlEditar(txtIdentificacion, txtFecha, txtMasa, txtFondo, txtMediciones);
-        cmbMaterial.valueProperty().addListener((obs, a, b) -> Formularios.limpiarError(cmbMaterial));
+        Formularios.fernandoHuancaLimpiarAlEditar(txtIdentificacion, txtFecha, txtMasa, txtFondo, txtMediciones);
+        cmbMaterial.valueProperty().addListener((obs, a, b) -> Formularios.fernandoHuancaLimpiarError(cmbMaterial));
     }
 
     @Override
     public void refrescar() {
         // Recarga los agregados de la biblioteca conservando el seleccionado.
         Long idSeleccionado = cmbMaterial.getValue() == null ? null : cmbMaterial.getValue().getId();
-        List<Material> agregados = materiales.listar().stream()
+        List<Material> agregados = materiales.yefriLermaListar().stream()
                 .filter(m -> m.getTipo().startsWith("AGREGADO"))
                 .toList();
         cmbMaterial.getItems().setAll(agregados);
@@ -102,14 +102,14 @@ public class GranulometriaController implements Refrescable {
                 .filter(m -> idSeleccionado.equals(m.getId()))
                 .findFirst().orElse(null);
         cmbMaterial.setValue(actual);
-        recargarHistorial();
+        yefriLermaRecargarHistorial();
     }
 
     // ------------------------------------------------------------- acciones
 
     @FXML
     private void onMaterialSeleccionado() {
-        recargarHistorial();
+        yefriLermaRecargarHistorial();
     }
 
     @FXML
@@ -126,52 +126,52 @@ public class GranulometriaController implements Refrescable {
 
     @FXML
     private void onCalcular() {
-        Formularios.limpiarErrores(txtMasa, txtFondo, txtMediciones);
+        Formularios.fernandoHuancaLimpiarErrores(txtMasa, txtFondo, txtMediciones);
         try {
-            List<GranulometriaService.Tamiz> tamices = RegistroGranulometriaService.leer(txtMediciones.getText());
-            double[] masas = leerMasas("Ingrese números válidos.");
+            List<GranulometriaService.Tamiz> tamices = RegistroGranulometriaService.yefriLermaLeer(txtMediciones.getText());
+            double[] masas = yefriLermaLeerMasas("Ingrese números válidos.");
             if (masas == null) {
-                limpiarResultado();
+                yefriLermaLimpiarResultado();
                 lblResumen.setText("Ingrese números válidos.");
                 return;
             }
-            GranulometriaService.Resultado r = GranulometriaService.calcular(masas[0], tamices, masas[1]);
-            filas.setAll(r.filas());
+            GranulometriaService.Resultado r = GranulometriaService.yefriLermaCalcular(masas[0], tamices, masas[1]);
+            yefriLermaFilas.setAll(r.filas());
 
             XYChart.Series<String, Number> serie = new XYChart.Series<>();
             for (GranulometriaService.Fila fila : r.filas()) {
-                serie.getData().add(new XYChart.Data<>(fmt(fila.aberturaMm()), fila.pasaPorcentaje()));
+                serie.getData().add(new XYChart.Data<>(yefriLermaFmt(fila.aberturaMm()), fila.pasaPorcentaje()));
             }
             grafico.getData().setAll(serie);
 
-            lblResumen.setText("Masa recuperada: " + fmt(r.recuperadoG())
-                    + " g · Diferencia frente a la masa inicial: " + fmt(r.diferenciaG())
-                    + " g (" + fmt(r.diferenciaPorcentaje())
+            lblResumen.setText("Masa recuperada: " + yefriLermaFmt(r.recuperadoG())
+                    + " g · Diferencia frente a la masa inicial: " + yefriLermaFmt(r.diferenciaG())
+                    + " g (" + yefriLermaFmt(r.diferenciaPorcentaje())
                     + " %). Revise cualquier diferencia con el procedimiento del laboratorio.\n"
-                    + verificarHuso(r.filas()));
+                    + yefriLermaVerificarHuso(r.filas()));
         } catch (IllegalArgumentException | NegocioException e) {
-            limpiarResultado();
+            yefriLermaLimpiarResultado();
             lblResumen.setText(e.getMessage());
-            Control campo = campoDelError(e.getMessage());
+            Control campo = yefriLermaCampoDelError(e.getMessage());
             if (campo != null) {
-                Formularios.marcarError(campo, e.getMessage());
+                Formularios.fernandoHuancaMarcarError(campo, e.getMessage());
             }
         } catch (Exception e) {
-            limpiarResultado();
+            yefriLermaLimpiarResultado();
             lblResumen.setText(e.getMessage());
         }
     }
 
     @FXML
     private void onGuardar() {
-        Formularios.limpiarErrores(cmbMaterial, txtIdentificacion, txtFecha, txtMasa, txtFondo, txtMediciones);
+        Formularios.fernandoHuancaLimpiarErrores(cmbMaterial, txtIdentificacion, txtFecha, txtMasa, txtFondo, txtMediciones);
         try {
             Material material = cmbMaterial.getValue();
             if (material == null) {
-                Formularios.marcarError(cmbMaterial, "Seleccione un agregado de la biblioteca antes de guardar.");
+                Formularios.fernandoHuancaMarcarError(cmbMaterial, "Seleccione un agregado de la biblioteca antes de guardar.");
                 return;
             }
-            double[] masas = leerMasas("Ingrese masas numéricas válidas.");
+            double[] masas = yefriLermaLeerMasas("Ingrese masas numéricas válidas.");
             if (masas == null) {
                 return;
             }
@@ -183,49 +183,49 @@ public class GranulometriaController implements Refrescable {
             r.setMasaInicial(masas[0]);
             r.setFondo(masas[1]);
             r.setMediciones(txtMediciones.getText());
-            registros.guardar(r);
+            yefriLermaRegistros.yefriLermaGuardar(r);
 
-            cmbHistorial.getItems().setAll(registros.listar(material.getId()));
+            cmbHistorial.getItems().setAll(yefriLermaRegistros.yefriLermaListar(material.getId()));
             lblResumen.setText("Ensayo guardado. Selecciónalo en el historial para volver a consultarlo.");
-            notificador.exito("Ensayo guardado.");
+            yefriLermaNotificador.exito("Ensayo guardado.");
         } catch (IllegalArgumentException | NegocioException e) {
-            Control campo = campoDelError(e.getMessage());
+            Control campo = yefriLermaCampoDelError(e.getMessage());
             if (campo != null) {
-                Formularios.marcarError(campo, e.getMessage());
+                Formularios.fernandoHuancaMarcarError(campo, e.getMessage());
             } else {
-                notificador.advertencia(e.getMessage());
+                yefriLermaNotificador.fernandoHuancaAdvertencia(e.getMessage());
             }
         } catch (Exception e) {
-            notificador.error("Error inesperado: " + e.getMessage());
+            yefriLermaNotificador.fernandoHuancaError("Error inesperado: " + e.getMessage());
         }
     }
 
     // ----------------------------------------------------------------- apoyo
 
-    private void recargarHistorial() {
+    private void yefriLermaRecargarHistorial() {
         cmbHistorial.getItems().clear();
         Material material = cmbMaterial.getValue();
         if (material != null) {
-            cmbHistorial.getItems().setAll(registros.listar(material.getId()));
+            cmbHistorial.getItems().setAll(yefriLermaRegistros.yefriLermaListar(material.getId()));
         }
     }
 
     /** Verifica el huso NTP 400.037 / ASTM C33 según el tipo del agregado elegido (fino o grueso). */
-    private String verificarHuso(List<GranulometriaService.Fila> filas) {
+    private String yefriLermaVerificarHuso(List<GranulometriaService.Fila> filas) {
         Material m = cmbMaterial.getValue();
         boolean fino = m != null && "AGREGADO FINO".equals(m.getTipo());
         if (m == null) {
-            var mf = HusosGranulometricos.moduloFinura(filas);
+            var mf = HusosGranulometricos.yefriLermaModuloFinura(filas);
             return mf == null ? "Elija un agregado de la biblioteca para verificar el huso."
                     : String.format(Locale.ROOT, "Módulo de finura calculado: %.2f. Elija un agregado para verificar el huso.", mf);
         }
         if (fino) {
-            return HusosGranulometricos.verificar(HusosGranulometricos.Huso.FINO, filas).mensaje();
+            return HusosGranulometricos.yefriLermaVerificar(HusosGranulometricos.Huso.FINO, filas).mensaje();
         }
         StringBuilder sb = new StringBuilder("Agregado grueso: ");
         for (var huso : List.of(HusosGranulometricos.Huso.GRUESO_57, HusosGranulometricos.Huso.GRUESO_67,
                 HusosGranulometricos.Huso.GRUESO_7)) {
-            var v = HusosGranulometricos.verificar(huso, filas);
+            var v = HusosGranulometricos.yefriLermaVerificar(huso, filas);
             if (v.cumple()) {
                 return sb.append("cumple el huso ").append(huso).append(" (NTP 400.037 / ASTM C33).").toString();
             }
@@ -234,13 +234,13 @@ public class GranulometriaController implements Refrescable {
                 + "(verifique que estén todos los tamices de la serie).").toString();
     }
 
-    private void invalidar() {
-        limpiarResultado();
-        lblResumen.setText(RESUMEN_INVALIDO);
+    private void yefriLermaInvalidar() {
+        yefriLermaLimpiarResultado();
+        lblResumen.setText(YEFRI_LERMA_RESUMEN_INVALIDO);
     }
 
-    private void limpiarResultado() {
-        filas.clear();
+    private void yefriLermaLimpiarResultado() {
+        yefriLermaFilas.clear();
         grafico.getData().clear();
     }
 
@@ -248,15 +248,15 @@ public class GranulometriaController implements Refrescable {
      * Lee masa inicial y masa en fondo. Si alguna no es numerica la marca con el mensaje dado
      * y devuelve {@code null}.
      */
-    private double[] leerMasas(String mensaje) {
-        Double masa = numero(txtMasa);
-        Double fondo = numero(txtFondo);
+    private double[] yefriLermaLeerMasas(String mensaje) {
+        Double masa = yefriLermaNumero(txtMasa);
+        Double fondo = yefriLermaNumero(txtFondo);
         if (masa == null || fondo == null) {
             if (masa == null) {
-                Formularios.marcarError(txtMasa, mensaje);
+                Formularios.fernandoHuancaMarcarError(txtMasa, mensaje);
             }
             if (fondo == null) {
-                Formularios.marcarError(txtFondo, mensaje);
+                Formularios.fernandoHuancaMarcarError(txtFondo, mensaje);
             }
             return null;
         }
@@ -264,7 +264,7 @@ public class GranulometriaController implements Refrescable {
     }
 
     /** Asocia el mensaje de validacion con el campo que corresponde, si se puede identificar. */
-    private Control campoDelError(String mensaje) {
+    private Control yefriLermaCampoDelError(String mensaje) {
         if (mensaje == null) {
             return null;
         }
@@ -280,12 +280,12 @@ public class GranulometriaController implements Refrescable {
         return null;
     }
 
-    private static void columna(TableColumn<GranulometriaService.Fila, String> columna,
+    private static void yefriLermaColumna(TableColumn<GranulometriaService.Fila, String> columna,
                                 Function<GranulometriaService.Fila, String> valor) {
         columna.setCellValueFactory(c -> new SimpleStringProperty(valor.apply(c.getValue())));
     }
 
-    private static Double numero(TextField campo) {
+    private static Double yefriLermaNumero(TextField campo) {
         try {
             return Double.parseDouble(campo.getText().trim().replace(',', '.'));
         } catch (NumberFormatException e) {
@@ -293,7 +293,7 @@ public class GranulometriaController implements Refrescable {
         }
     }
 
-    private static String fmt(double n) {
+    private static String yefriLermaFmt(double n) {
         return String.format(Locale.ROOT, "%.2f", n);
     }
 }

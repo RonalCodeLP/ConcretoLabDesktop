@@ -13,25 +13,25 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class GranulometriaSeeder {
 
-    public static final String IDENTIFICACION = "DEMO - Tamizado de arena";
+    public static final String YEFRI_LERMA_IDENTIFICACION = "DEMO - Tamizado de arena";
 
     private final MaterialService materiales;
     private final RegistroGranulometriaService granulometrias;
 
     @Transactional
-    public int sembrar() {
-        Material arena = materiales.listar().stream().filter(m -> MaterialSeeder.ARENA.equals(m.getNombre())).findFirst().orElse(null);
-        if (arena == null || granulometrias.listar(arena.getId()).stream().anyMatch(r -> IDENTIFICACION.equals(r.getIdentificacion()))) {
+    public int yefriLermaSembrar() {
+        Material arena = materiales.yefriLermaListar().stream().filter(m -> MaterialSeeder.YEFRI_LERMA_ARENA.equals(m.getNombre())).findFirst().orElse(null);
+        if (arena == null || granulometrias.yefriLermaListar(arena.getId()).stream().anyMatch(r -> YEFRI_LERMA_IDENTIFICACION.equals(r.getIdentificacion()))) {
             return 0;
         }
         RegistroGranulometria g = new RegistroGranulometria();
         g.setMaterialId(arena.getId());
-        g.setIdentificacion(IDENTIFICACION);
+        g.setIdentificacion(YEFRI_LERMA_IDENTIFICACION);
         g.setFecha("2026-11-01");
         g.setMasaInicial(1000);
         g.setFondo(50);
         g.setMediciones("4.75; 20\n2.36; 80\n1.18; 200\n0.60; 300\n0.30; 250\n0.15; 100");
-        granulometrias.guardar(g);
+        granulometrias.yefriLermaGuardar(g);
         return 1;
     }
 }

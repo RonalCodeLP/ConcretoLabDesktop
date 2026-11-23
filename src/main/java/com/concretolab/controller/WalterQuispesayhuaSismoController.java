@@ -70,24 +70,24 @@ import java.util.function.Function;
  */
 @Component
 @RequiredArgsConstructor
-public class WalterQuispeSayhuanSismoController implements Refrescable {
+public class WalterQuispesayhuaSismoController implements Refrescable {
 
-    private static final String ESTADO_INICIAL = "Defina los datos y pulse «Calcular».";
-    private static final Locale ES = Locale.forLanguageTag("es-PE");
+    private static final String WALTER_QUISPESAYHUA_ESTADO_INICIAL = "Defina los datos y pulse «Calcular».";
+    private static final Locale WALTER_QUISPESAYHUA_ES = Locale.forLanguageTag("es-PE");
 
-    private final YefriLermaProyectoService servicio;
-    private final SesionProyecto sesion;
-    private final Notificador notificador;
+    private final YefriLermaProyectoService walterQuispesayhuaServicio;
+    private final SesionProyecto walterQuispesayhuaSesion;
+    private final Notificador walterQuispesayhuaNotificador;
     private final Exportador exportador;
-    private final ZonificacionService zonificacion;
+    private final ZonificacionService walterQuispesayhuaZonificacion;
 
     @FXML private VBox panelVacio;
     @FXML private HBox panelContenido;
 
-    private boolean actualizandoProyectos;
-    private boolean aplicandoBusqueda;
-    private boolean zonaForzada;
-    private boolean cargando = true;
+    private boolean walterQuispesayhuaActualizandoProyectos;
+    private boolean walterQuispesayhuaAplicandoBusqueda;
+    private boolean walterQuispesayhuaZonaForzada;
+    private boolean walterQuispesayhuaCargando = true;
     @FXML private ComboBox<Proyecto> cmbProyecto;
 
     // Paso 1
@@ -148,53 +148,53 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     @FXML private TiempoHistoriaController tiempoHistoriaController;
 
     /** Proyecto y pisos con los que se armo la tabla; permiten conservar lo editado si nada cambio. */
-    private Long idProyectoCargado;
-    private List<PisoBase> pisosCargados = List.of();
+    private Long walterQuispesayhuaIdProyectoCargado;
+    private List<PisoBase> walterQuispesayhuaPisosCargados = List.of();
 
     /** Datos del ultimo calculo (los usa la exportacion a PDF). */
-    private Proyecto proyectoCalculado;
-    private Entrada entrada;
-    private Resultado resultado;
+    private Proyecto walterQuispesayhuaProyectoCalculado;
+    private Entrada walterQuispesayhuaEntrada;
+    private Resultado walterQuispesayhuaResultado;
     /** El uso elegido al calcular era A1 (hospital): la Tabla 9 no permite pórticos en ninguna zona. */
-    private boolean ultimoUsoA1;
-    private UsoEdificacion usoCalculado;
+    private boolean walterQuispesayhuaUltimoUsoA1;
+    private UsoEdificacion walterQuispesayhuaUsoCalculado;
 
     /** Fila editable de la tabla de pisos. */
     public static final class FilaPiso {
-        final int numero;
-        final double cota;
-        final StringProperty area;
-        final StringProperty cm;
-        final StringProperty cv;
+        final int walterQuispesayhuaNumero;
+        final double walterQuispesayhuaCota;
+        final StringProperty walterQuispesayhuaArea;
+        final StringProperty walterQuispesayhuaCm;
+        final StringProperty walterQuispesayhuaCv;
 
         FilaPiso(int numero, double cota, double area) {
-            this.numero = numero;
-            this.cota = cota;
-            this.area = new SimpleStringProperty(f(area, 2));
-            this.cm = new SimpleStringProperty("1.0");
-            this.cv = new SimpleStringProperty("2.0");
+            this.walterQuispesayhuaNumero = numero;
+            this.walterQuispesayhuaCota = cota;
+            this.walterQuispesayhuaArea = new SimpleStringProperty(f(area, 2));
+            this.walterQuispesayhuaCm = new SimpleStringProperty("1.0");
+            this.walterQuispesayhuaCv = new SimpleStringProperty("2.0");
         }
     }
 
     @FXML
     private void initialize() {
         cmbProyecto.valueProperty().addListener((o, anterior, nuevo) -> {
-            if (!actualizandoProyectos && nuevo != null) {
-                sesion.setProyecto(nuevo);
-                cargarProyectoActivo();
+            if (!walterQuispesayhuaActualizandoProyectos && nuevo != null) {
+                walterQuispesayhuaSesion.setProyecto(nuevo);
+                walterQuispesayhuaCargarProyectoActivo();
             }
         });
 
         // Paso 1: ubicacion en cascada y busqueda
-        cmbDepartamento.getItems().setAll(zonificacion.departamentos());
+        cmbDepartamento.getItems().setAll(walterQuispesayhuaZonificacion.fernandoHuancaDepartamentos());
         cmbDepartamento.valueProperty().addListener((o, a, dep) -> {
             cmbProvincia.setValue(null);
-            cmbProvincia.getItems().setAll(dep == null ? List.<String>of() : zonificacion.provincias(dep));
+            cmbProvincia.getItems().setAll(dep == null ? List.<String>of() : walterQuispesayhuaZonificacion.fernandoHuancaProvincias(dep));
         });
         cmbProvincia.valueProperty().addListener((o, a, prov) -> {
             cmbDistrito.setValue(null);
             String dep = cmbDepartamento.getValue();
-            cmbDistrito.getItems().setAll(dep == null || prov == null ? List.<String>of() : zonificacion.distritos(dep, prov));
+            cmbDistrito.getItems().setAll(dep == null || prov == null ? List.<String>of() : walterQuispesayhuaZonificacion.fernandoHuancaDistritos(dep, prov));
         });
         cmbZona.getItems().addAll(Zona.values());
         lstBusqueda.setCellFactory(l -> new ListCell<>() {
@@ -205,13 +205,13 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
             }
         });
         txtBuscarDistrito.textProperty().addListener((o, a, texto) -> {
-            if (!aplicandoBusqueda) {
-                buscar(texto);
+            if (!walterQuispesayhuaAplicandoBusqueda) {
+                walterQuispesayhuaBuscar(texto);
             }
         });
         lstBusqueda.getSelectionModel().selectedItemProperty().addListener((o, a, u) -> {
-            if (u != null && !aplicandoBusqueda) {
-                aplicarUbicacion(u);
+            if (u != null && !walterQuispesayhuaAplicandoBusqueda) {
+                walterQuispesayhuaAplicarUbicacion(u);
             }
         });
 
@@ -228,38 +228,38 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
         cmbIp.getItems().addAll(1.0, 0.90, 0.85, 0.75, 0.60);
         cmbIp.setValue(1.0);
 
-        Formularios.limpiarAlEditar(txtVs30, txtFc, txtPoisson, txtRigidez, txtEspesor, txtCt);
+        Formularios.fernandoHuancaLimpiarAlEditar(txtVs30, txtFc, txtPoisson, txtRigidez, txtEspesor, txtCt);
 
-        Tablas.configurar(tablaPisos, "No se detectaron pisos en el proyecto.", fila -> { });
+        Tablas.fernandoHuancaConfigurar(tablaPisos, "No se detectaron pisos en el proyecto.", fila -> { });
         tablaPisos.getStyleClass().add("tabla-compacta");
-        columnaFija(colPiso, c -> new SimpleStringProperty("" + c.numero));
-        columnaFija(colCota, c -> new SimpleStringProperty(f(c.cota, 2)));
-        columnaEditable(colArea, c -> c.area);
-        columnaEditable(colCm, c -> c.cm);
-        columnaEditable(colCv, c -> c.cv);
+        walterQuispesayhuaColumnaFija(colPiso, c -> new SimpleStringProperty("" + c.walterQuispesayhuaNumero));
+        walterQuispesayhuaColumnaFija(colCota, c -> new SimpleStringProperty(f(c.walterQuispesayhuaCota, 2)));
+        walterQuispesayhuaColumnaEditable(colArea, c -> c.walterQuispesayhuaArea);
+        walterQuispesayhuaColumnaEditable(colCm, c -> c.walterQuispesayhuaCm);
+        walterQuispesayhuaColumnaEditable(colCv, c -> c.walterQuispesayhuaCv);
 
         for (TextField campo : List.of(txtVs30, txtFc, txtPoisson, txtRigidez, txtEspesor, txtCt)) {
             campo.textProperty().addListener((o, a, b) -> {
-                invalidar();
-                actualizarEstado();
+                walterQuispesayhuaInvalidar();
+                walterQuispesayhuaActualizarEstado();
             });
         }
         for (ComboBox<?> combo : List.of(cmbDepartamento, cmbProvincia, cmbDistrito, cmbZona, cmbTipoSuelo, cmbSistema, cmbIa, cmbIp)) {
             combo.valueProperty().addListener((o, a, b) -> {
-                Formularios.limpiarError(combo);
-                invalidar();
-                actualizarEstado();
+                Formularios.fernandoHuancaLimpiarError(combo);
+                walterQuispesayhuaInvalidar();
+                walterQuispesayhuaActualizarEstado();
             });
         }
         cmbUso.valueProperty().addListener((o, a, uso) -> {
-            Formularios.limpiarError(cmbUso);
-            aplicarCargasUso();
-            invalidar();
-            actualizarEstado();
+            Formularios.fernandoHuancaLimpiarError(cmbUso);
+            walterQuispesayhuaAplicarCargasUso();
+            walterQuispesayhuaInvalidar();
+            walterQuispesayhuaActualizarEstado();
         });
         cmbSistema.valueProperty().addListener((o, a, s) -> {
             if (s != null) {
-                txtCt.setText(coma(s.ct(), 0));
+                txtCt.setText(walterQuispesayhuaComa(s.ct(), 0));
             }
         });
         cmbTipoSuelo.valueProperty().addListener((o, a, s) -> {
@@ -267,101 +267,101 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
                 txtVs30.clear();
             }
         });
-        cargando = false;
+        walterQuispesayhuaCargando = false;
         onCambiarVersion();
     }
 
     /** Se llama cada vez que se muestra la vista: relee el proyecto activo y recarga los pisos. */
     @Override
     public void refrescar() {
-        Proyecto activo = sesion.getProyecto();
-        actualizandoProyectos = true;
+        Proyecto activo = walterQuispesayhuaSesion.getProyecto();
+        walterQuispesayhuaActualizandoProyectos = true;
         try {
-            cmbProyecto.getItems().setAll(servicio.proyectos());
+            cmbProyecto.getItems().setAll(walterQuispesayhuaServicio.proyectos());
             cmbProyecto.setValue(cmbProyecto.getItems().stream()
                     .filter(p -> activo != null && Objects.equals(p.getId(), activo.getId()))
                     .findFirst().orElse(null));
         } finally {
-            actualizandoProyectos = false;
+            walterQuispesayhuaActualizandoProyectos = false;
         }
-        cargarProyectoActivo();
+        walterQuispesayhuaCargarProyectoActivo();
     }
 
-    private void cargarProyectoActivo() {
-        Proyecto p = sesion.getProyecto();
+    private void walterQuispesayhuaCargarProyectoActivo() {
+        Proyecto p = walterQuispesayhuaSesion.getProyecto();
         boolean hayProyecto = p != null;
         panelVacio.setVisible(!hayProyecto);
         panelVacio.setManaged(!hayProyecto);
         panelContenido.setVisible(hayProyecto);
         panelContenido.setManaged(hayProyecto);
         if (!hayProyecto) {
-            idProyectoCargado = null;
-            pisosCargados = List.of();
+            walterQuispesayhuaIdProyectoCargado = null;
+            walterQuispesayhuaPisosCargados = List.of();
             tablaPisos.getItems().clear();
-            limpiarResultados();
-            lblEstado.setText(ESTADO_INICIAL);
-            actualizarEstado();
+            walterQuispesayhuaLimpiarResultados();
+            lblEstado.setText(WALTER_QUISPESAYHUA_ESTADO_INICIAL);
+            walterQuispesayhuaActualizarEstado();
             return;
         }
 
         List<PisoBase> pisos = List.of();
         String problema = null;
         try {
-            pisos = FernandoHuancaAnalisisSismico.pisos(servicio.elementos(p.getId()));
+            pisos = FernandoHuancaAnalisisSismico.fernandoHuancaPisos(walterQuispesayhuaServicio.elementos(p.getId()));
         } catch (IllegalArgumentException ex) {
             problema = ex.getMessage();
         }
         // Mismo proyecto y mismos pisos: se conservan los valores editados y los resultados.
-        if (problema == null && Objects.equals(idProyectoCargado, p.getId()) && pisos.equals(pisosCargados)) {
-            if (entrada != null && !geometria(entrada.elementos()).equals(geometria(servicio.elementos(p.getId())))) invalidar();
+        if (problema == null && Objects.equals(walterQuispesayhuaIdProyectoCargado, p.getId()) && pisos.equals(walterQuispesayhuaPisosCargados)) {
+            if (walterQuispesayhuaEntrada != null && !walterQuispesayhuaGeometria(walterQuispesayhuaEntrada.elementos()).equals(walterQuispesayhuaGeometria(walterQuispesayhuaServicio.elementos(p.getId())))) walterQuispesayhuaInvalidar();
             return;
         }
 
-        idProyectoCargado = p.getId();
-        pisosCargados = pisos;
+        walterQuispesayhuaIdProyectoCargado = p.getId();
+        walterQuispesayhuaPisosCargados = pisos;
         tablaPisos.getItems().clear();
         for (PisoBase b : pisos) {
             tablaPisos.getItems().add(new FilaPiso(tablaPisos.getItems().size() + 1, b.cota(), b.areaPorDefecto()));
         }
-        aplicarCargasUso();
-        limpiarResultados();
-        lblEstado.setText(problema != null ? problema : ESTADO_INICIAL);
-        actualizarEstado();
+        walterQuispesayhuaAplicarCargasUso();
+        walterQuispesayhuaLimpiarResultados();
+        lblEstado.setText(problema != null ? problema : WALTER_QUISPESAYHUA_ESTADO_INICIAL);
+        walterQuispesayhuaActualizarEstado();
     }
 
     // ------------------------------------------------------------------ asistente
 
-    private void buscar(String texto) {
+    private void walterQuispesayhuaBuscar(String texto) {
         List<Ubicacion> lista = texto == null || texto.trim().length() < 2 || cmbVersion.getValue() != Version.V2026
-                ? List.of() : zonificacion.buscar(texto.trim(), 8);
+                ? List.of() : walterQuispesayhuaZonificacion.fernandoHuancaBuscar(texto.trim(), 8);
         lstBusqueda.getItems().setAll(lista);
-        mostrar(lstBusqueda, !lista.isEmpty());
+        walterQuispesayhuaMostrar(lstBusqueda, !lista.isEmpty());
     }
 
-    private void aplicarUbicacion(Ubicacion u) {
-        aplicandoBusqueda = true;
+    private void walterQuispesayhuaAplicarUbicacion(Ubicacion u) {
+        walterQuispesayhuaAplicandoBusqueda = true;
         try {
             cmbDepartamento.setValue(u.departamento());
             cmbProvincia.setValue(u.provincia());
             cmbDistrito.setValue(u.distrito());
             txtBuscarDistrito.clear();
             lstBusqueda.getItems().clear();
-            mostrar(lstBusqueda, false);
+            walterQuispesayhuaMostrar(lstBusqueda, false);
         } finally {
-            aplicandoBusqueda = false;
+            walterQuispesayhuaAplicandoBusqueda = false;
         }
     }
 
     @FXML
     private void onZonaManual() {
-        mostrar(boxZonaManual, chkZonaManual.isSelected());
-        actualizarEstado();
+        walterQuispesayhuaMostrar(boxZonaManual, chkZonaManual.isSelected());
+        walterQuispesayhuaActualizarEstado();
     }
 
     /** Cambia lo que depende de la version: busqueda por distrito, zona manual, Vs30, R0 y CT. */
     @FXML
     private void onCambiarVersion() {
-        if (cargando) {
+        if (walterQuispesayhuaCargando) {
             return;
         }
         Version v = cmbVersion.getValue();
@@ -376,29 +376,29 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
         if (!v2026) {
             txtBuscarDistrito.clear();
             if (!chkZonaManual.isSelected()) {
-                zonaForzada = true;
+                walterQuispesayhuaZonaForzada = true;
                 chkZonaManual.setSelected(true);
             }
             chkZonaManual.setDisable(true);
-            mostrar(lblNotaZona, true);
+            walterQuispesayhuaMostrar(lblNotaZona, true);
             lblNotaZona.setText("La zonificación por distrito es del Anexo II de la E.030 2026; con la versión 2018 el anexo es otro. Elija la zona sísmica a mano.");
             lblNotaVersion.setText("Versión 2018: los nombres de los suelos S2 y S3 no significan lo mismo que en 2026.");
-            mostrar(lblNotaVersion, true);
+            walterQuispesayhuaMostrar(lblNotaVersion, true);
         } else {
             chkZonaManual.setDisable(false);
-            if (zonaForzada) {
-                zonaForzada = false;
+            if (walterQuispesayhuaZonaForzada) {
+                walterQuispesayhuaZonaForzada = false;
                 chkZonaManual.setSelected(false);
             }
-            mostrar(lblNotaZona, false);
-            mostrar(lblNotaVersion, false);
+            walterQuispesayhuaMostrar(lblNotaZona, false);
+            walterQuispesayhuaMostrar(lblNotaVersion, false);
         }
-        mostrar(boxZonaManual, chkZonaManual.isSelected());
-        invalidar();
-        actualizarEstado();
+        walterQuispesayhuaMostrar(boxZonaManual, chkZonaManual.isSelected());
+        walterQuispesayhuaInvalidar();
+        walterQuispesayhuaActualizarEstado();
     }
 
-    private Zona zonaEfectiva() {
+    private Zona walterQuispesayhuaZonaEfectiva() {
         if (chkZonaManual.isSelected()) {
             return cmbZona.getValue();
         }
@@ -406,44 +406,44 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
         if (dep == null || prov == null || dist == null) {
             return null;
         }
-        var z = zonificacion.zona(dep, prov, dist);
-        return z.isPresent() ? GuiaSismica.zonaDe(z.getAsInt()) : null;
+        var z = walterQuispesayhuaZonificacion.fernandoHuancaZona(dep, prov, dist);
+        return z.isPresent() ? GuiaSismica.walterQuispesayhuaZonaDe(z.getAsInt()) : null;
     }
 
     /** Precarga CM y CV de todos los pisos segun el uso elegido (el usuario puede seguir editando). */
-    private void aplicarCargasUso() {
+    private void walterQuispesayhuaAplicarCargasUso() {
         UsoEdificacion uso = cmbUso.getValue();
         if (uso == null) {
             return;
         }
-        double[][] c = GuiaSismica.cargasPorUso(uso, tablaPisos.getItems().size());
+        double[][] c = GuiaSismica.walterQuispesayhuaCargasPorUso(uso, tablaPisos.getItems().size());
         for (int i = 0; i < c.length; i++) {
-            tablaPisos.getItems().get(i).cm.set(f(c[i][0], 2));
-            tablaPisos.getItems().get(i).cv.set(f(c[i][1], 2));
+            tablaPisos.getItems().get(i).walterQuispesayhuaCm.set(f(c[i][0], 2));
+            tablaPisos.getItems().get(i).walterQuispesayhuaCv.set(f(c[i][1], 2));
         }
         tablaPisos.refresh();
     }
 
     /** Parametros provisionales para mostrar avisos antes de calcular; {@code null} si algo falta o no es valido. */
-    private Parametros provisional() {
-        Zona zona = zonaEfectiva();
+    private Parametros walterQuispesayhuaProvisional() {
+        Zona zona = walterQuispesayhuaZonaEfectiva();
         if (zona == null || cmbUso.getValue() == null || cmbTipoSuelo.getValue() == null || cmbSistema.getValue() == null) {
             return null;
         }
         try {
             double ct = cmbSistema.getValue().ct();
             try {
-                ct = num(txtCt.getText());
+                ct = walterQuispesayhuaNum(txtCt.getText());
             } catch (RuntimeException ignorado) {
                 // se usa el CT del sistema
             }
             double vs30 = Double.NaN;
             try {
-                vs30 = num(txtVs30.getText());
+                vs30 = walterQuispesayhuaNum(txtVs30.getText());
             } catch (RuntimeException ignorado) {
                 // sin Vs30
             }
-            return GuiaSismica.parametros(cmbVersion.getValue(), zona, cmbUso.getValue(), cmbTipoSuelo.getValue(), cmbSistema.getValue(),
+            return GuiaSismica.walterQuispesayhuaParametros(cmbVersion.getValue(), zona, cmbUso.getValue(), cmbTipoSuelo.getValue(), cmbSistema.getValue(),
                     cmbIa.getValue(), cmbIp.getValue(), ct, vs30);
         } catch (RuntimeException ex) {
             return null;
@@ -451,12 +451,12 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     }
 
     /** Refresca todos los textos de ayuda y avisos del asistente y habilita o no el boton Calcular. */
-    private void actualizarEstado() {
-        if (cargando) {
+    private void walterQuispesayhuaActualizarEstado() {
+        if (walterQuispesayhuaCargando) {
             return;
         }
         Version v = cmbVersion.getValue();
-        Zona zona = zonaEfectiva();
+        Zona zona = walterQuispesayhuaZonaEfectiva();
         UsoEdificacion uso = cmbUso.getValue();
         TipoSuelo tipo = cmbTipoSuelo.getValue();
         SistemaEstructural sis = cmbSistema.getValue();
@@ -467,36 +467,36 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
             lblZonaChip.setText(chkZonaManual.isSelected() ? "Zona sísmica: falta elegir la zona" : "Zona sísmica: falta elegir el distrito");
             lblZonaChip.getStyleClass().add("neutro");
         } else {
-            lblZonaChip.setText("Zona sísmica " + GuiaSismica.numeroZona(zona) + " · Z = " + coma(zona.z, 2) + " · "
-                    + (chkZonaManual.isSelected() ? "elegida a mano" : "fuente " + zonificacion.fuente()));
+            lblZonaChip.setText("Zona sísmica " + GuiaSismica.walterQuispesayhuaNumeroZona(zona) + " · Z = " + walterQuispesayhuaComa(zona.z, 2) + " · "
+                    + (chkZonaManual.isSelected() ? "elegida a mano" : "fuente " + walterQuispesayhuaZonificacion.fernandoHuancaFuente()));
             lblZonaChip.getStyleClass().add("exito");
         }
 
         // Paso 2: uso
         if (uso == null) {
-            mostrar(lblUsoDetalle, false);
-            mostrar(lblUsoNota, false);
+            walterQuispesayhuaMostrar(lblUsoDetalle, false);
+            walterQuispesayhuaMostrar(lblUsoNota, false);
         } else {
-            lblUsoDetalle.setText("Ejemplos: " + uso.ejemplos + ".\nCategoría " + uso.categoria().name() + " · U = " + coma(uso.categoria().u, 1)
-                    + " · carga viva sugerida " + coma(uso.cvPisos, 1) + " kN/m² (techo " + coma(uso.cvTecho, 1) + ") y carga muerta adicional "
-                    + coma(uso.cargaMuertaAdicionalSugerida, 1) + " kN/m².");
-            mostrar(lblUsoDetalle, true);
+            lblUsoDetalle.setText("Ejemplos: " + uso.ejemplos + ".\nCategoría " + uso.categoria().name() + " · U = " + walterQuispesayhuaComa(uso.categoria().u, 1)
+                    + " · carga viva sugerida " + walterQuispesayhuaComa(uso.cvPisos, 1) + " kN/m² (techo " + walterQuispesayhuaComa(uso.cvTecho, 1) + ") y carga muerta adicional "
+                    + walterQuispesayhuaComa(uso.cargaMuertaAdicionalSugerida, 1) + " kN/m².");
+            walterQuispesayhuaMostrar(lblUsoDetalle, true);
             lblUsoNota.setText("Valor sugerido, no es literal de la E.020: confírmelo con su proyecto.");
-            mostrar(lblUsoNota, !uso.verificado);
+            walterQuispesayhuaMostrar(lblUsoNota, !uso.verificado);
         }
         boolean aislamiento = uso != null && uso.requiereAislamientoZ3Z4() && (zona == Zona.Z3 || zona == Zona.Z4);
         lblAvisoAislamiento.setText("La nota de la Tabla 7 de la E.030 pide aislamiento sísmico para este uso en zonas 3 y 4. Esta aplicación no modela aislamiento: el resultado no aplica.");
-        mostrar(lblAvisoAislamiento, aislamiento);
+        walterQuispesayhuaMostrar(lblAvisoAislamiento, aislamiento);
 
         // Paso 3: suelo
         if (tipo == null || v == null) {
-            mostrar(lblSueloDetalle, false);
-            mostrar(lblAvisoSuelo, false);
+            walterQuispesayhuaMostrar(lblSueloDetalle, false);
+            walterQuispesayhuaMostrar(lblAvisoSuelo, false);
         } else {
             lblSueloDetalle.setText(tipo.descripcion + "\nPerfil E.030 (" + (v == Version.V2026 ? "2026" : "2018") + "): " + tipo.suelo(v).etiqueta + ".");
-            mostrar(lblSueloDetalle, true);
+            walterQuispesayhuaMostrar(lblSueloDetalle, true);
             lblAvisoSuelo.setText(tipo.aviso);
-            mostrar(lblAvisoSuelo, tipo.aviso != null && !tipo.aviso.isBlank());
+            walterQuispesayhuaMostrar(lblAvisoSuelo, tipo.aviso != null && !tipo.aviso.isBlank());
         }
         boolean vsHabilitado = v == Version.V2026 && tipo != null && tipo.suelo(v).interpola();
         txtVs30.setDisable(!vsHabilitado);
@@ -506,38 +506,38 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
 
         // Paso 4: sistema
         if (sis == null || v == null) {
-            mostrar(lblSistemaDetalle, false);
-            mostrar(lblAvisoSistema, false);
+            walterQuispesayhuaMostrar(lblSistemaDetalle, false);
+            walterQuispesayhuaMostrar(lblAvisoSistema, false);
         } else {
-            lblSistemaDetalle.setText(sis.descripcion + "\nR0 = " + coma(sis.r0(v), 1) + " · CT = " + coma(sis.ct(), 0) + " (automáticos). " + sis.nota);
-            mostrar(lblSistemaDetalle, true);
+            lblSistemaDetalle.setText(sis.descripcion + "\nR0 = " + walterQuispesayhuaComa(sis.r0(v), 1) + " · CT = " + walterQuispesayhuaComa(sis.ct(), 0) + " (automáticos). " + sis.nota);
+            walterQuispesayhuaMostrar(lblSistemaDetalle, true);
             lblAvisoSistema.setText("Esta aplicación solo modela pórticos de concreto armado; para este sistema valide con otro programa.");
-            mostrar(lblAvisoSistema, !sis.modelable());
+            walterQuispesayhuaMostrar(lblAvisoSistema, !sis.modelable());
         }
         String t9 = sis == SistemaEstructural.PORTICOS && uso != null && zona != null && v != null
-                ? GuiaSismica.avisoTabla9(uso.categoria(), zona, v, uso.requiereAislamientoZ3Z4()) : null;
+                ? GuiaSismica.walterQuispesayhuaAvisoTabla9(uso.categoria(), zona, v, uso.requiereAislamientoZ3Z4()) : null;
         if (t9 != null) {
             lblAvisoTabla9.setText(t9);
         }
-        mostrar(lblAvisoTabla9, t9 != null);
+        walterQuispesayhuaMostrar(lblAvisoTabla9, t9 != null);
 
         // Avanzadas
-        Parametros prov = provisional();
+        Parametros prov = walterQuispesayhuaProvisional();
         List<String> restr = prov == null ? List.of() : prov.restricciones();
         lblAvisoIrregularidad.setText(String.join("\n", restr));
-        mostrar(lblAvisoIrregularidad, !restr.isEmpty());
+        walterQuispesayhuaMostrar(lblAvisoIrregularidad, !restr.isEmpty());
         boolean rigidezBaja = false;
         try {
-            rigidezBaja = num(txtRigidez.getText()) < 1.0;
+            rigidezBaja = walterQuispesayhuaNum(txtRigidez.getText()) < 1.0;
         } catch (RuntimeException ignorado) {
             // texto no numerico: se avisa al calcular
         }
         lblAvisoRigidez.setText("La norma pide secciones brutas (EI = 1,0): con menos rigidez los periodos y desplazamientos salen mayores.");
-        mostrar(lblAvisoRigidez, rigidezBaja);
+        walterQuispesayhuaMostrar(lblAvisoRigidez, rigidezBaja);
         boolean ctManual = false;
         if (sis != null) {
             try {
-                ctManual = Math.abs(num(txtCt.getText()) - sis.ct()) > 1e-9;
+                ctManual = Math.abs(walterQuispesayhuaNum(txtCt.getText()) - sis.ct()) > 1e-9;
             } catch (RuntimeException ignorado) {
                 ctManual = false;
             }
@@ -546,12 +546,12 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
                 : "Calculado automáticamente según el sistema estructural.");
 
         // Boton Calcular
-        List<String> falta = GuiaSismica.faltantes(zona, uso, tipo, sis, !tablaPisos.getItems().isEmpty());
+        List<String> falta = GuiaSismica.walterQuispesayhuaFaltantes(zona, uso, tipo, sis, !tablaPisos.getItems().isEmpty());
         lblFalta.setText(falta.isEmpty() ? "Todo listo: pulse «Calcular»." : "Falta: " + String.join("; ", falta) + ".");
         btnCalcular.setDisable(!falta.isEmpty());
     }
 
-    private static void mostrar(Node nodo, boolean visible) {
+    private static void walterQuispesayhuaMostrar(Node nodo, boolean visible) {
         nodo.setVisible(visible);
         nodo.setManaged(visible);
     }
@@ -560,112 +560,112 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
 
     @FXML
     private void onCalcular() {
-        Proyecto p = sesion.getProyecto();
+        Proyecto p = walterQuispesayhuaSesion.getProyecto();
         if (p == null) {
             return;
         }
-        Zona zona = zonaEfectiva();
+        Zona zona = walterQuispesayhuaZonaEfectiva();
         UsoEdificacion uso = cmbUso.getValue();
         TipoSuelo tipo = cmbTipoSuelo.getValue();
         SistemaEstructural sis = cmbSistema.getValue();
-        ultimoUsoA1 = uso != null && uso.requiereAislamientoZ3Z4();
+        walterQuispesayhuaUltimoUsoA1 = uso != null && uso.requiereAislamientoZ3Z4();
         if (zona == null || uso == null || tipo == null || sis == null || !sis.modelable()) {
-            if (zona == null) Formularios.marcarError(chkZonaManual.isSelected() ? cmbZona : cmbDistrito, "Elija la ubicación o la zona.");
-            if (uso == null) Formularios.marcarError(cmbUso, "Elija el uso de la edificación.");
-            if (tipo == null) Formularios.marcarError(cmbTipoSuelo, "Elija el tipo de suelo.");
-            if (sis == null) Formularios.marcarError(cmbSistema, "Elija el sistema estructural.");
-            else if (!sis.modelable()) Formularios.marcarError(cmbSistema, "Solo se modelan pórticos de concreto armado.");
+            if (zona == null) Formularios.fernandoHuancaMarcarError(chkZonaManual.isSelected() ? cmbZona : cmbDistrito, "Elija la ubicación o la zona.");
+            if (uso == null) Formularios.fernandoHuancaMarcarError(cmbUso, "Elija el uso de la edificación.");
+            if (tipo == null) Formularios.fernandoHuancaMarcarError(cmbTipoSuelo, "Elija el tipo de suelo.");
+            if (sis == null) Formularios.fernandoHuancaMarcarError(cmbSistema, "Elija el sistema estructural.");
+            else if (!sis.modelable()) Formularios.fernandoHuancaMarcarError(cmbSistema, "Solo se modelan pórticos de concreto armado.");
             return;
         }
-        Formularios.limpiarErrores(txtVs30, txtFc, txtPoisson, txtRigidez, txtEspesor, txtCt, cmbSistema, cmbTipoSuelo, cmbZona);
+        Formularios.fernandoHuancaLimpiarErrores(txtVs30, txtFc, txtPoisson, txtRigidez, txtEspesor, txtCt, cmbSistema, cmbTipoSuelo, cmbZona);
         try {
-            List<Elemento> el = servicio.elementos(p.getId());
+            List<Elemento> el = walterQuispesayhuaServicio.elementos(p.getId());
             List<CargaPiso> cargas = new ArrayList<>();
             for (FilaPiso fp : tablaPisos.getItems()) {
-                cargas.add(new CargaPiso(num(fp.area.get()), num(fp.cm.get()), num(fp.cv.get())));
+                cargas.add(new CargaPiso(walterQuispesayhuaNum(fp.walterQuispesayhuaArea.get()), walterQuispesayhuaNum(fp.walterQuispesayhuaCm.get()), walterQuispesayhuaNum(fp.walterQuispesayhuaCv.get())));
             }
             Version version = cmbVersion.getValue();
-            double ct = leer(txtCt);
-            double vs30 = version == Version.V2026 && !txtVs30.isDisabled() && !txtVs30.getText().isBlank() ? leer(txtVs30) : Double.NaN;
-            Parametros norma = GuiaSismica.parametros(version, zona, uso, tipo, sis, cmbIa.getValue(), cmbIp.getValue(), ct, vs30);
-            double fc = leer(txtFc);
-            double poisson = leer(txtPoisson);
-            double rigidez = leer(txtRigidez);
-            double espesor = leer(txtEspesor);
-            entrada = new Entrada(el, fc, poisson, rigidez, espesor, cargas, norma);
-            resultado = FernandoHuancaAnalisisSismico.analizar(entrada);
-            proyectoCalculado = p;
-            usoCalculado = uso;
-            mostrar();
-            tiempoHistoriaController.configurar(resultado, entrada.norma());
+            double ct = walterQuispesayhuaLeer(txtCt);
+            double vs30 = version == Version.V2026 && !txtVs30.isDisabled() && !txtVs30.getText().isBlank() ? walterQuispesayhuaLeer(txtVs30) : Double.NaN;
+            Parametros norma = GuiaSismica.walterQuispesayhuaParametros(version, zona, uso, tipo, sis, cmbIa.getValue(), cmbIp.getValue(), ct, vs30);
+            double fc = walterQuispesayhuaLeer(txtFc);
+            double poisson = walterQuispesayhuaLeer(txtPoisson);
+            double rigidez = walterQuispesayhuaLeer(txtRigidez);
+            double espesor = walterQuispesayhuaLeer(txtEspesor);
+            walterQuispesayhuaEntrada = new Entrada(el, fc, poisson, rigidez, espesor, cargas, norma);
+            walterQuispesayhuaResultado = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(walterQuispesayhuaEntrada);
+            walterQuispesayhuaProyectoCalculado = p;
+            walterQuispesayhuaUsoCalculado = uso;
+            walterQuispesayhuaMostrar();
+            tiempoHistoriaController.walterQuispesayhuaConfigurar(walterQuispesayhuaResultado, walterQuispesayhuaEntrada.norma());
             tabsResultados.getSelectionModel().select(0);
             btnExportar.setDisable(false);
-            lblEstado.setText("Análisis calculado: " + resultado.pisos().size() + " pisos, " + resultado.modos().size() + " modos.");
+            lblEstado.setText("Análisis calculado: " + walterQuispesayhuaResultado.pisos().size() + " pisos, " + walterQuispesayhuaResultado.modos().size() + " modos.");
         } catch (NumberFormatException ex) {
-            error("Revise que los campos numéricos contengan solo números.");
+            walterQuispesayhuaError("Revise que los campos numéricos contengan solo números.");
         } catch (IllegalArgumentException ex) {
             String m = String.valueOf(ex.getMessage());
-            if (m.contains("Vs30")) Formularios.marcarError(txtVs30, m);
-            else if (m.startsWith("Suelo S4")) Formularios.marcarError(cmbTipoSuelo, m);
-            else if (m.startsWith("R0, Ia, Ip y CT")) Formularios.marcarError(txtCt, "CT, Ia e Ip deben ser positivos (Ia e Ip no mayores que 1).");
-            error(m);
+            if (m.contains("Vs30")) Formularios.fernandoHuancaMarcarError(txtVs30, m);
+            else if (m.startsWith("Suelo S4")) Formularios.fernandoHuancaMarcarError(cmbTipoSuelo, m);
+            else if (m.startsWith("R0, Ia, Ip y CT")) Formularios.fernandoHuancaMarcarError(txtCt, "CT, Ia e Ip deben ser positivos (Ia e Ip no mayores que 1).");
+            walterQuispesayhuaError(m);
         }
     }
 
     @FXML
     private void onExportarPdf() {
-        if (entrada == null || resultado == null) {
+        if (walterQuispesayhuaEntrada == null || walterQuispesayhuaResultado == null) {
             return;
         }
-        Proyecto p = proyectoCalculado;
-        Entrada e = entrada;
-        Resultado r = resultado;
-        ResumenTiempoHistoria th = tiempoHistoriaController.ultimo().orElse(null);
-        exportador.guardar(btnExportar.getScene().getWindow(), "Guardar reporte sísmico", "analisis-sismico",
-                Exportador.Formato.PDF, destino -> Files.write(destino.toPath(), ReporteSismo.generar(p, e, r, th)));
+        Proyecto p = walterQuispesayhuaProyectoCalculado;
+        Entrada e = walterQuispesayhuaEntrada;
+        Resultado r = walterQuispesayhuaResultado;
+        ResumenTiempoHistoria th = tiempoHistoriaController.walterQuispesayhuaUltimo().orElse(null);
+        exportador.fernandoHuancaGuardar(btnExportar.getScene().getWindow(), "Guardar reporte sísmico", "analisis-sismico",
+                Exportador.Formato.PDF, destino -> Files.write(destino.toPath(), ReporteSismo.fernandoHuancaGenerar(p, e, r, th)));
     }
 
     // ------------------------------------------------------------------ utilidades
 
-    private void error(String mensaje) {
+    private void walterQuispesayhuaError(String mensaje) {
         lblEstado.setText(mensaje);
-        notificador.error(mensaje);
+        walterQuispesayhuaNotificador.fernandoHuancaError(mensaje);
     }
 
-    private void invalidar() {
-        if (resultado != null) {
-            limpiarResultados();
+    private void walterQuispesayhuaInvalidar() {
+        if (walterQuispesayhuaResultado != null) {
+            walterQuispesayhuaLimpiarResultados();
             lblEstado.setText("Datos modificados. Vuelva a calcular.");
         }
     }
 
-    private static List<?> geometria(List<Elemento> elementos) {
+    private static List<?> walterQuispesayhuaGeometria(List<Elemento> elementos) {
         return elementos.stream().map(e -> List.of(e.getId(), e.getTipo(), e.getX(), e.getY(), e.getZ(), e.getLargo(), e.getAncho(), e.getAltura())).toList();
     }
 
-    private void limpiarResultados() {
-        quitarTabsCalculados();
+    private void walterQuispesayhuaLimpiarResultados() {
+        walterQuispesayhuaQuitarTabsCalculados();
         if (tiempoHistoriaController != null) {
-            tiempoHistoriaController.limpiar();
+            tiempoHistoriaController.walterQuispesayhuaLimpiar();
         }
-        entrada = null;
-        resultado = null;
-        proyectoCalculado = null;
-        usoCalculado = null;
+        walterQuispesayhuaEntrada = null;
+        walterQuispesayhuaResultado = null;
+        walterQuispesayhuaProyectoCalculado = null;
+        walterQuispesayhuaUsoCalculado = null;
         btnExportar.setDisable(true);
     }
 
     /** Lee un campo numerico; si no es valido lo marca y relanza la excepcion. */
-    private double leer(TextField campo) {
+    private double walterQuispesayhuaLeer(TextField campo) {
         try {
-            return num(campo.getText());
+            return walterQuispesayhuaNum(campo.getText());
         } catch (NumberFormatException ex) {
-            Formularios.marcarError(campo, "Ingrese un número válido.");
+            Formularios.fernandoHuancaMarcarError(campo, "Ingrese un número válido.");
             throw ex;
         }
     }
 
-    private static double num(String s) {
+    private static double walterQuispesayhuaNum(String s) {
         return Double.parseDouble(s.trim().replace(',', '.'));
     }
 
@@ -674,21 +674,21 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     }
 
     /** Numero con coma decimal para los textos de ayuda. */
-    private static String coma(double v, int d) {
-        return String.format(ES, "%." + d + "f", v);
+    private static String walterQuispesayhuaComa(double v, int d) {
+        return String.format(WALTER_QUISPESAYHUA_ES, "%." + d + "f", v);
     }
 
-    private void columnaFija(TableColumn<FilaPiso, String> c, Function<FilaPiso, StringProperty> valor) {
+    private void walterQuispesayhuaColumnaFija(TableColumn<FilaPiso, String> c, Function<FilaPiso, StringProperty> valor) {
         c.setCellValueFactory(x -> valor.apply(x.getValue()));
         c.setEditable(false);
     }
 
-    private void columnaEditable(TableColumn<FilaPiso, String> c, Function<FilaPiso, StringProperty> valor) {
+    private void walterQuispesayhuaColumnaEditable(TableColumn<FilaPiso, String> c, Function<FilaPiso, StringProperty> valor) {
         c.setCellValueFactory(x -> valor.apply(x.getValue()));
         c.setCellFactory(TextFieldTableCell.forTableColumn());
         c.setOnEditCommit(e -> {
             valor.apply(e.getRowValue()).set(e.getNewValue());
-            invalidar();
+            walterQuispesayhuaInvalidar();
         });
     }
 
@@ -696,7 +696,7 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
 
     private static TableView<String[]> tabla(String[] cab, List<String[]> filas) {
         TableView<String[]> t = new TableView<>();
-        Tablas.configurar(t, "Sin datos para mostrar.", fila -> { });
+        Tablas.fernandoHuancaConfigurar(t, "Sin datos para mostrar.", fila -> { });
         t.getStyleClass().add("tabla-compacta");
         for (int i = 0; i < cab.length; i++) {
             final int k = i;
@@ -711,7 +711,7 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     }
 
     /** Banner semaforo con el veredicto de derivas. */
-    private static Label banner(boolean cumple) {
+    private static Label walterQuispesayhuaBanner(boolean cumple) {
         Label b = new Label(cumple ? "CUMPLE (preliminar)" : "NO CUMPLE");
         b.setGraphic(new FontIcon(cumple ? "fth-check-circle" : "fth-x-circle"));
         b.setMaxWidth(Double.MAX_VALUE);
@@ -721,7 +721,7 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     }
 
     /** Lista de verificaciones con icono verde, rojo, ambar o informativo. */
-    private static VBox listaVerificaciones(List<GuiaSismica.Verificacion> items) {
+    private static VBox walterQuispesayhuaListaVerificaciones(List<GuiaSismica.Verificacion> items) {
         VBox caja = new VBox(6);
         caja.getStyleClass().add("sismo-verificaciones");
         caja.setMinHeight(Region.USE_PREF_SIZE);
@@ -747,10 +747,10 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
         return caja;
     }
 
-    private void mostrar() {
-        Resultado r = resultado;
-        Parametros n = entrada.norma();
-        quitarTabsCalculados();
+    private void walterQuispesayhuaMostrar() {
+        Resultado r = walterQuispesayhuaResultado;
+        Parametros n = walterQuispesayhuaEntrada.norma();
+        walterQuispesayhuaQuitarTabsCalculados();
         boolean cumple = r.estaticoX().cumple() && r.estaticoY().cumple() && r.espectralX().cumple() && r.espectralY().cumple();
         // Resumen
         List<String[]> res = new ArrayList<>(List.of(
@@ -765,13 +765,13 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
                 new String[]{"Masa efectiva acumulada X · Y", f(r.masaAcumuladaX() * 100, 1) + " % · " + f(r.masaAcumuladaY() * 100, 1) + " %"},
                 new String[]{"Cortante basal estático X · Y (kN)", f(r.estaticoX().cortanteBase(), 1) + " · " + f(r.estaticoY().cortanteBase(), 1)},
                 new String[]{"Cortante basal espectral X · Y (kN)", f(r.espectralX().cortanteBase(), 1) + " · " + f(r.espectralY().cortanteBase(), 1)},
-                new String[]{"Deriva máxima (límite " + NormaE030.DERIVA_LIMITE_CONCRETO + ")",
+                new String[]{"Deriva máxima (límite " + NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO + ")",
                         "X: " + f(Math.max(r.estaticoX().derivaMaxima(), r.espectralX().derivaMaxima()), 5)
                                 + " · Y: " + f(Math.max(r.estaticoY().derivaMaxima(), r.espectralY().derivaMaxima()), 5)},
                 new String[]{"Verificación de deriva", cumple ? "CUMPLE (preliminar)" : "NO CUMPLE"}));
         VBox avisos = new VBox(4);
         avisos.setMinHeight(Region.USE_PREF_SIZE);
-        String t9 = GuiaSismica.avisoTabla9(n.categoria(), n.zona(), n.version(), ultimoUsoA1);
+        String t9 = GuiaSismica.walterQuispesayhuaAvisoTabla9(n.categoria(), n.zona(), n.version(), walterQuispesayhuaUltimoUsoA1);
         if (t9 != null) {
             Label l = new Label("• " + t9);
             l.setWrapText(true);
@@ -788,22 +788,22 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
         TableView<String[]> tablaResumen = tabla(new String[]{"Concepto", "Valor"}, res);
         tablaResumen.setPrefHeight(400);
         tablaResumen.setMinHeight(400);
-        VBox resumen = new VBox(12, banner(cumple), listaVerificaciones(GuiaSismica.verificaciones(n, r, usoCalculado)), tablaResumen, avisos);
+        VBox resumen = new VBox(12, walterQuispesayhuaBanner(cumple), walterQuispesayhuaListaVerificaciones(GuiaSismica.walterQuispesayhuaVerificaciones(n, r, walterQuispesayhuaUsoCalculado)), tablaResumen, avisos);
         resumen.getStyleClass().add("sismo-resumen");
         ScrollPane scroll = new ScrollPane(resumen);
         scroll.setFitToWidth(true);
         scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         scroll.getStyleClass().add("pagina-scroll");
-        agregarTab(tab("Resumen", scroll));
-        agregarTab(tab("Simulación 3D", new com.concretolab.ui.VistaModal(entrada.elementos(), r)));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Resumen", scroll));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Simulación 3D", new com.concretolab.ui.VistaModal(walterQuispesayhuaEntrada.elementos(), r)));
         // Pisos
-        agregarTab(tab("Pisos", tabla(new String[]{"Piso", "Cota (m)", "h (m)", "Área (m²)", "Peso (kN)", "X cm", "Y cm", "I polar"},
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Pisos", tabla(new String[]{"Piso", "Cota (m)", "h (m)", "Área (m²)", "Peso (kN)", "X cm", "Y cm", "I polar"},
                 r.pisos().stream().map(s -> new String[]{"" + s.numero(), f(s.cota(), 2), f(s.altura(), 2), f(s.area(), 2), f(s.peso(), 1), f(s.xcm(), 3), f(s.ycm(), 3), f(s.inercia(), 0)}).toList())));
         // Modos
-        agregarTab(tab("Modos", tabla(new String[]{"Modo", "T (s)", "f (Hz)", "Masa X (%)", "Masa Y (%)"},
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Modos", tabla(new String[]{"Modo", "T (s)", "f (Hz)", "Masa X (%)", "Masa Y (%)"},
                 r.modos().stream().map(m -> new String[]{"" + m.numero(), f(m.periodo(), 4), f(1 / m.periodo(), 3), f(m.masaEfectivaX() * 100, 1), f(m.masaEfectivaY() * 100, 1)}).toList())));
-        agregarTab(tab("Estático", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, fuerzas(r.estaticoX(), r.estaticoY()))));
-        agregarTab(tab("Espectral", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, fuerzas(r.espectralX(), r.espectralY()))));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Estático", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, walterQuispesayhuaFuerzas(r.estaticoX(), r.estaticoY()))));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Espectral", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, walterQuispesayhuaFuerzas(r.espectralX(), r.espectralY()))));
         // Derivas
         List<String[]> der = new ArrayList<>();
         for (int i = r.pisos().size() - 1; i >= 0; i--) {
@@ -812,28 +812,28 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
             der.add(new String[]{"" + (i + 1), f(r.estaticoX().derivasMaximas()[i], 5), f(r.estaticoY().derivasMaximas()[i], 5),
                     f(r.espectralX().derivasMaximas()[i], 5), f(r.espectralY().derivasMaximas()[i], 5),
                     f(r.espectralX().desplazamientosCm()[i] * 1000, 1), f(r.espectralY().desplazamientosCm()[i] * 1000, 1),
-                    max <= NormaE030.DERIVA_LIMITE_CONCRETO ? "Cumple" : "NO CUMPLE"});
+                    max <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO ? "Cumple" : "NO CUMPLE"});
         }
-        agregarTab(tab("Derivas", tabla(new String[]{"Piso", "Est. X", "Est. Y", "Esp. X", "Esp. Y", "Δ esp. X (mm)", "Δ esp. Y (mm)", "Estado"}, der)));
-        agregarTab(tab("Espectro", espectro(r, n)));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Derivas", tabla(new String[]{"Piso", "Est. X", "Est. Y", "Esp. X", "Esp. Y", "Δ esp. X (mm)", "Δ esp. Y (mm)", "Estado"}, der)));
+        walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Espectro", walterQuispesayhuaEspectro(r, n)));
     }
 
     /** Quita las pestanas calculadas y conserva la pestana fija «Simulación temporal». */
-    private void quitarTabsCalculados() {
+    private void walterQuispesayhuaQuitarTabsCalculados() {
         tabsResultados.getTabs().removeIf(t -> t != tabSimulacionTemporal);
     }
 
     /** Agrega una pestana calculada antes de la pestana fija «Simulación temporal». */
-    private void agregarTab(Tab t) {
+    private void walterQuispesayhuaAgregarTab(Tab t) {
         int pos = tabsResultados.getTabs().indexOf(tabSimulacionTemporal);
         tabsResultados.getTabs().add(pos < 0 ? tabsResultados.getTabs().size() : pos, t);
     }
 
-    private static Tab tab(String titulo, Node contenido) {
+    private static Tab walterQuispesayhuaTab(String titulo, Node contenido) {
         return new Tab(titulo, contenido);
     }
 
-    private static List<String[]> fuerzas(Direccion x, Direccion y) {
+    private static List<String[]> walterQuispesayhuaFuerzas(Direccion x, Direccion y) {
         List<String[]> l = new ArrayList<>();
         for (int i = x.fuerzas().length - 1; i >= 0; i--) {
             l.add(new String[]{"" + (i + 1), f(x.fuerzas()[i], 2), f(x.cortantes()[i], 2), f(y.fuerzas()[i], 2), f(y.cortantes()[i], 2)});
@@ -842,7 +842,7 @@ public class WalterQuispeSayhuanSismoController implements Refrescable {
     }
 
     /** Espectro de diseno con los periodos modales; los colores y el estilo de marcadores salen del CSS ("grafico-espectro"). */
-    private static Node espectro(Resultado r, Parametros n) {
+    private static Node walterQuispesayhuaEspectro(Resultado r, Parametros n) {
         NumberAxis ejeX = new NumberAxis(0, 4, 0.5);
         NumberAxis ejeY = new NumberAxis();
         ejeX.setLabel("T (s)");

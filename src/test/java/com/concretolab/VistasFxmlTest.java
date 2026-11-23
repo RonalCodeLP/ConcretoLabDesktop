@@ -57,8 +57,8 @@ class VistasFxmlTest {
     @Test
     void todasLasVistasCarganConUnProyectoConElementos() throws Exception {
         iniciarJavaFx();
-        var p = proyectos.crearProyecto("Proyecto de prueba de vistas", "Lima");
-        proyectos.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
+        var p = proyectos.yefriLermaCrearProyecto("Proyecto de prueba de vistas", "Lima");
+        proyectos.yefriLermaCrearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
         sesion.setProyecto(p);
         cargarTodas();
     }
@@ -73,21 +73,21 @@ class VistasFxmlTest {
         var th = (com.concretolab.controller.TiempoHistoriaController) campo.get(padre);
         assertThat(th).isNotNull();
         var norma = SismoE030Test.norma(1, 1);
-        var resultado = com.concretolab.service.FernandoHuancaAnalisisSismico.analizar(
+        var resultado = com.concretolab.service.FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(
                 SismoE030Test.entrada(SismoE030Test.porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma));
-        ejecutarEnFx(() -> th.configurar(resultado, norma));
-        assertThat(th.ultimo()).isEmpty();
+        ejecutarEnFx(() -> th.walterQuispesayhuaConfigurar(resultado, norma));
+        assertThat(th.walterQuispesayhuaUltimo()).isEmpty();
         // Flujo completo: generar y simular 7 sintéticos en segundo plano, con gráficas y animación listas.
-        ejecutarEnFx(() -> th.configurar(resultado, norma));
+        ejecutarEnFx(() -> th.walterQuispesayhuaConfigurar(resultado, norma));
         var generar = th.getClass().getDeclaredMethod("onGenerar");
         generar.setAccessible(true);
         ejecutarEnFx(() -> {
             try { generar.invoke(th); } catch (Exception e) { throw new IllegalStateException(e); }
         });
         long limite = System.currentTimeMillis() + 120_000;
-        while (th.ultimo().isEmpty() && System.currentTimeMillis() < limite) Thread.sleep(200);
-        assertThat(th.ultimo()).isPresent();
-        assertThat(th.ultimo().get().resultados()).hasSize(7);
+        while (th.walterQuispesayhuaUltimo().isEmpty() && System.currentTimeMillis() < limite) Thread.sleep(200);
+        assertThat(th.walterQuispesayhuaUltimo()).isPresent();
+        assertThat(th.walterQuispesayhuaUltimo().get().resultados()).hasSize(7);
         Thread.sleep(500);
         var cmb = th.getClass().getDeclaredField("cmbRegistro");
         cmb.setAccessible(true);
@@ -103,8 +103,8 @@ class VistasFxmlTest {
         ejecutarEnFx(() -> {
             try { play.invoke(th); play.invoke(th); } catch (Exception e) { throw new IllegalStateException(e); }
         });
-        ejecutarEnFx(th::limpiar);
-        assertThat(th.ultimo()).isEmpty();
+        ejecutarEnFx(th::walterQuispesayhuaLimpiar);
+        assertThat(th.walterQuispesayhuaUltimo()).isEmpty();
     }
 
     private void cargarTodas() throws Exception {

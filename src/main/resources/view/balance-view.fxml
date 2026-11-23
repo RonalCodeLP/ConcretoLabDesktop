@@ -72,6 +72,11 @@
         <VBox styleClass="tarjeta" spacing="8.0">
             <Label text="Resultado" styleClass="seccion-form"/>
             <Label fx:id="lblResultado" text="Completa los datos para calcular." wrapText="true"/>
+            <HBox>
+                <Button fx:id="btnUsarEnMezcla" text="Usar en una mezcla" onAction="#onUsarEnMezcla" styleClass="button-outlined" disable="true">
+                    <graphic><FontIcon iconLiteral="fth-droplet"/></graphic>
+                </Button>
+            </HBox>
         </VBox>
 
         <Label styleClass="aviso" wrapText="true"

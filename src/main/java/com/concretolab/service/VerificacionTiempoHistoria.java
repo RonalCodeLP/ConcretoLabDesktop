@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * Verificación de distorsiones de entrepiso con un conjunto de análisis tiempo-historia
- * ({@link AnalisisTiempoHistoria#verificar}).
+ * ({@link AnalisisTiempoHistoria#fernandoHuancaVerificar}).
  *
  * <p>Criterio de diseño: E.030 2026 art. 49.1 (promedio de los máximos de los análisis, mínimo siete conjuntos, art. 47.1)
  * o E.030 2018 art. 4.7.3 (promedio si hay siete o más conjuntos; con menos de siete, el máximo; mínimo tres).

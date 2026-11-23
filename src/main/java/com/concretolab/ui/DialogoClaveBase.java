@@ -19,7 +19,7 @@ public final class DialogoClaveBase {
 
     private DialogoClaveBase() { }
 
-    static <T> T enFx(Supplier<T> tarea) {
+    static <T> T erickDelgadoEnFx(Supplier<T> tarea) {
         if (Platform.isFxApplicationThread()) return tarea.get();
         var futuro = new CompletableFuture<T>();
         Platform.runLater(() -> {
@@ -33,15 +33,15 @@ public final class DialogoClaveBase {
     }
 
     /** Pide una contraseña nueva (con confirmación). {@code protegerExistente}: ya hay datos sin cifrar que se van a proteger. */
-    public static Optional<char[]> pedirNueva(boolean protegerExistente) {
-        return enFx(() -> {
+    public static Optional<char[]> erickDelgadoPedirNueva(boolean protegerExistente) {
+        return erickDelgadoEnFx(() -> {
             var dialogo = new Dialog<char[]>();
             dialogo.setTitle("Proteger los datos");
             dialogo.setHeaderText(protegerExistente
                     ? "Sus datos aún no están cifrados. Cree una contraseña para protegerlos."
                     : "Cree una contraseña para cifrar sus datos en este equipo.");
             var clave = new PasswordField();
-            clave.setPromptText("Contraseña (mínimo " + BaseCifrada.LONGITUD_MINIMA + " caracteres)");
+            clave.setPromptText("Contraseña (mínimo " + BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA + " caracteres)");
             var confirmacion = new PasswordField();
             confirmacion.setPromptText("Repita la contraseña");
             var aviso = new Label("Si olvida la contraseña los datos NO se pueden recuperar: no existe ninguna clave de rescate. "
@@ -60,8 +60,8 @@ public final class DialogoClaveBase {
             boton.setDisable(true);
             Runnable validar = () -> {
                 String problema = null;
-                if (clave.getText().length() < BaseCifrada.LONGITUD_MINIMA) {
-                    problema = "Mínimo " + BaseCifrada.LONGITUD_MINIMA + " caracteres.";
+                if (clave.getText().length() < BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA) {
+                    problema = "Mínimo " + BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA + " caracteres.";
                 } else if (!clave.getText().equals(confirmacion.getText())) {
                     problema = "Las contraseñas no coinciden.";
                 }
@@ -77,8 +77,8 @@ public final class DialogoClaveBase {
     }
 
     /** Pide la contraseña actual; {@code aviso} (puede ser nulo) se muestra, por ejemplo tras un intento fallido. */
-    public static Optional<char[]> pedirActual(String aviso) {
-        return enFx(() -> {
+    public static Optional<char[]> erickDelgadoPedirActual(String aviso) {
+        return erickDelgadoEnFx(() -> {
             var dialogo = new Dialog<char[]>();
             dialogo.setTitle("ConcretoLab Desktop");
             dialogo.setHeaderText("Ingrese la contraseña para abrir sus datos");
@@ -99,15 +99,15 @@ public final class DialogoClaveBase {
     }
 
     /** Pide contraseña actual y nueva (con confirmación). Devuelve {actual, nueva} o vacío si cancela. */
-    public static Optional<char[][]> pedirCambio() {
-        return enFx(() -> {
+    public static Optional<char[][]> erickDelgadoPedirCambio() {
+        return erickDelgadoEnFx(() -> {
             var dialogo = new Dialog<char[][]>();
             dialogo.setTitle("Cambiar contraseña");
             dialogo.setHeaderText("Cambiar la contraseña de la base de datos");
             var actual = new PasswordField();
             actual.setPromptText("Contraseña actual");
             var nueva = new PasswordField();
-            nueva.setPromptText("Nueva contraseña (mínimo " + BaseCifrada.LONGITUD_MINIMA + " caracteres)");
+            nueva.setPromptText("Nueva contraseña (mínimo " + BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA + " caracteres)");
             var confirmacion = new PasswordField();
             confirmacion.setPromptText("Repita la nueva contraseña");
             var error = new Label();
@@ -127,8 +127,8 @@ public final class DialogoClaveBase {
                 String problema = null;
                 if (actual.getText().isEmpty()) {
                     problema = "";
-                } else if (nueva.getText().length() < BaseCifrada.LONGITUD_MINIMA) {
-                    problema = nueva.getText().isEmpty() ? "" : "La nueva contraseña necesita al menos " + BaseCifrada.LONGITUD_MINIMA + " caracteres.";
+                } else if (nueva.getText().length() < BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA) {
+                    problema = nueva.getText().isEmpty() ? "" : "La nueva contraseña necesita al menos " + BaseCifrada.ERICK_DELGADO_LONGITUD_MINIMA + " caracteres.";
                 } else if (!nueva.getText().equals(confirmacion.getText())) {
                     problema = confirmacion.getText().isEmpty() ? "" : "Las contraseñas nuevas no coinciden.";
                 }
@@ -145,8 +145,8 @@ public final class DialogoClaveBase {
         });
     }
 
-    public static void mostrar(Alert.AlertType tipo, String titulo, String mensaje) {
-        enFx(() -> {
+    public static void erickDelgadoMostrar(Alert.AlertType tipo, String titulo, String mensaje) {
+        erickDelgadoEnFx(() -> {
             var a = new Alert(tipo, mensaje);
             a.setTitle("ConcretoLab Desktop");
             a.setHeaderText(titulo);
@@ -156,8 +156,8 @@ public final class DialogoClaveBase {
         });
     }
 
-    public static boolean confirmar(String titulo, String mensaje) {
-        return enFx(() -> {
+    public static boolean erickDelgadoConfirmar(String titulo, String mensaje) {
+        return erickDelgadoEnFx(() -> {
             var a = new Alert(Alert.AlertType.CONFIRMATION, mensaje, ButtonType.YES, ButtonType.NO);
             a.setTitle("ConcretoLab Desktop");
             a.setHeaderText(titulo);

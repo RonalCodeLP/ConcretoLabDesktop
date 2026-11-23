@@ -33,21 +33,21 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class EditorCuadricula {
-    private final CuadriculaService servicio;
+    private final CuadriculaService walterQuispesayhuaServicio;
 
-    public EditorCuadricula(CuadriculaService servicio) { this.servicio = servicio; }
+    public EditorCuadricula(CuadriculaService servicio) { this.walterQuispesayhuaServicio = servicio; }
 
-    public boolean abrir(Long proyectoId, List<Elemento> existentes) {
-        CuadriculaProyecto guardada = servicio.obtener(proyectoId).orElse(null);
-        TextField origenX = campo(guardada == null ? "0" : texto(guardada.getOrigenX()));
-        TextField origenY = campo(guardada == null ? "0" : texto(guardada.getOrigenY()));
+    public boolean walterQuispesayhuaAbrir(Long proyectoId, List<Elemento> existentes) {
+        CuadriculaProyecto guardada = walterQuispesayhuaServicio.walterQuispesayhuaObtener(proyectoId).orElse(null);
+        TextField origenX = campo(guardada == null ? "0" : walterQuispesayhuaTexto(guardada.getOrigenX()));
+        TextField origenY = campo(guardada == null ? "0" : walterQuispesayhuaTexto(guardada.getOrigenY()));
         TextField separacionesX = campo(guardada == null ? "5; 5" : guardada.getSeparacionesX());
         TextField separacionesY = campo(guardada == null ? "4" : guardada.getSeparacionesY());
         TextField niveles = campo(guardada == null ? "0; 3" : guardada.getNiveles());
         TextField largoZapata = campo("1.5"), anchoZapata = campo("1.5"), alturaZapata = campo("0.5");
         TextField ladoColumna = campo("0.4"), anchoViga = campo("0.3"), alturaViga = campo("0.5");
-        CheckBox zapatas = opcion("Zapatas"), columnas = opcion("Columnas");
-        CheckBox vigasX = opcion("Vigas X"), vigasY = opcion("Vigas Y");
+        CheckBox zapatas = walterQuispesayhuaOpcion("Zapatas"), columnas = walterQuispesayhuaOpcion("Columnas");
+        CheckBox vigasX = walterQuispesayhuaOpcion("Vigas X"), vigasY = walterQuispesayhuaOpcion("Vigas Y");
         FlowPane puntosPanel = new FlowPane(8, 6);
         FlowPane tramosPanel = new FlowPane(8, 6);
         Canvas plano = new Canvas(560, 300);
@@ -66,10 +66,10 @@ public class EditorCuadricula {
         dialogo.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
         GridPane datos = new GridPane();
         datos.setHgap(10); datos.setVgap(7);
-        fila(datos, 0, "Origen X / Y (m)", new HBox(8, origenX, origenY));
-        fila(datos, 1, "Separaciones X (m)", separacionesX);
-        fila(datos, 2, "Separaciones Y (m)", separacionesY);
-        fila(datos, 3, "Niveles Z (m)", niveles);
+        walterQuispesayhuaFila(datos, 0, "Origen X / Y (m)", new HBox(8, origenX, origenY));
+        walterQuispesayhuaFila(datos, 1, "Separaciones X (m)", separacionesX);
+        walterQuispesayhuaFila(datos, 2, "Separaciones Y (m)", separacionesY);
+        walterQuispesayhuaFila(datos, 3, "Niveles Z (m)", niveles);
         Label indicaciones = new Label("Separa los valores con punto y coma. Los niveles son cotas ascendentes; el primero es la parte superior de las zapatas.");
         indicaciones.setWrapText(true);
         Button actualizar = new Button("Actualizar cuadrícula");
@@ -79,55 +79,55 @@ public class EditorCuadricula {
         limpiar.setOnAction(e -> selectores.forEach(c -> c.setSelected(false)));
         actualizar.setOnAction(e -> {
             try {
-                Definicion d = definicion(origenX, origenY, separacionesX, separacionesY, niveles);
-                servicio.validarDefinicion(d);
+                Definicion d = walterQuispesayhuaDefinicion(origenX, origenY, separacionesX, separacionesY, niveles);
+                walterQuispesayhuaServicio.walterQuispesayhuaValidarDefinicion(d);
                 dibujada[0] = d;
                 puntos.clear(); selectores.clear(); puntosPanel.getChildren().clear();
                 tramos.clear(); selectoresTramos.clear(); tramosPanel.getChildren().clear();
                 for (int y = 0; y <= d.separacionesY().size(); y++) {
                     for (int x = 0; x <= d.separacionesX().size(); x++) {
                         Punto punto = new Punto(x, y);
-                        CheckBox selector = opcion((x + 1) + "-" + (y + 1));
+                        CheckBox selector = walterQuispesayhuaOpcion((x + 1) + "-" + (y + 1));
                         puntos.add(punto); selectores.add(selector); puntosPanel.getChildren().add(selector);
-                        if (x < d.separacionesX().size()) agregarTramo(tramos, selectoresTramos, tramosPanel, punto, new Punto(x + 1, y));
-                        if (y < d.separacionesY().size()) agregarTramo(tramos, selectoresTramos, tramosPanel, punto, new Punto(x, y + 1));
+                        if (x < d.separacionesX().size()) walterQuispesayhuaAgregarTramo(tramos, selectoresTramos, tramosPanel, punto, new Punto(x + 1, y));
+                        if (y < d.separacionesY().size()) walterQuispesayhuaAgregarTramo(tramos, selectoresTramos, tramosPanel, punto, new Punto(x, y + 1));
                     }
                 }
-                dibujar(plano, d, existentes, List.of());
+                walterQuispesayhuaDibujar(plano, d, existentes, List.of());
                 estado.setText("Cuadrícula actualizada. Los rectángulos grises representan elementos existentes en planta.");
             } catch (IllegalArgumentException ex) { estado.setText(ex.getMessage()); }
         });
         GridPane medidas = new GridPane();
         medidas.setHgap(10); medidas.setVgap(7);
-        fila(medidas, 0, "Zapata: largo / ancho / altura (m)", new HBox(8, largoZapata, anchoZapata, alturaZapata));
-        fila(medidas, 1, "Columna: lado (m)", ladoColumna);
-        fila(medidas, 2, "Viga: ancho / altura (m)", new HBox(8, anchoViga, alturaViga));
+        walterQuispesayhuaFila(medidas, 0, "Zapata: largo / ancho / altura (m)", new HBox(8, largoZapata, anchoZapata, alturaZapata));
+        walterQuispesayhuaFila(medidas, 1, "Columna: lado (m)", ladoColumna);
+        walterQuispesayhuaFila(medidas, 2, "Viga: ancho / altura (m)", new HBox(8, anchoViga, alturaViga));
         Button guardar = new Button("Guardar ejes y niveles");
         Button vista = new Button("Revisar elementos");
         vista.getStyleClass().add("accent");
         guardar.setOnAction(e -> {
             try {
-                Definicion d = definicion(origenX, origenY, separacionesX, separacionesY, niveles);
-                servicio.guardarCuadricula(proyectoId, d);
+                Definicion d = walterQuispesayhuaDefinicion(origenX, origenY, separacionesX, separacionesY, niveles);
+                walterQuispesayhuaServicio.walterQuispesayhuaGuardarCuadricula(proyectoId, d);
                 estado.setText("Ejes y niveles guardados en el proyecto.");
             } catch (IllegalArgumentException ex) { estado.setText(ex.getMessage()); }
         });
         vista.setOnAction(e -> {
             try {
-                Definicion d = definicion(origenX, origenY, separacionesX, separacionesY, niveles);
+                Definicion d = walterQuispesayhuaDefinicion(origenX, origenY, separacionesX, separacionesY, niveles);
                 if (!d.equals(dibujada[0])) throw new IllegalArgumentException("Actualice la cuadrícula antes de revisar la selección.");
                 Set<Punto> seleccion = new HashSet<>();
                 for (int i = 0; i < puntos.size(); i++) if (selectores.get(i).isSelected()) seleccion.add(puntos.get(i));
                 Set<Tramo> seleccionTramos = new HashSet<>();
                 for (int i = 0; i < tramos.size(); i++) if (selectoresTramos.get(i).isSelected()) seleccionTramos.add(tramos.get(i));
-                Dimensiones dimensiones = new Dimensiones(numero(largoZapata), numero(anchoZapata), numero(alturaZapata),
-                        numero(ladoColumna), numero(anchoViga), numero(alturaViga));
+                Dimensiones dimensiones = new Dimensiones(walterQuispesayhuaNumero(largoZapata), walterQuispesayhuaNumero(anchoZapata), walterQuispesayhuaNumero(alturaZapata),
+                        walterQuispesayhuaNumero(ladoColumna), walterQuispesayhuaNumero(anchoViga), walterQuispesayhuaNumero(alturaViga));
                 Solicitud solicitud = new Solicitud(d, Set.copyOf(seleccion), Set.copyOf(seleccionTramos), zapatas.isSelected(), columnas.isSelected(),
                         vigasX.isSelected(), vigasY.isSelected(), dimensiones);
-                CuadriculaService.VistaPrevia previa = servicio.previsualizar(proyectoId, solicitud);
+                CuadriculaService.VistaPrevia previa = walterQuispesayhuaServicio.walterQuispesayhuaPrevisualizar(proyectoId, solicitud);
                 if (previa.elementos().isEmpty()) throw new IllegalArgumentException("La selección no genera elementos.");
-                if (confirmar(d, existentes, previa)) {
-                    servicio.crear(proyectoId, solicitud);
+                if (walterQuispesayhuaConfirmar(d, existentes, previa)) {
+                    walterQuispesayhuaServicio.walterQuispesayhuaCrear(proyectoId, solicitud);
                     creado[0] = true;
                     dialogo.close();
                 }
@@ -148,14 +148,14 @@ public class EditorCuadricula {
         return creado[0];
     }
 
-    private boolean confirmar(Definicion d, List<Elemento> existentes, CuadriculaService.VistaPrevia previa) {
+    private boolean walterQuispesayhuaConfirmar(Definicion d, List<Elemento> existentes, CuadriculaService.VistaPrevia previa) {
         Dialog<ButtonType> dialogo = new Dialog<>();
         dialogo.setTitle("Vista previa de elementos");
         dialogo.setHeaderText("Revise la geometría antes de crearla");
         ButtonType crear = new ButtonType("Crear elementos", ButtonBar.ButtonData.OK_DONE);
         dialogo.getDialogPane().getButtonTypes().addAll(crear, ButtonType.CANCEL);
         Canvas plano = new Canvas(560, 300);
-        dibujar(plano, d, existentes, previa.elementos());
+        walterQuispesayhuaDibujar(plano, d, existentes, previa.elementos());
         StringBuilder detalle = new StringBuilder();
         for (Elemento e : previa.elementos()) {
             detalle.append(String.format(java.util.Locale.ROOT, "%s %s | %.3f × %.3f × %.3f m | centro (%.3f, %.3f, %.3f)%n",
@@ -176,9 +176,9 @@ public class EditorCuadricula {
         return dialogo.showAndWait().filter(crear::equals).isPresent();
     }
 
-    private void dibujar(Canvas plano, Definicion d, List<Elemento> existentes, List<Elemento> nuevos) {
-        List<Double> xs = servicio.coordenadas(d.origenX(), d.separacionesX());
-        List<Double> ys = servicio.coordenadas(d.origenY(), d.separacionesY());
+    private void walterQuispesayhuaDibujar(Canvas plano, Definicion d, List<Elemento> existentes, List<Elemento> nuevos) {
+        List<Double> xs = walterQuispesayhuaServicio.walterQuispesayhuaCoordenadas(d.origenX(), d.separacionesX());
+        List<Double> ys = walterQuispesayhuaServicio.walterQuispesayhuaCoordenadas(d.origenY(), d.separacionesY());
         double minX = xs.get(0), maxX = xs.get(xs.size() - 1), minY = ys.get(0), maxY = ys.get(ys.size() - 1);
         for (Elemento e : existentes) {
             minX = Math.min(minX, e.getX() - e.getLargo() / 2); maxX = Math.max(maxX, e.getX() + e.getLargo() / 2);
@@ -191,8 +191,8 @@ public class EditorCuadricula {
         double escala = Math.min((plano.getWidth() - 60) / Math.max(1, maxX - minX), (plano.getHeight() - 60) / Math.max(1, maxY - minY));
         GraphicsContext g = plano.getGraphicsContext2D();
         g.setFill(Color.WHITE); g.fillRect(0, 0, plano.getWidth(), plano.getHeight());
-        pintarElementos(g, existentes, minX, minY, escala, Color.rgb(100, 116, 139, 0.45));
-        pintarElementos(g, nuevos, minX, minY, escala, Color.rgb(37, 99, 235, 0.55));
+        walterQuispesayhuaPintarElementos(g, existentes, minX, minY, escala, Color.rgb(100, 116, 139, 0.45));
+        walterQuispesayhuaPintarElementos(g, nuevos, minX, minY, escala, Color.rgb(37, 99, 235, 0.55));
         g.setStroke(Color.DARKORANGE); g.setFill(Color.DARKORANGE); g.setLineWidth(1);
         for (int i = 0; i < xs.size(); i++) {
             double x = 30 + (xs.get(i) - minX) * escala;
@@ -204,7 +204,7 @@ public class EditorCuadricula {
         }
     }
 
-    private void pintarElementos(GraphicsContext g, List<Elemento> elementos, double minX, double minY, double escala, Color color) {
+    private void walterQuispesayhuaPintarElementos(GraphicsContext g, List<Elemento> elementos, double minX, double minY, double escala, Color color) {
         g.setFill(color);
         for (Elemento e : elementos) {
             double x = 30 + (e.getX() - e.getLargo() / 2 - minX) * escala;
@@ -213,29 +213,29 @@ public class EditorCuadricula {
         }
     }
 
-    private Definicion definicion(TextField x, TextField y, TextField sx, TextField sy, TextField niveles) {
-        return new Definicion(numero(x), numero(y), lista(sx), lista(sy), lista(niveles));
+    private Definicion walterQuispesayhuaDefinicion(TextField x, TextField y, TextField sx, TextField sy, TextField niveles) {
+        return new Definicion(walterQuispesayhuaNumero(x), walterQuispesayhuaNumero(y), walterQuispesayhuaLista(sx), walterQuispesayhuaLista(sy), walterQuispesayhuaLista(niveles));
     }
-    private List<Double> lista(TextField campo) {
+    private List<Double> walterQuispesayhuaLista(TextField campo) {
         List<Double> valores = new ArrayList<>();
-        for (String parte : campo.getText().split(";", -1)) valores.add(numero(parte));
+        for (String parte : campo.getText().split(";", -1)) valores.add(walterQuispesayhuaNumero(parte));
         return List.copyOf(valores);
     }
-    private double numero(TextField campo) { return numero(campo.getText()); }
-    private double numero(String texto) {
+    private double walterQuispesayhuaNumero(TextField campo) { return walterQuispesayhuaNumero(campo.getText()); }
+    private double walterQuispesayhuaNumero(String texto) {
         try { return Double.parseDouble(texto.trim().replace(',', '.')); }
         catch (NumberFormatException e) { throw new IllegalArgumentException("Ingrese números válidos separados por punto y coma."); }
     }
     private TextField campo(String valor) { TextField campo = new TextField(valor); campo.setPrefColumnCount(8); return campo; }
-    private void agregarTramo(List<Tramo> tramos, List<CheckBox> selectores, FlowPane panel, Punto inicio, Punto fin) {
+    private void walterQuispesayhuaAgregarTramo(List<Tramo> tramos, List<CheckBox> selectores, FlowPane panel, Punto inicio, Punto fin) {
         tramos.add(new Tramo(inicio, fin));
-        CheckBox selector = opcion((inicio.x() + 1) + "-" + (inicio.y() + 1) + " → " + (fin.x() + 1) + "-" + (fin.y() + 1));
+        CheckBox selector = walterQuispesayhuaOpcion((inicio.x() + 1) + "-" + (inicio.y() + 1) + " → " + (fin.x() + 1) + "-" + (fin.y() + 1));
         selectores.add(selector);
         panel.getChildren().add(selector);
     }
-    private CheckBox opcion(String nombre) { CheckBox opcion = new CheckBox(nombre); opcion.setSelected(true); return opcion; }
-    private void fila(GridPane panel, int fila, String etiqueta, javafx.scene.Node campo) {
+    private CheckBox walterQuispesayhuaOpcion(String nombre) { CheckBox opcion = new CheckBox(nombre); opcion.setSelected(true); return opcion; }
+    private void walterQuispesayhuaFila(GridPane panel, int fila, String etiqueta, javafx.scene.Node campo) {
         panel.add(new Label(etiqueta), 0, fila); panel.add(campo, 1, fila);
     }
-    private String texto(double valor) { return Double.toString(valor); }
+    private String walterQuispesayhuaTexto(double valor) { return Double.toString(valor); }
 }

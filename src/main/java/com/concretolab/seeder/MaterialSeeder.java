@@ -17,29 +17,29 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MaterialSeeder {
 
-    public static final String ARENA = "DEMO - Arena de ensayo";
-    public static final String PIEDRA = "DEMO - Piedra de ensayo";
+    public static final String YEFRI_LERMA_ARENA = "DEMO - Arena de ensayo";
+    public static final String YEFRI_LERMA_PIEDRA = "DEMO - Piedra de ensayo";
     public static final String CEMENTO = "DEMO - Cemento de ensayo";
 
     private final MaterialService materiales;
 
     @Transactional
-    public int sembrar() {
-        Set<String> existentes = materiales.listar().stream().map(Material::getNombre).collect(Collectors.toSet());
+    public int yefriLermaSembrar() {
+        Set<String> existentes = materiales.yefriLermaListar().stream().map(Material::getNombre).collect(Collectors.toSet());
         int nuevos = 0;
-        for (Material m : plantillas()) {
+        for (Material m : yefriLermaPlantillas()) {
             if (existentes.add(m.getNombre())) {
-                materiales.guardar(m);
+                materiales.yefriLermaGuardar(m);
                 nuevos++;
             }
         }
         return nuevos;
     }
 
-    private static List<Material> plantillas() {
+    private static List<Material> yefriLermaPlantillas() {
         Material arena = new Material();
         arena.setTipo("AGREGADO FINO");
-        arena.setNombre(ARENA);
+        arena.setNombre(YEFRI_LERMA_ARENA);
         arena.setProcedencia("Cantera ficticia");
         arena.setReferenciaEnsayo("DEMO-LAB-01");
         arena.setFechaEnsayo("2026-11-01");
@@ -50,7 +50,7 @@ public class MaterialSeeder {
 
         Material piedra = new Material();
         piedra.setTipo("AGREGADO GRUESO");
-        piedra.setNombre(PIEDRA);
+        piedra.setNombre(YEFRI_LERMA_PIEDRA);
         piedra.setProcedencia("Cantera ficticia");
         piedra.setReferenciaEnsayo("DEMO-LAB-02");
         piedra.setFechaEnsayo("2026-11-01");

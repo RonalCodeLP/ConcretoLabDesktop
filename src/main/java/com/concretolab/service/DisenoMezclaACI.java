@@ -98,44 +98,44 @@ public final class DisenoMezclaACI {
     }
 
     // ---- ACI 211.1 tabla 6.3.3 (mm de asentamiento: 25-50, 75-100, 150-175; centros 37,5 / 87,5 / 162,5)
-    private static final double[] TMA = {9.5, 12.5, 19.0, 25.0, 37.5, 50.0, 75.0, 150.0};
-    private static final double[] ASENT = {37.5, 87.5, 162.5};
-    private static final double[][] AGUA_SIN_AIRE = {
+    private static final double[] YEFRI_LERMA_TMA = {9.5, 12.5, 19.0, 25.0, 37.5, 50.0, 75.0, 150.0};
+    private static final double[] YEFRI_LERMA_ASENT = {37.5, 87.5, 162.5};
+    private static final double[][] YEFRI_LERMA_AGUA_SIN_AIRE = {
         {207, 199, 190, 179, 166, 154, 130, 113},
         {228, 216, 205, 193, 181, 169, 145, 124},
         {243, 228, 216, 202, 190, 178, 160, Double.NaN}};
-    private static final double[][] AGUA_CON_AIRE = {
+    private static final double[][] YEFRI_LERMA_AGUA_CON_AIRE = {
         {181, 175, 168, 160, 150, 142, 122, 107},
         {202, 193, 184, 175, 165, 157, 133, 119},
         {216, 205, 197, 184, 174, 166, 154, Double.NaN}};
-    private static final double[] AIRE_ATRAPADO = {3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.3, 0.2};
-    private static final double[][] AIRE_INCORPORADO = { // suave, moderada, severa
+    private static final double[] YEFRI_LERMA_AIRE_ATRAPADO = {3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.3, 0.2};
+    private static final double[][] YEFRI_LERMA_AIRE_INCORPORADO = { // suave, moderada, severa
         {4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0},
         {6.0, 5.5, 5.0, 4.5, 4.5, 4.0, 3.5, 3.0},
         {7.5, 7.0, 6.0, 6.0, 5.5, 5.0, 4.5, 4.0}};
 
     // ---- ACI 211.1 tabla 6.3.4(a): f'cr a 28 días vs a/c
-    private static final double[] FCR = {15, 20, 25, 30, 35, 40, 45};
-    private static final double[] AC_SIN_AIRE = {0.79, 0.69, 0.61, 0.54, 0.47, 0.42, 0.38};
-    private static final double[] AC_CON_AIRE = {0.70, 0.60, 0.52, 0.45, 0.39};
+    private static final double[] YEFRI_LERMA_FCR = {15, 20, 25, 30, 35, 40, 45};
+    private static final double[] YEFRI_LERMA_AC_SIN_AIRE = {0.79, 0.69, 0.61, 0.54, 0.47, 0.42, 0.38};
+    private static final double[] YEFRI_LERMA_AC_CON_AIRE = {0.70, 0.60, 0.52, 0.45, 0.39};
 
     // ---- ACI 211.1 tabla 6.3.6: volumen de grueso seco compactado por m³, según MF de la arena
-    private static final double[] MF = {2.40, 2.60, 2.80, 3.00};
-    private static final double[][] VOL_GRUESO = {
+    private static final double[] YEFRI_LERMA_MF = {2.40, 2.60, 2.80, 3.00};
+    private static final double[][] YEFRI_LERMA_VOL_GRUESO = {
         {0.50, 0.48, 0.46, 0.44}, {0.59, 0.57, 0.55, 0.53}, {0.66, 0.64, 0.62, 0.60}, {0.71, 0.69, 0.67, 0.65},
         {0.75, 0.73, 0.71, 0.69}, {0.78, 0.76, 0.74, 0.72}, {0.82, 0.80, 0.78, 0.76}, {0.87, 0.85, 0.83, 0.81}};
 
     /** Factor de corrección de la desviación estándar cuando hay menos de 30 ensayos (ACI 318 / E.060). */
-    static double factorMuestra(int n) {
+    static double yefriLermaFactorMuestra(int n) {
         if (n >= 30) return 1.00;
         if (n <= 15) return 1.16; // con menos de 15 ensayos no se usa s: lo decide fcr()
         double[] ns = {15, 20, 25, 30};
         double[] fs = {1.16, 1.08, 1.03, 1.00};
-        return interpolar(ns, fs, n);
+        return yefriLermaInterpolar(ns, fs, n);
     }
 
     /** Resistencia promedio requerida f'cr (MPa) y el criterio aplicado. */
-    public static double[] fcr(double fc, Double s, int n, StringBuilder criterio) {
+    public static double[] yefriLermaFcr(double fc, Double s, int n, StringBuilder criterio) {
         if (!Double.isFinite(fc) || fc <= 0) {
             throw new IllegalArgumentException("Ingrese una f'c positiva (MPa).");
         }
@@ -148,7 +148,7 @@ public final class DisenoMezclaACI {
         if (!Double.isFinite(s) || s <= 0) {
             throw new IllegalArgumentException("La desviación estándar debe ser positiva.");
         }
-        double ss = s * factorMuestra(n);
+        double ss = s * yefriLermaFactorMuestra(n);
         double a = fc + 1.34 * ss;
         double b = fc <= 35 ? fc + 2.33 * ss - 3.5 : 0.9 * fc + 2.33 * ss;
         criterio.append(String.format(Locale.ROOT,
@@ -157,11 +157,37 @@ public final class DisenoMezclaACI {
         return new double[] {Math.max(a, b)};
     }
 
-    public static Resultado disenar(Entrada e) {
-        validar(e);
+    /**
+     * Aviso si el tipo de cemento elegido no corresponde a la exposición a sulfatos (E.060 cap. 4 / ACI 318 tabla 19.3.2.1):
+     * moderada → tipo II o MS; severa → tipo V o HS; muy severa → tipo V o HS más puzolana.
+     *
+     * @param tipoMaterial tipo del material de la biblioteca («CEMENTO TIPO V», «CEMENTO»…); {@code null} si no se eligió
+     */
+    public static java.util.Optional<String> yefriLermaAvisoCemento(Exposicion exposicion, String tipoMaterial) {
+        if (exposicion == null || tipoMaterial == null) return java.util.Optional.empty();
+        String tipo = tipoMaterial.replaceFirst("^CEMENTO\\s*(TIPO\\s*)?", "").trim();
+        boolean v = tipo.equals("V") || tipo.equals("HS");
+        boolean ii = v || tipo.equals("II") || tipo.equals("MS");
+        String requerido = null;
+        switch (exposicion) {
+            case SULFATOS_MODERADOS -> { if (!ii) requerido = "tipo II o MS (o uno con resistencia moderada a sulfatos certificada)"; }
+            case SULFATOS_SEVEROS -> { if (!v) requerido = "tipo V o HS"; }
+            case SULFATOS_MUY_SEVEROS -> {
+                if (!v) requerido = "tipo V o HS, más puzolana";
+                else return java.util.Optional.of("Sulfatos muy severos: además del cemento " + tipo + " se requiere puzolana (E.060 cap. 4).");
+            }
+            default -> { }
+        }
+        if (requerido == null) return java.util.Optional.empty();
+        return java.util.Optional.of("El cemento elegido (" + (tipo.isEmpty() ? "sin tipo indicado" : "tipo " + tipo)
+                + ") no corresponde a la exposición: se requiere " + requerido + ".");
+    }
+
+    public static Resultado yefriLermaDisenar(Entrada e) {
+        yefriLermaValidar(e);
         List<String> av = new ArrayList<>();
         StringBuilder criterio = new StringBuilder();
-        double fcr = fcr(e.fcMpa(), e.desviacionMpa(), e.numeroEnsayos(), criterio)[0];
+        double fcr = yefriLermaFcr(e.fcMpa(), e.desviacionMpa(), e.numeroEnsayos(), criterio)[0];
 
         if (e.fcMpa() < 17) {
             av.add("La E.060 exige f'c ≥ 17 MPa en concreto estructural; el valor ingresado es menor.");
@@ -184,17 +210,17 @@ public final class DisenoMezclaACI {
         // a/c por resistencia
         double acRes;
         if (aire) {
-            if (fcr > FCR[4]) {
+            if (fcr > YEFRI_LERMA_FCR[4]) {
                 throw new IllegalArgumentException(String.format(Locale.ROOT,
                         "Con aire incorporado la tabla ACI 211.1 llega a f'cr = 35 MPa (resulta %.1f). Reduzca f'c o use mezcla de prueba.", fcr));
             }
-            acRes = interpolarRango(FCR, AC_CON_AIRE, fcr, av);
+            acRes = yefriLermaInterpolarRango(YEFRI_LERMA_FCR, YEFRI_LERMA_AC_CON_AIRE, fcr, av);
         } else {
             if (fcr > 45) {
                 throw new IllegalArgumentException(String.format(Locale.ROOT,
                         "La tabla ACI 211.1 llega a f'cr = 45 MPa (resulta %.1f): para mayor resistencia use el procedimiento de alta resistencia (ACI 211.4) y mezclas de prueba.", fcr));
             }
-            acRes = interpolarRango(FCR, AC_SIN_AIRE, fcr, av);
+            acRes = yefriLermaInterpolarRango(YEFRI_LERMA_FCR, YEFRI_LERMA_AC_SIN_AIRE, fcr, av);
         }
         double acDur = ex.acMaxima() > 0 ? ex.acMaxima() : Double.POSITIVE_INFINITY;
         double ac = Math.min(acRes, acDur);
@@ -203,20 +229,20 @@ public final class DisenoMezclaACI {
         }
 
         // agua y aire
-        int it = indiceTma(e.tmaMm(), av);
-        double tma = TMA[it];
-        double[] aguaCol = new double[ASENT.length];
-        double[][] tablaAgua = aire ? AGUA_CON_AIRE : AGUA_SIN_AIRE;
-        for (int i = 0; i < ASENT.length; i++) {
+        int it = yefriLermaIndiceTma(e.tmaMm(), av);
+        double tma = YEFRI_LERMA_TMA[it];
+        double[] aguaCol = new double[YEFRI_LERMA_ASENT.length];
+        double[][] tablaAgua = aire ? YEFRI_LERMA_AGUA_CON_AIRE : YEFRI_LERMA_AGUA_SIN_AIRE;
+        for (int i = 0; i < YEFRI_LERMA_ASENT.length; i++) {
             aguaCol[i] = tablaAgua[i][it];
         }
         if (e.asentamientoMm() < 25 || e.asentamientoMm() > 175) {
             av.add("El asentamiento está fuera de 25 – 175 mm (rango de la tabla ACI 211.1); se usó el límite más cercano.");
         }
         double slump = Math.min(175, Math.max(25, e.asentamientoMm()));
-        double agua = interpolarNaN(ASENT, aguaCol, slump, tma, av);
-        double airePct = aire ? AIRE_INCORPORADO[(e.severidadAire() == null ? SeveridadAire.MODERADA : e.severidadAire()).ordinal()][it]
-                : AIRE_ATRAPADO[it];
+        double agua = yefriLermaInterpolarNaN(YEFRI_LERMA_ASENT, aguaCol, slump, tma, av);
+        double airePct = aire ? YEFRI_LERMA_AIRE_INCORPORADO[(e.severidadAire() == null ? SeveridadAire.MODERADA : e.severidadAire()).ordinal()][it]
+                : YEFRI_LERMA_AIRE_ATRAPADO[it];
 
         double cemento = agua / ac;
         // volumen de grueso seco compactado según MF
@@ -225,11 +251,11 @@ public final class DisenoMezclaACI {
             av.add(String.format(Locale.ROOT, "El módulo de finura %.2f está fuera de 2,40 – 3,00 (tabla ACI 211.1); se usó el límite más cercano.", mf));
         }
         double mfAcot = Math.min(3.0, Math.max(2.4, mf));
-        double b = interpolar(MF, VOL_GRUESO[it], mfAcot);
+        double b = yefriLermaInterpolar(YEFRI_LERMA_MF, YEFRI_LERMA_VOL_GRUESO[it], mfAcot);
         double gruesoSeco = b * e.pesoUnitarioCompactadoGrueso();
         double gruesoSss = gruesoSeco * (1 + e.absorcionGruesoPct() / 100);
 
-        var vol = VolumenAbsolutoService.calcular(new VolumenAbsolutoService.Datos(
+        var vol = VolumenAbsolutoService.yefriLermaCalcular(new VolumenAbsolutoService.Datos(
                 agua, ac, e.densidadCemento(), gruesoSss, e.densidadRelativaGrueso(), e.densidadRelativaFino(), airePct));
 
         if (cemento < 250) {
@@ -248,7 +274,7 @@ public final class DisenoMezclaACI {
 
     // ------------------------------------------------------------------ utilidades
 
-    private static void validar(Entrada e) {
+    private static void yefriLermaValidar(Entrada e) {
         if (e == null) {
             throw new IllegalArgumentException("Faltan datos de entrada.");
         }
@@ -274,33 +300,33 @@ public final class DisenoMezclaACI {
         }
     }
 
-    private static int indiceTma(double tma, List<String> av) {
-        if (tma < TMA[0]) {
+    private static int yefriLermaIndiceTma(double tma, List<String> av) {
+        if (tma < YEFRI_LERMA_TMA[0]) {
             throw new IllegalArgumentException("El tamaño máximo nominal mínimo de la tabla es 9,5 mm (3/8\").");
         }
         int idx = 0;
-        for (int i = 0; i < TMA.length; i++) {
-            if (TMA[i] <= tma + 1e-9) {
+        for (int i = 0; i < YEFRI_LERMA_TMA.length; i++) {
+            if (YEFRI_LERMA_TMA[i] <= tma + 1e-9) {
                 idx = i;
             }
         }
-        if (Math.abs(TMA[idx] - tma) > 0.6) {
+        if (Math.abs(YEFRI_LERMA_TMA[idx] - tma) > 0.6) {
             av.add(String.format(Locale.ROOT,
-                    "El tamaño máximo nominal %.1f mm no está en la tabla ACI 211.1; se usó el inmediato inferior (%.1f mm).", tma, TMA[idx]));
+                    "El tamaño máximo nominal %.1f mm no está en la tabla ACI 211.1; se usó el inmediato inferior (%.1f mm).", tma, YEFRI_LERMA_TMA[idx]));
         }
         return idx;
     }
 
-    private static double interpolarRango(double[] xs, double[] ys, double x, List<String> av) {
+    private static double yefriLermaInterpolarRango(double[] xs, double[] ys, double x, List<String> av) {
         if (x < xs[0]) {
             av.add("f'cr menor que 15 MPa: se usó la a/c de 15 MPa (revise con mezclas de prueba).");
             return ys[0];
         }
         double[] xr = java.util.Arrays.copyOf(xs, ys.length);
-        return interpolar(xr, ys, x);
+        return yefriLermaInterpolar(xr, ys, x);
     }
 
-    private static double interpolarNaN(double[] xs, double[] ys, double x, double tma, List<String> av) {
+    private static double yefriLermaInterpolarNaN(double[] xs, double[] ys, double x, double tma, List<String> av) {
         // la tabla no da asentamiento de 150-175 mm para TMA 150 mm
         int n = 0;
         while (n < ys.length && !Double.isNaN(ys[n])) {
@@ -309,11 +335,11 @@ public final class DisenoMezclaACI {
         if (n < ys.length && x > xs[n - 1]) {
             av.add(String.format(Locale.ROOT, "La tabla no da agua para ese asentamiento con TMA %.0f mm; se usó el mayor asentamiento disponible.", tma));
         }
-        return interpolar(java.util.Arrays.copyOf(xs, n), java.util.Arrays.copyOf(ys, n), x);
+        return yefriLermaInterpolar(java.util.Arrays.copyOf(xs, n), java.util.Arrays.copyOf(ys, n), x);
     }
 
     /** Interpolación lineal con valores extremos constantes fuera del rango. */
-    static double interpolar(double[] xs, double[] ys, double x) {
+    static double yefriLermaInterpolar(double[] xs, double[] ys, double x) {
         if (x <= xs[0]) return ys[0];
         for (int i = 1; i < xs.length; i++) {
             if (x <= xs[i]) {

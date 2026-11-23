@@ -3,7 +3,7 @@ package com.concretolab.service;
 import java.util.List;
 
 /**
- * Resultado del análisis dinámico tiempo-historia lineal ({@link AnalisisTiempoHistoria#resolver}).
+ * Resultado del análisis dinámico tiempo-historia lineal ({@link AnalisisTiempoHistoria#fernandoHuancaResolver}).
  *
  * <p>Convenciones: los desplazamientos {@code ux}, {@code uy}, {@code rz} son RELATIVOS a la base (al suelo), indexados
  * {@code [paso][piso]} con el piso 0 como primer nivel sobre la cimentación; unidades m y rad. El desplazamiento

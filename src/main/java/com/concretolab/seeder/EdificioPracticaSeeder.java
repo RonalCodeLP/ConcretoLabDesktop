@@ -17,17 +17,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 @RequiredArgsConstructor
 public class EdificioPracticaSeeder {
-    public static final String NOMBRE = "Práctica - Edificio de dos pisos incompleto";
+    public static final String WALTER_QUISPESAYHUA_NOMBRE = "Práctica - Edificio de dos pisos incompleto";
 
     private final YefriLermaProyectoService proyectos;
-    private final CuadriculaService cuadriculas;
+    private final CuadriculaService walterQuispesayhuaCuadriculas;
 
     @Transactional
-    public int sembrar() {
-        if (proyectos.proyectos().stream().anyMatch(proyecto -> NOMBRE.equals(proyecto.getNombre()))) {
+    public int walterQuispesayhuaSembrar() {
+        if (proyectos.proyectos().stream().anyMatch(proyecto -> WALTER_QUISPESAYHUA_NOMBRE.equals(proyecto.getNombre()))) {
             return 0;
         }
-        Proyecto proyecto = proyectos.crearProyecto(NOMBRE, "Modelo incompleto con datos ficticios para práctica");
+        Proyecto proyecto = proyectos.yefriLermaCrearProyecto(WALTER_QUISPESAYHUA_NOMBRE, "Modelo incompleto con datos ficticios para práctica");
         Definicion definicion = new Definicion(0, 0, List.of(5.0, 4.0), List.of(4.0), List.of(0.0, 3.0, 6.0));
         Dimensiones dimensiones = new Dimensiones(1.5, 1.5, 0.5, 0.4, 0.3, 0.5);
         Set<Punto> intersecciones = Set.of(new Punto(0, 0), new Punto(1, 0), new Punto(2, 0),
@@ -38,9 +38,9 @@ public class EdificioPracticaSeeder {
                 new Tramo(new Punto(0, 1), new Punto(1, 1)),
                 new Tramo(new Punto(0, 0), new Punto(0, 1)),
                 new Tramo(new Punto(1, 0), new Punto(1, 1)));
-        cuadriculas.crear(proyecto.getId(), new Solicitud(definicion, intersecciones, Set.of(),
+        walterQuispesayhuaCuadriculas.walterQuispesayhuaCrear(proyecto.getId(), new Solicitud(definicion, intersecciones, Set.of(),
                 true, false, false, false, dimensiones));
-        cuadriculas.crear(proyecto.getId(), new Solicitud(definicion, zonaInicial, tramosIniciales,
+        walterQuispesayhuaCuadriculas.walterQuispesayhuaCrear(proyecto.getId(), new Solicitud(definicion, zonaInicial, tramosIniciales,
                 false, true, true, true, dimensiones));
         return 1;
     }

@@ -27,34 +27,34 @@ import java.util.stream.Stream;
 public class JavaFxApplication extends Application {
 
     /** Variable de entorno para abrir la base sin diálogo (automatización). No se recomienda para uso normal. */
-    static final String ENTORNO_CLAVE = "CONCRETOLAB_DB_CLAVE";
+    static final String FERNANDO_HUANCA_ENTORNO_CLAVE = "CONCRETOLAB_DB_CLAVE";
 
-    private ConfigurableApplicationContext context;
-    private boolean cancelado;
-    private Path copiaPlanaMigrada;
-    private List<Path> copiasPlanasAntiguas = List.of();
+    private ConfigurableApplicationContext fernandoHuancaContext;
+    private boolean fernandoHuancaCancelado;
+    private Path fernandoHuancaCopiaPlanaMigrada;
+    private List<Path> fernandoHuancaCopiasPlanasAntiguas = List.of();
 
     @Override
     public void init() throws IOException {
-        Files.createDirectories(RespaldoDatos.carpetaDatos());
+        Files.createDirectories(RespaldoDatos.erickDelgadoCarpetaDatos());
         // Antes de que Spring y Flyway toquen la base: aplicar una restauración pedida por el usuario.
-        RespaldoDatos.aplicarRestauracionPendiente();
-        char[] clave = prepararClave();
-        if (cancelado) {
+        RespaldoDatos.erickDelgadoAplicarRestauracionPendiente();
+        char[] clave = fernandoHuancaPrepararClave();
+        if (fernandoHuancaCancelado) {
             return;
         }
         // Copia de seguridad del estado actual (así una migración fallida nunca deja al usuario sin sus datos).
-        RespaldoDatos.respaldarArchivo("inicio");
-        this.context = new SpringApplicationBuilder(ConcretoLabApplication.class)
+        RespaldoDatos.erickDelgadoRespaldarArchivo("inicio");
+        this.fernandoHuancaContext = new SpringApplicationBuilder(ConcretoLabApplication.class)
                 .web(WebApplicationType.NONE)
-                .properties(BaseCifrada.propiedadesSpring(clave))
+                .properties(BaseCifrada.erickDelgadoPropiedadesSpring(clave))
                 .run();
         if (clave != null) {
             Arrays.fill(clave, '\0');
         }
         // La base ya abrió con la contraseña: la copia sin cifrar que dejó la migración ya no hace falta.
-        if (copiaPlanaMigrada != null) {
-            Files.deleteIfExists(copiaPlanaMigrada);
+        if (fernandoHuancaCopiaPlanaMigrada != null) {
+            Files.deleteIfExists(fernandoHuancaCopiaPlanaMigrada);
         }
     }
 
@@ -62,33 +62,33 @@ public class JavaFxApplication extends Application {
      * Obtiene la contraseña de la base: la pide al abrir (o la crea y cifra los datos existentes la primera vez).
      * Devuelve {@code null} y marca {@code cancelado} si la persona usuaria sale.
      */
-    private char[] prepararClave() {
-        Path base = RespaldoDatos.archivoBaseDatos();
-        String entorno = System.getenv(ENTORNO_CLAVE);
+    private char[] fernandoHuancaPrepararClave() {
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
+        String entorno = System.getenv(FERNANDO_HUANCA_ENTORNO_CLAVE);
         char[] deEntorno = entorno == null || entorno.isEmpty() ? null : entorno.toCharArray();
-        switch (BaseCifrada.inspeccionar(base)) {
+        switch (BaseCifrada.erickDelgadoInspeccionar(base)) {
             case NO_EXISTE -> {
-                var clave = deEntorno != null ? java.util.Optional.of(deEntorno) : DialogoClaveBase.pedirNueva(false);
+                var clave = deEntorno != null ? java.util.Optional.of(deEntorno) : DialogoClaveBase.erickDelgadoPedirNueva(false);
                 if (clave.isEmpty()) {
-                    cancelado = true;
+                    fernandoHuancaCancelado = true;
                     return null;
                 }
                 return clave.get();
             }
             case SIN_CIFRAR -> {
-                var clave = deEntorno != null ? java.util.Optional.of(deEntorno) : DialogoClaveBase.pedirNueva(true);
+                var clave = deEntorno != null ? java.util.Optional.of(deEntorno) : DialogoClaveBase.erickDelgadoPedirNueva(true);
                 if (clave.isEmpty()) {
-                    cancelado = true;
+                    fernandoHuancaCancelado = true;
                     return null;
                 }
                 // Copias de seguridad anteriores que quedaron sin cifrar: se ofrecerá borrarlas al abrir.
-                copiasPlanasAntiguas = copiasSinCifrar();
+                fernandoHuancaCopiasPlanasAntiguas = fernandoHuancaCopiasSinCifrar();
                 try {
-                    copiaPlanaMigrada = BaseCifrada.cifrarExistente(base, clave.get());
+                    fernandoHuancaCopiaPlanaMigrada = BaseCifrada.erickDelgadoCifrarExistente(base, clave.get());
                 } catch (Exception e) {
-                    DialogoClaveBase.mostrar(Alert.AlertType.ERROR, "No se pudo cifrar la base",
+                    DialogoClaveBase.erickDelgadoMostrar(Alert.AlertType.ERROR, "No se pudo cifrar la base",
                             "Sus datos no se modificaron. Detalle: " + e.getMessage());
-                    cancelado = true;
+                    fernandoHuancaCancelado = true;
                     return null;
                 }
                 return clave.get();
@@ -96,28 +96,28 @@ public class JavaFxApplication extends Application {
             default -> {
                 String aviso = null;
                 for (int intento = 1; intento <= 3; intento++) {
-                    var clave = deEntorno != null && intento == 1 ? java.util.Optional.of(deEntorno) : DialogoClaveBase.pedirActual(aviso);
+                    var clave = deEntorno != null && intento == 1 ? java.util.Optional.of(deEntorno) : DialogoClaveBase.erickDelgadoPedirActual(aviso);
                     if (clave.isEmpty()) {
-                        cancelado = true;
+                        fernandoHuancaCancelado = true;
                         return null;
                     }
-                    if (BaseCifrada.claveCorrecta(base, clave.get())) {
+                    if (BaseCifrada.erickDelgadoClaveCorrecta(base, clave.get())) {
                         return clave.get();
                     }
                     aviso = "Contraseña incorrecta (" + intento + " de 3).";
                 }
-                DialogoClaveBase.mostrar(Alert.AlertType.ERROR, "No se pudo abrir la base",
+                DialogoClaveBase.erickDelgadoMostrar(Alert.AlertType.ERROR, "No se pudo abrir la base",
                         "Se agotaron los intentos. Sus datos siguen intactos.");
-                cancelado = true;
+                fernandoHuancaCancelado = true;
                 return null;
             }
         }
     }
 
-    private static List<Path> copiasSinCifrar() {
-        try (Stream<Path> archivos = Files.list(RespaldoDatos.carpetaCopias())) {
+    private static List<Path> fernandoHuancaCopiasSinCifrar() {
+        try (Stream<Path> archivos = Files.list(RespaldoDatos.erickDelgadoCarpetaCopias())) {
             return archivos.filter(Files::isRegularFile)
-                    .filter(p -> BaseCifrada.inspeccionar(p) == BaseCifrada.Estado.SIN_CIFRAR)
+                    .filter(p -> BaseCifrada.erickDelgadoInspeccionar(p) == BaseCifrada.Estado.SIN_CIFRAR)
                     .toList();
         } catch (IOException e) {
             return new ArrayList<>();
@@ -126,19 +126,19 @@ public class JavaFxApplication extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        if (cancelado || context == null) {
+        if (fernandoHuancaCancelado || fernandoHuancaContext == null) {
             Platform.exit();
             return;
         }
         // Tema visual: hay PrimerDark, NordLight, NordDark, Dracula, etc.
         Application.setUserAgentStylesheet(new PrimerLight().getUserAgentStylesheet());
         // Permite abrir los PDF y Excel generados con la aplicacion del sistema.
-        context.getBean(Exportador.class).setHostServices(getHostServices());
+        fernandoHuancaContext.getBean(Exportador.class).setHostServices(getHostServices());
 
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/main-view.fxml"));
 
         // LINEA CLAVE: Spring entrega los controladores ya inyectados
-        loader.setControllerFactory(context::getBean);
+        loader.setControllerFactory(fernandoHuancaContext::getBean);
 
         Scene scene = new Scene(loader.load());
         scene.getStylesheets().add(
@@ -150,17 +150,17 @@ public class JavaFxApplication extends Application {
         stage.setMinHeight(680);
         stage.show();
 
-        if (!copiasPlanasAntiguas.isEmpty()) {
-            Platform.runLater(this::ofrecerBorrarCopiasPlanas);
+        if (!fernandoHuancaCopiasPlanasAntiguas.isEmpty()) {
+            Platform.runLater(this::fernandoHuancaOfrecerBorrarCopiasPlanas);
         }
     }
 
-    private void ofrecerBorrarCopiasPlanas() {
-        boolean borrar = DialogoClaveBase.confirmar("Copias de seguridad sin cifrar",
-                "Sus datos ya están cifrados, pero hay " + copiasPlanasAntiguas.size() + " copia(s) de seguridad anteriores que siguen SIN cifrar en:\n"
-                        + RespaldoDatos.carpetaCopias() + "\n\n¿Desea eliminarlas ahora? (Las copias nuevas ya se guardan cifradas.)");
+    private void fernandoHuancaOfrecerBorrarCopiasPlanas() {
+        boolean borrar = DialogoClaveBase.erickDelgadoConfirmar("Copias de seguridad sin cifrar",
+                "Sus datos ya están cifrados, pero hay " + fernandoHuancaCopiasPlanasAntiguas.size() + " copia(s) de seguridad anteriores que siguen SIN cifrar en:\n"
+                        + RespaldoDatos.erickDelgadoCarpetaCopias() + "\n\n¿Desea eliminarlas ahora? (Las copias nuevas ya se guardan cifradas.)");
         if (borrar) {
-            for (Path p : copiasPlanasAntiguas) {
+            for (Path p : fernandoHuancaCopiasPlanasAntiguas) {
                 try {
                     Files.deleteIfExists(p);
                 } catch (IOException ignorada) {
@@ -172,10 +172,10 @@ public class JavaFxApplication extends Application {
 
     @Override
     public void stop() {
-        if (context != null) {
-            context.close();
+        if (fernandoHuancaContext != null) {
+            fernandoHuancaContext.close();
             // Con la base ya cerrada, la copia de cierre es un archivo coherente.
-            RespaldoDatos.respaldarArchivo("cierre");
+            RespaldoDatos.erickDelgadoRespaldarArchivo("cierre");
         }
         Platform.exit();
     }

@@ -33,15 +33,8 @@
 
                     <VBox styleClass="campo">
                         <Label text="Tipo *" styleClass="campo-label"/>
-                        <ComboBox fx:id="cmbTipo" maxWidth="Infinity">
-                            <items>
-                                <FXCollections fx:factory="observableArrayList">
-                                    <String fx:value="CEMENTO"/>
-                                    <String fx:value="AGREGADO FINO"/>
-                                    <String fx:value="AGREGADO GRUESO"/>
-                                </FXCollections>
-                            </items>
-                        </ComboBox>
+                        <!-- Los tipos los carga el controlador desde MaterialService (cementos NTP, agregados y aditivos) -->
+                        <ComboBox fx:id="cmbTipo" maxWidth="Infinity"/>
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
 

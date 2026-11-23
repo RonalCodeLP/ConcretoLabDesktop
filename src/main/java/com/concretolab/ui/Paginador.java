@@ -20,16 +20,16 @@ import org.springframework.data.domain.Page;
  */
 public class Paginador extends HBox {
 
-    private static final int BOTONES_VISIBLES = 5;
+    private static final int YEFRI_LERMA_BOTONES_VISIBLES = 5;
 
     private final Label lblResumen = new Label();
-    private final ComboBox<Integer> cmbTamanio =
+    private final ComboBox<Integer> yefriLermaCmbTamanio =
             new ComboBox<>(FXCollections.observableArrayList(5, 10, 15, 25, 50));
-    private final HBox botones = new HBox(4);
+    private final HBox yefriLermaBotones = new HBox(4);
 
-    private int pagina = 0;
-    private int totalPaginas = 1;
-    private Runnable onCambio = () -> { };
+    private int yefriLermaPagina = 0;
+    private int yefriLermaTotalPaginas = 1;
+    private Runnable yefriLermaOnCambio = () -> { };
 
     public Paginador() {
         getStyleClass().add("paginador");
@@ -40,113 +40,113 @@ public class Paginador extends HBox {
 
         Label lblFilas = new Label("Filas");
         lblFilas.getStyleClass().add("paginador-resumen");
-        cmbTamanio.setValue(10);
-        cmbTamanio.getStyleClass().add("paginador-tamanio");
-        cmbTamanio.valueProperty().addListener((obs, a, b) -> irAPrimera());
+        yefriLermaCmbTamanio.setValue(10);
+        yefriLermaCmbTamanio.getStyleClass().add("paginador-tamanio");
+        yefriLermaCmbTamanio.valueProperty().addListener((obs, a, b) -> yefriLermaIrAPrimera());
 
-        botones.setAlignment(Pos.CENTER);
+        yefriLermaBotones.setAlignment(Pos.CENTER);
 
         Region espacio = new Region();
         HBox.setHgrow(espacio, Priority.ALWAYS);
 
-        getChildren().addAll(lblResumen, espacio, lblFilas, cmbTamanio, botones);
+        getChildren().addAll(lblResumen, espacio, lblFilas, yefriLermaCmbTamanio, yefriLermaBotones);
     }
 
     public void setOnCambio(Runnable onCambio) {
-        this.onCambio = onCambio;
+        this.yefriLermaOnCambio = onCambio;
     }
 
     public int getPagina() {
-        return pagina;
+        return yefriLermaPagina;
     }
 
     public int getTamanio() {
-        return cmbTamanio.getValue();
+        return yefriLermaCmbTamanio.getValue();
     }
 
     /** Vuelve a la primera pagina y solicita recargar (p. ej. al cambiar el filtro). */
-    public void irAPrimera() {
-        irA(0);
+    public void yefriLermaIrAPrimera() {
+        yefriLermaIrA(0);
     }
 
     /**
      * Refleja en la barra el resultado de una consulta paginada. Si la pagina actual
      * quedo fuera de rango (p. ej. tras eliminar el ultimo registro) retrocede y recarga.
      */
-    public void actualizar(Page<?> resultado) {
-        totalPaginas = Math.max(resultado.getTotalPages(), 1);
-        if (pagina >= totalPaginas) {
-            irA(totalPaginas - 1);
+    public void yefriLermaActualizar(Page<?> resultado) {
+        yefriLermaTotalPaginas = Math.max(resultado.getTotalPages(), 1);
+        if (yefriLermaPagina >= yefriLermaTotalPaginas) {
+            yefriLermaIrA(yefriLermaTotalPaginas - 1);
             return;
         }
 
         long total = resultado.getTotalElements();
-        long desde = total == 0 ? 0 : (long) pagina * getTamanio() + 1;
-        long hasta = (long) pagina * getTamanio() + resultado.getNumberOfElements();
+        long desde = total == 0 ? 0 : (long) yefriLermaPagina * getTamanio() + 1;
+        long hasta = (long) yefriLermaPagina * getTamanio() + resultado.getNumberOfElements();
         lblResumen.setText(total == 0
                 ? "Sin registros"
                 : "Mostrando " + desde + "–" + hasta + " de " + total);
 
-        construirBotones();
+        yefriLermaConstruirBotones();
     }
 
-    private void irA(int nuevaPagina) {
-        pagina = Math.max(0, Math.min(nuevaPagina, totalPaginas - 1));
-        onCambio.run();
+    private void yefriLermaIrA(int nuevaPagina) {
+        yefriLermaPagina = Math.max(0, Math.min(nuevaPagina, yefriLermaTotalPaginas - 1));
+        yefriLermaOnCambio.run();
     }
 
-    private void construirBotones() {
-        botones.getChildren().clear();
-        botones.getChildren().add(botonIcono(Feather.CHEVRONS_LEFT, 0, pagina == 0));
-        botones.getChildren().add(botonIcono(Feather.CHEVRON_LEFT, pagina - 1, pagina == 0));
+    private void yefriLermaConstruirBotones() {
+        yefriLermaBotones.getChildren().clear();
+        yefriLermaBotones.getChildren().add(yefriLermaBotonIcono(Feather.CHEVRONS_LEFT, 0, yefriLermaPagina == 0));
+        yefriLermaBotones.getChildren().add(yefriLermaBotonIcono(Feather.CHEVRON_LEFT, yefriLermaPagina - 1, yefriLermaPagina == 0));
 
-        int inicio = Math.max(0, Math.min(pagina - BOTONES_VISIBLES / 2, totalPaginas - BOTONES_VISIBLES));
-        int fin = Math.min(totalPaginas, inicio + BOTONES_VISIBLES);
+        int inicio = Math.max(0, Math.min(yefriLermaPagina - YEFRI_LERMA_BOTONES_VISIBLES / 2, yefriLermaTotalPaginas - YEFRI_LERMA_BOTONES_VISIBLES));
+        int fin = Math.min(yefriLermaTotalPaginas, inicio + YEFRI_LERMA_BOTONES_VISIBLES);
 
         if (inicio > 0) {
-            botones.getChildren().add(botonNumero(0));
+            yefriLermaBotones.getChildren().add(yefriLermaBotonNumero(0));
             if (inicio > 1) {
-                botones.getChildren().add(elipsis());
+                yefriLermaBotones.getChildren().add(yefriLermaElipsis());
             }
         }
         for (int i = inicio; i < fin; i++) {
-            botones.getChildren().add(botonNumero(i));
+            yefriLermaBotones.getChildren().add(yefriLermaBotonNumero(i));
         }
-        if (fin < totalPaginas) {
-            if (fin < totalPaginas - 1) {
-                botones.getChildren().add(elipsis());
+        if (fin < yefriLermaTotalPaginas) {
+            if (fin < yefriLermaTotalPaginas - 1) {
+                yefriLermaBotones.getChildren().add(yefriLermaElipsis());
             }
-            botones.getChildren().add(botonNumero(totalPaginas - 1));
+            yefriLermaBotones.getChildren().add(yefriLermaBotonNumero(yefriLermaTotalPaginas - 1));
         }
 
-        boolean esUltima = pagina >= totalPaginas - 1;
-        botones.getChildren().add(botonIcono(Feather.CHEVRON_RIGHT, pagina + 1, esUltima));
-        botones.getChildren().add(botonIcono(Feather.CHEVRONS_RIGHT, totalPaginas - 1, esUltima));
+        boolean esUltima = yefriLermaPagina >= yefriLermaTotalPaginas - 1;
+        yefriLermaBotones.getChildren().add(yefriLermaBotonIcono(Feather.CHEVRON_RIGHT, yefriLermaPagina + 1, esUltima));
+        yefriLermaBotones.getChildren().add(yefriLermaBotonIcono(Feather.CHEVRONS_RIGHT, yefriLermaTotalPaginas - 1, esUltima));
     }
 
-    private Button botonNumero(int indice) {
+    private Button yefriLermaBotonNumero(int indice) {
         Button b = new Button(String.valueOf(indice + 1));
         b.getStyleClass().add("pagina-btn");
-        if (indice == pagina) {
+        if (indice == yefriLermaPagina) {
             b.getStyleClass().add("activa");
         }
         b.setOnAction(e -> {
-            if (indice != pagina) {
-                irA(indice);
+            if (indice != yefriLermaPagina) {
+                yefriLermaIrA(indice);
             }
         });
         return b;
     }
 
-    private Button botonIcono(Feather icono, int destino, boolean deshabilitado) {
+    private Button yefriLermaBotonIcono(Feather icono, int destino, boolean deshabilitado) {
         Button b = new Button(null, new FontIcon(icono));
         b.getStyleClass().add("pagina-btn");
         b.setDisable(deshabilitado);
-        b.setOnAction(e -> irA(destino));
+        b.setOnAction(e -> yefriLermaIrA(destino));
         return b;
     }
 
-    private Label elipsis() {
+    private Label yefriLermaElipsis() {
         Label l = new Label("…");
         l.getStyleClass().add("paginador-resumen");
         return l;

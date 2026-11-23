@@ -9,7 +9,7 @@ public final class EspectroRespuesta {
     private EspectroRespuesta() {}
 
     /** Periodo (s) por debajo del cual el oscilador es rígido y Sa se toma igual a la aceleración pico del terreno. */
-    public static final double PERIODO_RIGIDO = 0.02;
+    public static final double FERNANDO_HUANCA_PERIODO_RIGIDO = 0.02;
 
     /**
      * Pseudo-aceleración (m/s²) para cada periodo.
@@ -19,7 +19,7 @@ public final class EspectroRespuesta {
      * @param periodos periodos (s) donde se evalúa
      * @param amortiguamiento fracción del amortiguamiento crítico (0,05 = 5 %)
      */
-    public static double[] pseudoAceleracion(double[] aceleracionSuelo, double dt, double[] periodos, double amortiguamiento) {
+    public static double[] fernandoHuancaPseudoAceleracion(double[] aceleracionSuelo, double dt, double[] periodos, double amortiguamiento) {
         if (aceleracionSuelo == null || aceleracionSuelo.length < 2) throw new IllegalArgumentException("El registro necesita al menos 2 puntos.");
         if (!(dt > 0) || !Double.isFinite(dt)) throw new IllegalArgumentException("dt debe ser positivo.");
         if (!(amortiguamiento > 0 && amortiguamiento < 1)) throw new IllegalArgumentException("El amortiguamiento debe estar entre 0 y 1 (exclusivo).");
@@ -29,12 +29,12 @@ public final class EspectroRespuesta {
         for (int j = 0; j < periodos.length; j++) {
             double t = periodos[j];
             if (!(t > 0)) throw new IllegalArgumentException("Los periodos deben ser positivos.");
-            sa[j] = t <= PERIODO_RIGIDO ? pga : saUnPeriodo(aceleracionSuelo, dt, t, amortiguamiento);
+            sa[j] = t <= FERNANDO_HUANCA_PERIODO_RIGIDO ? pga : fernandoHuancaSaUnPeriodo(aceleracionSuelo, dt, t, amortiguamiento);
         }
         return sa;
     }
 
-    private static double saUnPeriodo(double[] ag, double dt, double t, double xi) {
+    private static double fernandoHuancaSaUnPeriodo(double[] ag, double dt, double t, double xi) {
         double w = 2 * Math.PI / t;
         double k = w * w;
         // Si el registro es grueso respecto al periodo se interpola linealmente a ~T/20 (el método es exacto para esa señal lineal por tramos).
@@ -69,7 +69,7 @@ public final class EspectroRespuesta {
     }
 
     /** {@code n} periodos con espaciamiento logarítmico entre {@code tMin} y {@code tMax} (ambos incluidos). */
-    public static double[] rejillaPeriodos(double tMin, double tMax, int n) {
+    public static double[] fernandoHuancaRejillaPeriodos(double tMin, double tMax, int n) {
         if (!(tMin > 0) || !(tMax > tMin) || n < 2) throw new IllegalArgumentException("La rejilla requiere 0 < tMin < tMax y al menos 2 puntos.");
         double[] p = new double[n];
         double l0 = Math.log(tMin), l1 = Math.log(tMax);

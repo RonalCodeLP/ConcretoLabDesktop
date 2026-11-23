@@ -239,6 +239,11 @@
                         </VBox>
                     </HBox>
                     <VBox styleClass="campo">
+                        <Label text="Cemento" styleClass="campo-label"/>
+                        <ComboBox fx:id="cmbCementoDiseno" onAction="#onElegirCementoDiseno" promptText="De la biblioteca (opcional): verifica el tipo frente a sulfatos" maxWidth="Infinity"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
                         <Label text="Densidad del cemento (g/cm³)" styleClass="campo-label"/>
                         <TextField fx:id="txtDensCemento" text="3.15"/>
                         <Label styleClass="campo-error" visible="false" managed="false"/>

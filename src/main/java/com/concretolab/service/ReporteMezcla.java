@@ -9,8 +9,8 @@ import java.util.Locale;
 public final class ReporteMezcla {
  private ReporteMezcla(){}
  private static String f(double n){return String.format(Locale.ROOT,"%.3f",n);}
- public static byte[] generar(Proyecto p,Mezcla m,double volumen,List<Ensayo> ensayos){
-  var r=MezclaService.calcular(m,volumen);ByteArrayOutputStream out=new ByteArrayOutputStream();Document d=new Document(PageSize.A4,40,40,40,40);
+ public static byte[] yefriLermaGenerar(Proyecto p,Mezcla m,double volumen,List<Ensayo> ensayos){
+  var r=MezclaService.yefriLermaCalcular(m,volumen);ByteArrayOutputStream out=new ByteArrayOutputStream();Document d=new Document(PageSize.A4,40,40,40,40);
   PdfWriter.getInstance(d,out);d.open();
   d.add(new Paragraph("ConcretoLab | Resumen de dosificación",FontFactory.getFont(FontFactory.HELVETICA_BOLD,16)));
   d.add(new Paragraph("Proyecto: "+p.getNombre()+"    Mezcla: "+m.getNombre()));

@@ -19,27 +19,27 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "app.seeder.enabled", havingValue = "true")
 public class DatabaseSeeder implements ApplicationRunner {
 
-    private final ProyectoSeeder proyectoSeeder;
-    private final MaterialSeeder materialSeeder;
-    private final GranulometriaSeeder granulometriaSeeder;
-    private final MezclaSeeder mezclaSeeder;
-    private final EdificiosSismicosSeeder edificiosSeeder;
-    private final EdificioPracticaSeeder edificioPracticaSeeder;
+    private final ProyectoSeeder fernandoHuancaProyectoSeeder;
+    private final MaterialSeeder fernandoHuancaMaterialSeeder;
+    private final GranulometriaSeeder fernandoHuancaGranulometriaSeeder;
+    private final MezclaSeeder fernandoHuancaMezclaSeeder;
+    private final EdificiosSismicosSeeder fernandoHuancaEdificiosSeeder;
+    private final EdificioPracticaSeeder fernandoHuancaEdificioPracticaSeeder;
 
     @Override
     public void run(ApplicationArguments args) {
-        sembrar();
+        fernandoHuancaSembrar();
     }
 
     /** Ejecuta los seeders en orden de dependencias y devuelve cuántos registros nuevos creó. */
-    public int sembrar() {
+    public int fernandoHuancaSembrar() {
         // Orden: el proyecto va primero; la granulometría necesita la arena; la mezcla necesita el proyecto.
-        int proyectos = proyectoSeeder.sembrar();
-        int materiales = materialSeeder.sembrar();
-        int granulometrias = granulometriaSeeder.sembrar();
-        int mezclas = mezclaSeeder.sembrar();
-        int edificios = edificiosSeeder.sembrar();
-        int practicas = edificioPracticaSeeder.sembrar();
+        int proyectos = fernandoHuancaProyectoSeeder.yefriLermaSembrar();
+        int materiales = fernandoHuancaMaterialSeeder.yefriLermaSembrar();
+        int granulometrias = fernandoHuancaGranulometriaSeeder.yefriLermaSembrar();
+        int mezclas = fernandoHuancaMezclaSeeder.yefriLermaSembrar();
+        int edificios = fernandoHuancaEdificiosSeeder.yefriLermaSembrar();
+        int practicas = fernandoHuancaEdificioPracticaSeeder.walterQuispesayhuaSembrar();
         log.info("Seeder: {} proyecto(s), {} material(es), {} tamizado(s), {} registro(s) de mezcla/ensayo, {} edificio(s) sísmicos y {} proyecto(s) de práctica nuevos.",
                 proyectos, materiales, granulometrias, mezclas, edificios, practicas);
         return proyectos + materiales + granulometrias + mezclas + edificios + practicas;

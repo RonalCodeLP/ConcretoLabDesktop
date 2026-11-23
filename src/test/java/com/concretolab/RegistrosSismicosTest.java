@@ -32,7 +32,7 @@ class RegistrosSismicosTest {
     @TempDir Path tmp;
 
     @BeforeAll
-    static void generar() { conjuntos = GeneradorAcelerograma.generarConjuntos(NORMA, 7, T, 2026L); }
+    static void generar() { conjuntos = GeneradorAcelerograma.fernandoHuancaGenerarConjuntos(NORMA, 7, T, 2026L); }
 
     // ------------------------------------------------------------ record
 
@@ -124,13 +124,13 @@ class RegistrosSismicosTest {
         double dt = 0.005, periodo = 1.0, w = 2 * Math.PI / periodo, xi = 0.05, amp = 1.0;
         double[] a = new double[(int) (80 / dt) + 1];
         for (int i = 0; i < a.length; i++) a[i] = amp * Math.sin(w * i * dt);
-        double sa = EspectroRespuesta.pseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
+        double sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
         assertThat(sa).isCloseTo(amp / (2 * xi), within(0.01 * amp / (2 * xi)));
         // fuera de resonancia (r = 0,5): amplitud estacionaria 1/√((1−r²)²+(2ξr)²); el máximo puede superarla algo por el transitorio
         double r = 0.5;
         double[] b = new double[a.length];
         for (int i = 0; i < b.length; i++) b[i] = Math.sin(r * w * i * dt);
-        double sb = EspectroRespuesta.pseudoAceleracion(b, dt, new double[]{periodo}, xi)[0];
+        double sb = EspectroRespuesta.fernandoHuancaPseudoAceleracion(b, dt, new double[]{periodo}, xi)[0];
         double est = 1 / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * xi * r, 2));
         assertThat(sb).isBetween(est * 0.99, est * 1.5);
     }
@@ -141,7 +141,7 @@ class RegistrosSismicosTest {
         double[] a = new double[2001];
         for (int i = 0; i < a.length; i++) a[i] = 2.5 * Math.sin(2 * Math.PI * 1.0 * i * dt) + 0.7 * Math.sin(2 * Math.PI * 2.3 * i * dt);
         double pga = Arrays.stream(a).map(Math::abs).max().orElseThrow();
-        double[] sa = EspectroRespuesta.pseudoAceleracion(a, dt, new double[]{0.005, 0.02, 0.03}, 0.05);
+        double[] sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(a, dt, new double[]{0.005, 0.02, 0.03}, 0.05);
         assertThat(sa[0]).isEqualTo(pga);
         assertThat(sa[1]).isEqualTo(pga);
         assertThat(sa[2]).isCloseTo(pga, within(0.03 * pga));
@@ -155,21 +155,21 @@ class RegistrosSismicosTest {
         double dv = a0 * dt, w = 2 * Math.PI / periodo, wd = w * Math.sqrt(1 - xi * xi);
         double tPico = Math.atan2(wd, xi * w) / wd;
         double umax = dv / wd * Math.exp(-xi * w * tPico) * Math.sin(wd * tPico);
-        double sa = EspectroRespuesta.pseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
+        double sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
         assertThat(sa).isCloseTo(w * w * umax, within(0.01 * w * w * umax));
         // periodo mucho menor que dt: se interpola internamente y el resultado sigue siendo finito y positivo
-        double[] grueso = EspectroRespuesta.pseudoAceleracion(new double[]{0, 1, 0, -1, 0, 1, 0}, 0.1, new double[]{0.05, 0.1}, 0.05);
+        double[] grueso = EspectroRespuesta.fernandoHuancaPseudoAceleracion(new double[]{0, 1, 0, -1, 0, 1, 0}, 0.1, new double[]{0.05, 0.1}, 0.05);
         assertThat(grueso[0]).isPositive().isFinite();
     }
 
     @Test
     void rejillaDePeriodosEsLogaritmica() {
-        double[] p = EspectroRespuesta.rejillaPeriodos(0.1, 10, 5);
+        double[] p = EspectroRespuesta.fernandoHuancaRejillaPeriodos(0.1, 10, 5);
         assertThat(p).hasSize(5);
         assertThat(p[0]).isEqualTo(0.1);
         assertThat(p[4]).isEqualTo(10);
         assertThat(p[2]).isCloseTo(1.0, within(1e-12));
-        assertThatThrownBy(() -> EspectroRespuesta.rejillaPeriodos(1, 0.5, 5)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> EspectroRespuesta.fernandoHuancaRejillaPeriodos(1, 0.5, 5)).isInstanceOf(IllegalArgumentException.class);
     }
 
     // ------------------------------------------------------------ importador
@@ -183,21 +183,21 @@ class RegistrosSismicosTest {
     @Test
     void importaUnaColumnaConDtDelEncabezadoYConvierteGal() throws IOException {
         Path p = archivo("a.txt", "REGISTRO CISMID\nUNIDADES: cm/s2\nDT = 0.005 s\n10\n-20\n30\n40\n");
-        Componente c = ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.CM_S2, null);
+        Componente c = ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.CM_S2, null);
         assertThat(c.dt()).isEqualTo(0.005);
         assertThat(c.a()).containsExactly(0.10, -0.20, 0.30, 0.40);
         // el dt del usuario manda sobre el del encabezado
-        assertThat(ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.M_S2, 0.01).dt()).isEqualTo(0.01);
+        assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.M_S2, 0.01).dt()).isEqualTo(0.01);
         // variantes del encabezado
-        assertThat(ImportadorRegistro.importarUnaComponente(archivo("b.txt", "Estacion X\ndt: 0.02\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.02);
-        assertThat(ImportadorRegistro.importarUnaComponente(archivo("c.txt", "DELTA T 0.01\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.01);
-        assertThat(ImportadorRegistro.importarUnaComponente(archivo("d.txt", "INTERVALO 0.005\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.005);
+        assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("b.txt", "Estacion X\ndt: 0.02\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.02);
+        assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("c.txt", "DELTA T 0.01\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.01);
+        assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("d.txt", "INTERVALO 0.005\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.005);
     }
 
     @Test
     void importaDosColumnasTiempoAceleracionConComaDecimalYTabulador() throws IOException {
         Path p = archivo("e.txt", "TIEMPO\tACEL (g)\n0,00\t0,10\n0,01\t0,20\n0,02\t-0,30\n0,03\t0,05\n");
-        Componente c = ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.G, null);
+        Componente c = ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.G, null);
         assertThat(c.dt()).isCloseTo(0.01, within(1e-12));
         assertThat(c.a()[0]).isCloseTo(0.98, within(0.01));
         assertThat(c.a()[2]).isCloseTo(-0.30 * 9.80665, within(1e-9));
@@ -206,13 +206,13 @@ class RegistrosSismicosTest {
     @Test
     void importaTresColumnasConComaOPuntoYComaYDevuelveRegistro() throws IOException {
         Path coma = archivo("f.csv", "t,ax,ay\n0.0,1.0,-1.0\n0.01,2.0,-2.0\n0.02,3.0,-3.0\n");
-        RegistroSismico r = ImportadorRegistro.importar(coma, UnidadAceleracion.M_S2, null);
+        RegistroSismico r = ImportadorRegistro.fernandoHuancaImportar(coma, UnidadAceleracion.M_S2, null);
         assertThat(r.dt()).isCloseTo(0.01, within(1e-12));
         assertThat(r.ax()).containsExactly(1.0, 2.0, 3.0);
         assertThat(r.ay()).containsExactly(-1.0, -2.0, -3.0);
         assertThat(r.fuente()).contains("f.csv");
         Path pc = archivo("g.txt", "0,00;1,5;-0,5\n0,01;2,5;-1,5\n0,02;0,5;0,5\n");
-        RegistroSismico r2 = ImportadorRegistro.importar(pc, UnidadAceleracion.CM_S2, null);
+        RegistroSismico r2 = ImportadorRegistro.fernandoHuancaImportar(pc, UnidadAceleracion.CM_S2, null);
         assertThat(r2.ax()[0]).isCloseTo(0.015, within(1e-12));
         assertThat(r2.ay()[1]).isCloseTo(-0.015, within(1e-12));
     }
@@ -221,7 +221,7 @@ class RegistrosSismicosTest {
     void importaFormatoPeerConVariasAceleracionesPorLinea() throws IOException {
         Path p = archivo("h.AT2", "PEER NGA STRONG MOTION DATABASE RECORD\nLima 1974, Station X\nACCELERATION TIME SERIES IN UNITS OF G\nNPTS= 10, DT= .0100 SEC\n"
                 + "0.0010 0.0020 0.0030 0.0040 0.0050\n0.0060 0.0070 0.0080 0.0090 0.0100\n");
-        Componente c = ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.G, null);
+        Componente c = ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.G, null);
         assertThat(c.dt()).isEqualTo(0.01);
         assertThat(c.a()).hasSize(10);
         assertThat(c.a()[9]).isCloseTo(0.01 * 9.80665, within(1e-12));
@@ -230,7 +230,7 @@ class RegistrosSismicosTest {
     @Test
     void unaSolaComponenteConImportarPideElSegundoArchivoYSugiereUnidades() throws IOException {
         Path p = archivo("i.txt", "Registro EW  (cm/s2)\nDT=0.01\n1\n2\n3\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importar(p, UnidadAceleracion.M_S2, null))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportar(p, UnidadAceleracion.M_S2, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("dos componentes")
                 .hasMessageContaining("cm/s²");
@@ -240,37 +240,37 @@ class RegistrosSismicosTest {
     void importaParDeArchivosYValidaCoherencia() throws IOException {
         Path x = archivo("ew.txt", "DT=0.01\n1\n2\n3\n4\n");
         Path y = archivo("ns.txt", "DT=0.01\n-1\n-2\n-3\n-4\n");
-        RegistroSismico r = ImportadorRegistro.importarPar(x, y, UnidadAceleracion.M_S2, null);
+        RegistroSismico r = ImportadorRegistro.fernandoHuancaImportarPar(x, y, UnidadAceleracion.M_S2, null);
         assertThat(r.ax()).containsExactly(1, 2, 3, 4);
         assertThat(r.ay()).containsExactly(-1, -2, -3, -4);
         Path z = archivo("otro.txt", "DT=0.02\n1\n2\n3\n4\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarPar(x, z, UnidadAceleracion.M_S2, null)).hasMessageContaining("distinto paso de tiempo");
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarPar(x, z, UnidadAceleracion.M_S2, null)).hasMessageContaining("distinto paso de tiempo");
         Path largo = archivo("largo.txt", "DT=0.01\n" + "1\n".repeat(50));
-        assertThatThrownBy(() -> ImportadorRegistro.importarPar(x, largo, UnidadAceleracion.M_S2, null)).hasMessageContaining("distinto número");
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarPar(x, largo, UnidadAceleracion.M_S2, null)).hasMessageContaining("distinto número");
     }
 
     @Test
     void archivoConBasuraDaErroresClaros() throws IOException {
         Path texto = archivo("j.txt", "esto no es un acelerograma\nsolo texto\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(texto, UnidadAceleracion.M_S2, 0.01))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(texto, UnidadAceleracion.M_S2, 0.01))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no contiene datos numéricos");
         Path mezcla = archivo("k.txt", "1.0\n2.0\nabc\n3.0\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(mezcla, UnidadAceleracion.M_S2, 0.01))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(mezcla, UnidadAceleracion.M_S2, 0.01))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("Línea 3");
         Path columnas = archivo("l.txt", "0.0 1.0\n0.01 2.0 3.0\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(columnas, UnidadAceleracion.M_S2, null))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(columnas, UnidadAceleracion.M_S2, null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("columnas");
         Path sinDt = archivo("m.txt", "1\n2\n3\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(sinDt, UnidadAceleracion.M_S2, null))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(sinDt, UnidadAceleracion.M_S2, null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("dt");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(tmp.resolve("no-existe.txt"), UnidadAceleracion.M_S2, 0.01))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(tmp.resolve("no-existe.txt"), UnidadAceleracion.M_S2, 0.01))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("No se encontró");
     }
 
     @Test
     void dtNoUniformeSeRechaza() throws IOException {
         Path p = archivo("n.txt", "0.00 1.0\n0.01 2.0\n0.02 3.0\n0.05 4.0\n0.06 5.0\n");
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.M_S2, null))
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.M_S2, null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no es uniforme");
     }
 
@@ -278,15 +278,15 @@ class RegistrosSismicosTest {
     void archivoMayorDe10MbSeRechaza() throws IOException {
         Path p = tmp.resolve("grande.txt");
         Files.write(p, new byte[10 * 1024 * 1024 + 10]);
-        assertThatThrownBy(() -> ImportadorRegistro.importarUnaComponente(p, UnidadAceleracion.M_S2, 0.01)).hasMessageContaining("10 MB");
+        assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.M_S2, 0.01)).hasMessageContaining("10 MB");
     }
 
     // ------------------------------------------------------------ generador
 
     @Test
     void generadorEsReproducibleYLaSemillaCambiaElResultado() {
-        List<RegistroSismico> igual = GeneradorAcelerograma.generarConjuntos(NORMA, 2, T, 2026L);
-        List<RegistroSismico> otra = GeneradorAcelerograma.generarConjuntos(NORMA, 2, T, 7L);
+        List<RegistroSismico> igual = GeneradorAcelerograma.fernandoHuancaGenerarConjuntos(NORMA, 2, T, 2026L);
+        List<RegistroSismico> otra = GeneradorAcelerograma.fernandoHuancaGenerarConjuntos(NORMA, 2, T, 7L);
         assertThat(igual.get(0).ax()).isEqualTo(conjuntos.get(0).ax());
         assertThat(igual.get(1).ay()).isEqualTo(conjuntos.get(1).ay());
         assertThat(otra.get(0).ax()).isNotEqualTo(conjuntos.get(0).ax());
@@ -305,7 +305,7 @@ class RegistrosSismicosTest {
             assertThat(r.dt()).isEqualTo(0.01);
             assertThat(r.duracion()).isCloseTo(40.0, within(0.011));
             for (int c = 0; c < 2; c++) {
-                double pga = r.aceleracionMaxima(c) / EscaladoRegistros.G;
+                double pga = r.aceleracionMaxima(c) / EscaladoRegistros.FERNANDO_HUANCA_G;
                 assertThat(pga).as(r.nombre() + " comp " + c).isBetween(0.1, 1.5);
                 assertThat(maxAbs(r.velocidad(c))).isLessThan(2.0);
                 assertThat(maxAbs(r.desplazamiento(c))).isLessThan(2.0);
@@ -315,11 +315,11 @@ class RegistrosSismicosTest {
 
     @Test
     void espectroGeneradoSigueAlObjetivoEnElIntervaloDeInteres() {
-        double[] per = EspectroRespuesta.rejillaPeriodos(0.2 * T, 1.5 * T, 60);
-        double[] objetivo = EscaladoRegistros.espectroDiseno(NORMA, per);
+        double[] per = EspectroRespuesta.fernandoHuancaRejillaPeriodos(0.2 * T, 1.5 * T, 60);
+        double[] objetivo = EscaladoRegistros.fernandoHuancaEspectroDiseno(NORMA, per);
         for (RegistroSismico r : conjuntos) {
             for (double[] comp : new double[][]{r.ax(), r.ay()}) {
-                double[] sa = EspectroRespuesta.pseudoAceleracion(comp, r.dt(), per, 0.05);
+                double[] sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(comp, r.dt(), per, 0.05);
                 for (int j = 0; j < per.length; j++)
                     assertThat(sa[j] / objetivo[j]).as(r.nombre() + " T=" + per[j]).isBetween(0.85, 1.25);
             }
@@ -330,7 +330,7 @@ class RegistrosSismicosTest {
 
     @Test
     void escaladoCumpleElPromedioSrssYUsaElMismoFactorEnAmbasComponentes() {
-        ResultadoEscalado res = EscaladoRegistros.escalar(conjuntos, NORMA, T);
+        ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(conjuntos, NORMA, T);
         assertThat(res.periodos().length).isGreaterThanOrEqualTo(40);
         assertThat(res.periodos()[0]).isCloseTo(0.2 * T, within(1e-12));
         assertThat(res.periodos()[res.periodos().length - 1]).isCloseTo(1.5 * T, within(1e-12));
@@ -349,8 +349,8 @@ class RegistrosSismicosTest {
                 assertThat(esc.ax()[k]).isCloseTo(orig.ax()[k] * f, within(1e-9));
                 assertThat(esc.ay()[k]).isCloseTo(orig.ay()[k] * f, within(1e-9)); // mismo factor en X e Y
             }
-            double[] sx = EspectroRespuesta.pseudoAceleracion(esc.ax(), esc.dt(), res.periodos(), 0.05);
-            double[] sy = EspectroRespuesta.pseudoAceleracion(esc.ay(), esc.dt(), res.periodos(), 0.05);
+            double[] sx = EspectroRespuesta.fernandoHuancaPseudoAceleracion(esc.ax(), esc.dt(), res.periodos(), 0.05);
+            double[] sy = EspectroRespuesta.fernandoHuancaPseudoAceleracion(esc.ay(), esc.dt(), res.periodos(), 0.05);
             for (int j = 0; j < prom.length; j++) prom[j] += Math.hypot(sx[j], sy[j]) / 7;
         }
         for (int j = 0; j < prom.length; j++) {
@@ -361,13 +361,13 @@ class RegistrosSismicosTest {
 
     @Test
     void escaladoAvisaSiHayMenosConjuntosQueElMinimoDeLaVersion() {
-        ResultadoEscalado res = EscaladoRegistros.escalar(conjuntos.subList(0, 3), NORMA, T);
+        ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(conjuntos.subList(0, 3), NORMA, T);
         assertThat(res.razonMinima()).isGreaterThanOrEqualTo(0.999);
         assertThat(res.cumple()).isFalse();
         assertThat(res.avisos()).anyMatch(s -> s.contains("al menos 7 conjuntos"));
-        assertThat(EscaladoRegistros.minimoConjuntos(NormaE030.Version.V2018)).isEqualTo(3);
-        assertThat(EscaladoRegistros.minimoConjuntos(NormaE030.Version.V2026)).isEqualTo(7);
-        assertThatThrownBy(() -> EscaladoRegistros.escalar(List.of(), NORMA, T)).isInstanceOf(IllegalArgumentException.class);
+        assertThat(EscaladoRegistros.fernandoHuancaMinimoConjuntos(NormaE030.Version.V2018)).isEqualTo(3);
+        assertThat(EscaladoRegistros.fernandoHuancaMinimoConjuntos(NormaE030.Version.V2026)).isEqualTo(7);
+        assertThatThrownBy(() -> EscaladoRegistros.fernandoHuancaEscalar(List.of(), NORMA, T)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -377,7 +377,7 @@ class RegistrosSismicosTest {
         double[] a = new double[3001], b = new double[3001];
         for (int i = 0; i < a.length; i++) { a[i] = Math.sin(2 * Math.PI * 1.2 * i * dt); b[i] = 0.5 * Math.sin(2 * Math.PI * 0.8 * i * dt); }
         RegistroSismico r = new RegistroSismico("seno", "prueba", dt, a, b);
-        ResultadoEscalado res = EscaladoRegistros.escalar(List.of(r, r, r), NormaE030.Parametros.v2018(NormaE030.Zona.Z3, NormaE030.Categoria.C, NormaE030.Suelo.S2_2018, 8, 1, 1, 35), T);
+        ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(List.of(r, r, r), NormaE030.Parametros.v2018(NormaE030.Zona.Z3, NormaE030.Categoria.C, NormaE030.Suelo.S2_2018, 8, 1, 1, 35), T);
         assertThat(res.razonMinima()).isGreaterThanOrEqualTo(0.999);
         assertThat(res.cumple()).isTrue(); // 3 conjuntos bastan en la versión 2018
         assertThat(res.avisos()).anyMatch(s -> s.contains("47.6"));
@@ -385,7 +385,7 @@ class RegistrosSismicosTest {
 
     @Test
     void escaladoEspectroCompatibleNoReduceYCumpleElArt476() {
-        ResultadoEscalado res = EscaladoRegistros.escalar(conjuntos, NORMA, T, true);
+        ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(conjuntos, NORMA, T, true);
         assertThat(res.cumple()).isTrue();
         assertThat(res.razonMinima()).isGreaterThanOrEqualTo(0.999);
         assertThat(res.avisos()).noneMatch(s -> s.contains("47.6"));
@@ -393,7 +393,7 @@ class RegistrosSismicosTest {
         double minimo = Double.POSITIVE_INFINITY;
         for (RegistroSismico r : res.escalados())
             for (double[] c : new double[][]{r.ax(), r.ay()}) {
-                double[] sa = EspectroRespuesta.pseudoAceleracion(c, r.dt(), res.periodos(), 0.05);
+                double[] sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(c, r.dt(), res.periodos(), 0.05);
                 for (int j = 0; j < sa.length; j++) minimo = Math.min(minimo, sa[j] / res.espectroDiseno()[j]);
             }
         assertThat(minimo).isGreaterThanOrEqualTo(0.9 - 1e-6);

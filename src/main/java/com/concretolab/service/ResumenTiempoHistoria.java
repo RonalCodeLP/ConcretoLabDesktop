@@ -25,7 +25,7 @@ public record ResumenTiempoHistoria(String origenRegistros, double periodoFundam
     /** PGA (g) del registro escalado {@code i}: mayor entre las dos componentes. */
     public double pgaG(int i) {
         RegistroSismico r = escalado.escalados().get(i);
-        return Math.max(r.aceleracionMaxima(0), r.aceleracionMaxima(1)) / EscaladoRegistros.G;
+        return Math.max(r.aceleracionMaxima(0), r.aceleracionMaxima(1)) / EscaladoRegistros.FERNANDO_HUANCA_G;
     }
 
     /**

@@ -10,14 +10,14 @@ public final class HistoriaPiso {
     public record Piso(double altura, double rigidez, int columnas) {}
     public record Respuesta(double periodo, double[] desplazamiento, double[] velocidad, int pico) {}
 
-    public static Piso piso(List<Elemento> elementos, double moduloMPa, boolean ejeX) {
-        positivo(moduloMPa, "Módulo E");
+    public static Piso yefriLermaPiso(List<Elemento> elementos, double moduloMPa, boolean ejeX) {
+        yefriLermaPositivo(moduloMPa, "Módulo E");
         double altura = 0, cota = 0, rigidez = 0;
         var posiciones = new HashSet<List<Double>>();
         for (var e : elementos) {
             if (!"COLUMNA".equals(e.getTipo())) continue;
             double h = e.getAltura(), x = e.getLargo(), y = e.getAncho();
-            positivo(h, "Altura"); positivo(x, "Sección X"); positivo(y, "Sección Y");
+            yefriLermaPositivo(h, "Altura"); yefriLermaPositivo(x, "Sección X"); yefriLermaPositivo(y, "Sección Y");
             if (!Double.isFinite(e.getZ()) || !Double.isFinite(e.getX()) || !Double.isFinite(e.getY()))
                 throw new IllegalArgumentException("Coordenadas inválidas.");
             if (altura != 0 && (Math.abs(h-altura)>1e-6 || Math.abs(cota-e.getZ())>1e-6))
@@ -29,13 +29,13 @@ public final class HistoriaPiso {
             rigidez += 12*moduloMPa*1000*inercia/Math.pow(h,3);
         }
         if (posiciones.isEmpty()) throw new IllegalArgumentException("Agrega columnas al proyecto.");
-        positivo(rigidez,"Rigidez");
+        yefriLermaPositivo(rigidez,"Rigidez");
         return new Piso(altura, rigidez, posiciones.size());
     }
 
     // Newmark de aceleración media. Entrada de base en m/s², respuesta relativa en m.
-    public static Respuesta resolver(double masa, double k, double amortiguamiento, double dt, double[] ag) {
-        positivo(masa,"Masa"); positivo(k,"Rigidez"); positivo(dt,"Paso de tiempo");
+    public static Respuesta yefriLermaResolver(double masa, double k, double amortiguamiento, double dt, double[] ag) {
+        yefriLermaPositivo(masa,"Masa"); yefriLermaPositivo(k,"Rigidez"); yefriLermaPositivo(dt,"Paso de tiempo");
         if (!Double.isFinite(amortiguamiento) || amortiguamiento<0 || amortiguamiento>=1)
             throw new IllegalArgumentException("Amortiguamiento entre 0 y menos de 100 %.");
         if (ag.length<2 || ag.length>200000) throw new IllegalArgumentException("Se requieren de 2 a 200000 muestras.");
@@ -54,7 +54,7 @@ public final class HistoriaPiso {
         }
         return new Respuesta(periodo,u,v,pico);
     }
-    private static void positivo(double n,String nombre) {
+    private static void yefriLermaPositivo(double n,String nombre) {
         if (!Double.isFinite(n)||n<=0) throw new IllegalArgumentException(nombre+" debe ser positivo y finito.");
     }
 }

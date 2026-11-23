@@ -35,12 +35,12 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class MaterialesController implements Refrescable {
 
-    private static final String SIN_SELECCION = "Seleccione un material para ver sus datos de laboratorio.";
-    private static final String TIPO_POR_DEFECTO = "AGREGADO FINO";
-    private static final String NUMERO_INVALIDO = "Ingrese números válidos en los resultados de ensayo.";
+    private static final String YEFRI_LERMA_SIN_SELECCION = "Seleccione un material para ver sus datos de laboratorio.";
+    private static final String YEFRI_LERMA_TIPO_POR_DEFECTO = "AGREGADO FINO";
+    private static final String YEFRI_LERMA_NUMERO_INVALIDO = "Ingrese números válidos en los resultados de ensayo.";
 
-    private final MaterialService servicio;
-    private final Notificador notificador;
+    private final MaterialService yefriLermaServicio;
+    private final Notificador yefriLermaNotificador;
 
     @FXML private VBox panelFormulario;
     @FXML private ComboBox<String> cmbTipo;
@@ -67,35 +67,37 @@ public class MaterialesController implements Refrescable {
 
     private final ObservableList<Material> datos = FXCollections.observableArrayList();
     /** Lista completa del servicio; el paginador solo recorta lo que se muestra. */
-    private List<Material> todos = new ArrayList<>();
+    private List<Material> yefriLermaTodos = new ArrayList<>();
 
     @FXML
     public void initialize() {
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo()));
-        colTipo.setCellFactory(Tablas.celdaChip("—"));
-        colProcedencia.setCellValueFactory(c -> new SimpleStringProperty(texto(c.getValue().getProcedencia())));
+        colTipo.setCellFactory(Tablas.fernandoHuancaCeldaChip("—"));
+        colProcedencia.setCellValueFactory(c -> new SimpleStringProperty(yefriLermaTexto(c.getValue().getProcedencia())));
         colEnsayo.setCellValueFactory(c -> new SimpleStringProperty(
-                texto(c.getValue().getReferenciaEnsayo()) + " " + texto(c.getValue().getFechaEnsayo())));
+                yefriLermaTexto(c.getValue().getReferenciaEnsayo()) + " " + yefriLermaTexto(c.getValue().getFechaEnsayo())));
 
         // Los materiales no se editan: cada registro nuevo conserva la trazabilidad de los anteriores.
-        Tablas.configurar(tabla, "Aún no hay materiales registrados.", m -> { });
+        Tablas.fernandoHuancaConfigurar(tabla, "Aún no hay materiales registrados.", m -> { });
         tabla.setItems(datos);
 
         tabla.getSelectionModel().selectedItemProperty()
-                .addListener((obs, anterior, material) -> lblDetalle.setText(detalle(material)));
+                .addListener((obs, anterior, material) -> lblDetalle.setText(yefriLermaDetalle(material)));
 
-        paginador.setOnCambio(this::mostrarPagina);
+        paginador.setOnCambio(this::yefriLermaMostrarPagina);
 
-        Formularios.limpiarAlEditar(txtNombre, txtProcedencia, txtReferenciaEnsayo, txtFechaEnsayo,
+        Formularios.fernandoHuancaLimpiarAlEditar(txtNombre, txtProcedencia, txtReferenciaEnsayo, txtFechaEnsayo,
                 txtDensidadRelativa, txtAbsorcion, txtHumedad, txtModuloFinura, txtTamanoMaximo,
                 txtPesoUnitario, txtObservaciones);
-        cmbTipo.valueProperty().addListener((obs, a, b) -> Formularios.limpiarError(cmbTipo));
+        cmbTipo.valueProperty().addListener((obs, a, b) -> Formularios.fernandoHuancaLimpiarError(cmbTipo));
+        // Lista única de tipos (la misma que valida el servicio)
+        cmbTipo.getItems().setAll(com.concretolab.service.MaterialService.YEFRI_LERMA_TIPOS);
     }
 
     @Override
     public void refrescar() {
-        cargarTabla();
+        yefriLermaCargarTabla();
     }
 
     // ------------------------------------------------------------- acciones
@@ -103,29 +105,29 @@ public class MaterialesController implements Refrescable {
     @FXML
     private void onNuevo() {
         tabla.getSelectionModel().clearSelection();
-        limpiarFormulario();
-        notificador.abrirPanel(panelFormulario);
+        yefriLermaLimpiarFormulario();
+        yefriLermaNotificador.fernandoHuancaAbrirPanel(panelFormulario);
         Platform.runLater(txtNombre::requestFocus);
     }
 
     @FXML
     private void onCerrarFormulario() {
-        notificador.cerrarPanel();
+        yefriLermaNotificador.fernandoHuancaCerrarPanel();
     }
 
     @FXML
     private void onGuardar() {
-        limpiarErrores();
+        yefriLermaLimpiarErrores();
 
         List<TextField> invalidos = new ArrayList<>();
-        Double densidad = numero(txtDensidadRelativa, invalidos);
-        Double absorcion = numero(txtAbsorcion, invalidos);
-        Double humedad = numero(txtHumedad, invalidos);
-        Double moduloFinura = numero(txtModuloFinura, invalidos);
-        Double tamanoMaximo = numero(txtTamanoMaximo, invalidos);
-        Double pesoUnitario = numero(txtPesoUnitario, invalidos);
+        Double densidad = yefriLermaNumero(txtDensidadRelativa, invalidos);
+        Double absorcion = yefriLermaNumero(txtAbsorcion, invalidos);
+        Double humedad = yefriLermaNumero(txtHumedad, invalidos);
+        Double moduloFinura = yefriLermaNumero(txtModuloFinura, invalidos);
+        Double tamanoMaximo = yefriLermaNumero(txtTamanoMaximo, invalidos);
+        Double pesoUnitario = yefriLermaNumero(txtPesoUnitario, invalidos);
         if (!invalidos.isEmpty()) {
-            invalidos.forEach(campo -> Formularios.marcarError(campo, NUMERO_INVALIDO));
+            invalidos.forEach(campo -> Formularios.fernandoHuancaMarcarError(campo, YEFRI_LERMA_NUMERO_INVALIDO));
             return;
         }
 
@@ -144,42 +146,42 @@ public class MaterialesController implements Refrescable {
             m.setPesoUnitarioCompactado(pesoUnitario);
             m.setObservaciones(txtObservaciones.getText());
 
-            Material guardado = servicio.guardar(m);
-            notificador.cerrarPanel();
-            notificador.exito("Material \"" + guardado.getNombre() + "\" registrado.");
-            cargarTabla();
+            Material guardado = yefriLermaServicio.yefriLermaGuardar(m);
+            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            yefriLermaNotificador.exito("Material \"" + guardado.getNombre() + "\" registrado.");
+            yefriLermaCargarTabla();
         } catch (IllegalArgumentException | NegocioException e) {
-            Control campo = campoDelError(e.getMessage());
+            Control campo = yefriLermaCampoDelError(e.getMessage());
             if (campo != null) {
-                Formularios.marcarError(campo, e.getMessage());
+                Formularios.fernandoHuancaMarcarError(campo, e.getMessage());
             } else {
-                notificador.advertencia(e.getMessage());
+                yefriLermaNotificador.fernandoHuancaAdvertencia(e.getMessage());
             }
         } catch (Exception e) {
-            notificador.error("Error inesperado: " + e.getMessage());
+            yefriLermaNotificador.fernandoHuancaError("Error inesperado: " + e.getMessage());
         }
     }
 
     // ----------------------------------------------------------------- apoyo
 
-    private void cargarTabla() {
-        todos = servicio.listar();
-        mostrarPagina();
+    private void yefriLermaCargarTabla() {
+        yefriLermaTodos = yefriLermaServicio.yefriLermaListar();
+        yefriLermaMostrarPagina();
     }
 
-    private void mostrarPagina() {
+    private void yefriLermaMostrarPagina() {
         int tamanio = paginador.getTamanio();
         int pagina = paginador.getPagina();
-        int desde = Math.min(pagina * tamanio, todos.size());
-        int hasta = Math.min(desde + tamanio, todos.size());
-        Page<Material> resultado = new PageImpl<>(new ArrayList<>(todos.subList(desde, hasta)),
-                PageRequest.of(pagina, tamanio), todos.size());
+        int desde = Math.min(pagina * tamanio, yefriLermaTodos.size());
+        int hasta = Math.min(desde + tamanio, yefriLermaTodos.size());
+        Page<Material> resultado = new PageImpl<>(new ArrayList<>(yefriLermaTodos.subList(desde, hasta)),
+                PageRequest.of(pagina, tamanio), yefriLermaTodos.size());
         datos.setAll(resultado.getContent());
-        paginador.actualizar(resultado);
+        paginador.yefriLermaActualizar(resultado);
     }
 
     /** Asocia el mensaje de validacion del servicio con el campo que corresponde, si se puede. */
-    private Control campoDelError(String mensaje) {
+    private Control yefriLermaCampoDelError(String mensaje) {
         if (mensaje == null) {
             return null;
         }
@@ -195,9 +197,9 @@ public class MaterialesController implements Refrescable {
         return null;
     }
 
-    private void limpiarFormulario() {
-        limpiarErrores();
-        cmbTipo.setValue(TIPO_POR_DEFECTO);
+    private void yefriLermaLimpiarFormulario() {
+        yefriLermaLimpiarErrores();
+        cmbTipo.setValue(YEFRI_LERMA_TIPO_POR_DEFECTO);
         txtNombre.clear();
         txtProcedencia.clear();
         txtReferenciaEnsayo.clear();
@@ -211,14 +213,14 @@ public class MaterialesController implements Refrescable {
         txtObservaciones.clear();
     }
 
-    private void limpiarErrores() {
-        Formularios.limpiarErrores(cmbTipo, txtNombre, txtProcedencia, txtReferenciaEnsayo, txtFechaEnsayo,
+    private void yefriLermaLimpiarErrores() {
+        Formularios.fernandoHuancaLimpiarErrores(cmbTipo, txtNombre, txtProcedencia, txtReferenciaEnsayo, txtFechaEnsayo,
                 txtDensidadRelativa, txtAbsorcion, txtHumedad, txtModuloFinura, txtTamanoMaximo,
                 txtPesoUnitario, txtObservaciones);
     }
 
     /** Vacio = sin dato ({@code null}); si no es numerico registra el campo como invalido. */
-    private static Double numero(TextField campo, List<TextField> invalidos) {
+    private static Double yefriLermaNumero(TextField campo, List<TextField> invalidos) {
         if (campo.getText().isBlank()) {
             return null;
         }
@@ -230,24 +232,24 @@ public class MaterialesController implements Refrescable {
         }
     }
 
-    private static String detalle(Material m) {
+    private static String yefriLermaDetalle(Material m) {
         if (m == null) {
-            return SIN_SELECCION;
+            return YEFRI_LERMA_SIN_SELECCION;
         }
-        return "Densidad relativa: " + formato(m.getDensidadRelativa())
-                + " · Absorción: " + formato(m.getAbsorcion())
-                + " % · Humedad: " + formato(m.getHumedad()) + " %\n"
-                + "Módulo de finura: " + formato(m.getModuloFinura())
-                + " · Tamaño máximo: " + formato(m.getTamanoMaximoMm())
-                + " mm · Peso unitario compactado: " + formato(m.getPesoUnitarioCompactado()) + " kg/m³\n"
-                + "Observaciones: " + texto(m.getObservaciones());
+        return "Densidad relativa: " + yefriLermaFormato(m.getDensidadRelativa())
+                + " · Absorción: " + yefriLermaFormato(m.getAbsorcion())
+                + " % · Humedad: " + yefriLermaFormato(m.getHumedad()) + " %\n"
+                + "Módulo de finura: " + yefriLermaFormato(m.getModuloFinura())
+                + " · Tamaño máximo: " + yefriLermaFormato(m.getTamanoMaximoMm())
+                + " mm · Peso unitario compactado: " + yefriLermaFormato(m.getPesoUnitarioCompactado()) + " kg/m³\n"
+                + "Observaciones: " + yefriLermaTexto(m.getObservaciones());
     }
 
-    private static String texto(String s) {
+    private static String yefriLermaTexto(String s) {
         return s == null ? "" : s;
     }
 
-    private static String formato(Double n) {
+    private static String yefriLermaFormato(Double n) {
         return n == null ? "Sin dato" : String.format(Locale.ROOT, "%.3f", n);
     }
 }

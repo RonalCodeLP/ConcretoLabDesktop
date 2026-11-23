@@ -6,7 +6,7 @@ import java.util.*;
 public final class DiagnosticoSismico {
  private DiagnosticoSismico(){}
  public record Informe(int zapatas,int columnas,int vigas,List<String> faltantes){}
- public static Informe revisar(List<Elemento> elementos){
+ public static Informe yefriLermaRevisar(List<Elemento> elementos){
   if(elementos==null)throw new IllegalArgumentException("No se pudo cargar el proyecto.");
   int zapatas=0,columnas=0,vigas=0;
   for(Elemento e:elementos){if(e==null)continue;if("ZAPATA".equals(e.getTipo()))zapatas++;else if("COLUMNA".equals(e.getTipo()))columnas++;else if("VIGA".equals(e.getTipo()))vigas++;}

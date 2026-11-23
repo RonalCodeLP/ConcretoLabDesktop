@@ -14,22 +14,22 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ProyectoSeeder {
 
-    public static final String NOMBRE = "DEMO - Edificación de práctica";
+    public static final String YEFRI_LERMA_NOMBRE = "DEMO - Edificación de práctica";
 
     private final YefriLermaProyectoService proyectos;
 
     @Transactional
-    public int sembrar() {
-        if (buscar(proyectos) != null) {
+    public int yefriLermaSembrar() {
+        if (yefriLermaBuscar(proyectos) != null) {
             return 0;
         }
-        Proyecto p = proyectos.crearProyecto(NOMBRE, "Datos ficticios para aprendizaje");
-        proyectos.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.5, 1.5, 0.5, 0.4, 3, 0.3, 0.5));
+        Proyecto p = proyectos.yefriLermaCrearProyecto(YEFRI_LERMA_NOMBRE, "Datos ficticios para aprendizaje");
+        proyectos.yefriLermaCrearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.5, 1.5, 0.5, 0.4, 3, 0.3, 0.5));
         return 1;
     }
 
     /** Devuelve el proyecto DEMO o {@code null} si todavía no existe. */
-    static Proyecto buscar(YefriLermaProyectoService proyectos) {
-        return proyectos.proyectos().stream().filter(p -> NOMBRE.equals(p.getNombre())).findFirst().orElse(null);
+    static Proyecto yefriLermaBuscar(YefriLermaProyectoService proyectos) {
+        return proyectos.proyectos().stream().filter(p -> YEFRI_LERMA_NOMBRE.equals(p.getNombre())).findFirst().orElse(null);
     }
 }

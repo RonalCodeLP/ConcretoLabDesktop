@@ -19,40 +19,40 @@ public final class ResumenSimulacion {
     private ResumenSimulacion() {}
 
     /** Distorsión límite del tiempo-historia: 1,25 × 0,007 (art. 49.2). */
-    public static final double LIMITE_DERIVA = 1.25 * 0.007;
+    public static final double WALTER_QUISPESAYHUA_LIMITE_DERIVA = 1.25 * 0.007;
     /** Amortiguamiento fijo (art. 48.5). */
-    public static final double AMORTIGUAMIENTO = 0.05;
+    public static final double WALTER_QUISPESAYHUA_AMORTIGUAMIENTO = 0.05;
     /** Máximo de puntos por serie en las gráficas. */
-    public static final int PUNTOS_MAXIMOS = 2000;
+    public static final int WALTER_QUISPESAYHUA_PUNTOS_MAXIMOS = 2000;
     /** Fracción de la altura del edificio que ocupa el mayor desplazamiento absoluto con la escala automática. */
-    public static final double FRACCION_VISUAL = 0.175;
+    public static final double WALTER_QUISPESAYHUA_FRACCION_VISUAL = 0.175;
     /** Hasta este cociente deriva/límite el entrepiso se pinta verde; hasta 1,0 ámbar; más, rojo. */
-    public static final double UMBRAL_VERDE = 0.6;
+    public static final double WALTER_QUISPESAYHUA_UMBRAL_VERDE = 0.6;
 
     /** Nivel de deriva de un entrepiso respecto al límite. */
     public enum NivelDeriva { BAJO, ALERTA, EXCEDE }
 
     /** Periodo fundamental para escalado y rejilla: el mayor entre los de X e Y (la rejilla 0,2T a 1,5T cubre ambas direcciones). */
-    public static double periodoFundamental(double periodoX, double periodoY) {
+    public static double walterQuispesayhuaPeriodoFundamental(double periodoX, double periodoY) {
         if (!(periodoX > 0) || !(periodoY > 0) || !Double.isFinite(periodoX) || !Double.isFinite(periodoY))
             throw new IllegalArgumentException("Los periodos fundamentales deben ser positivos.");
         return Math.max(periodoX, periodoY);
     }
 
-    /** Nivel de una deriva (valor absoluto) respecto a {@link #LIMITE_DERIVA}. */
-    public static NivelDeriva nivel(double deriva) {
-        double c = Math.abs(deriva) / LIMITE_DERIVA;
-        if (c <= UMBRAL_VERDE) return NivelDeriva.BAJO;
+    /** Nivel de una deriva (valor absoluto) respecto a {@link #WALTER_QUISPESAYHUA_LIMITE_DERIVA}. */
+    public static NivelDeriva walterQuispesayhuaNivel(double deriva) {
+        double c = Math.abs(deriva) / WALTER_QUISPESAYHUA_LIMITE_DERIVA;
+        if (c <= WALTER_QUISPESAYHUA_UMBRAL_VERDE) return NivelDeriva.BAJO;
         return c <= 1.0 ? NivelDeriva.ALERTA : NivelDeriva.EXCEDE;
     }
 
     /**
-     * Factor de exageración visual: el mayor desplazamiento absoluto ocupa {@link #FRACCION_VISUAL} de la altura.
+     * Factor de exageración visual: el mayor desplazamiento absoluto ocupa {@link #WALTER_QUISPESAYHUA_FRACCION_VISUAL} de la altura.
      * Si no hay movimiento se devuelve 1.
      */
-    public static double factorVisual(double desplazamientoMaximo, double alturaEdificio) {
+    public static double walterQuispesayhuaFactorVisual(double desplazamientoMaximo, double alturaEdificio) {
         if (!(desplazamientoMaximo > 1e-12) || !(alturaEdificio > 0)) return 1.0;
-        return FRACCION_VISUAL * alturaEdificio / desplazamientoMaximo;
+        return WALTER_QUISPESAYHUA_FRACCION_VISUAL * alturaEdificio / desplazamientoMaximo;
     }
 
     /**
@@ -61,7 +61,7 @@ public final class ResumenSimulacion {
      *
      * @return {x, y} decimados
      */
-    public static double[][] decimar(double[] x, double[] y, int maximo) {
+    public static double[][] walterQuispesayhuaDecimar(double[] x, double[] y, int maximo) {
         if (x.length != y.length) throw new IllegalArgumentException("Las series x e y deben tener igual longitud.");
         if (maximo < 3) throw new IllegalArgumentException("El máximo de puntos debe ser al menos 3.");
         int n = x.length;
@@ -82,39 +82,39 @@ public final class ResumenSimulacion {
     }
 
     /** Mayor |desplazamiento absoluto| (suelo + relativo) de cualquier piso o del suelo, en la dirección (0 = X, 1 = Y), en m. */
-    public static double desplazamientoAbsolutoMaximo(ResultadoTiempoHistoria r, int dir) {
+    public static double walterQuispesayhuaDesplazamientoAbsolutoMaximo(ResultadoTiempoHistoria r, int dir) {
         double m = 0;
-        double[] suelo = suelo(r, dir);
+        double[] suelo = walterQuispesayhuaSuelo(r, dir);
         for (int p = 0; p < r.pasos(); p++) {
             m = Math.max(m, Math.abs(suelo[p]));
-            for (int s = 0; s < r.pisos(); s++) m = Math.max(m, Math.abs(absoluto(r, dir, p, s)));
+            for (int s = 0; s < r.pisos(); s++) m = Math.max(m, Math.abs(walterQuispesayhuaAbsoluto(r, dir, p, s)));
         }
         return m;
     }
 
-    public static double[] suelo(ResultadoTiempoHistoria r, int dir) { return dir == 0 ? r.sueloX() : r.sueloY(); }
+    public static double[] walterQuispesayhuaSuelo(ResultadoTiempoHistoria r, int dir) { return dir == 0 ? r.sueloX() : r.sueloY(); }
 
-    public static double[] aceleracionSuelo(ResultadoTiempoHistoria r, int dir) { return dir == 0 ? r.aceleracionSueloX() : r.aceleracionSueloY(); }
+    public static double[] walterQuispesayhuaAceleracionSuelo(ResultadoTiempoHistoria r, int dir) { return dir == 0 ? r.aceleracionSueloX() : r.aceleracionSueloY(); }
 
-    public static double relativo(ResultadoTiempoHistoria r, int dir, int paso, int piso) { return dir == 0 ? r.ux()[paso][piso] : r.uy()[paso][piso]; }
+    public static double walterQuispesayhuaRelativo(ResultadoTiempoHistoria r, int dir, int paso, int piso) { return dir == 0 ? r.ux()[paso][piso] : r.uy()[paso][piso]; }
 
-    public static double absoluto(ResultadoTiempoHistoria r, int dir, int paso, int piso) {
+    public static double walterQuispesayhuaAbsoluto(ResultadoTiempoHistoria r, int dir, int paso, int piso) {
         return dir == 0 ? r.desplazamientoAbsolutoX(paso, piso) : r.desplazamientoAbsolutoY(paso, piso);
     }
 
-    public static double deriva(ResultadoTiempoHistoria r, int dir, int paso, int piso) {
+    public static double walterQuispesayhuaDeriva(ResultadoTiempoHistoria r, int dir, int paso, int piso) {
         return Math.abs(dir == 0 ? r.derivaX()[paso][piso] : r.derivaY()[paso][piso]);
     }
 
     /** Mayor deriva de entrepiso (valor absoluto) en un instante. */
-    public static double derivaMaximaInstante(ResultadoTiempoHistoria r, int dir, int paso) {
+    public static double walterQuispesayhuaDerivaMaximaInstante(ResultadoTiempoHistoria r, int dir, int paso) {
         double m = 0;
-        for (int s = 0; s < r.pisos(); s++) m = Math.max(m, deriva(r, dir, paso, s));
+        for (int s = 0; s < r.pisos(); s++) m = Math.max(m, walterQuispesayhuaDeriva(r, dir, paso, s));
         return m;
     }
 
     /** Piso (0 = primero) con la mayor deriva máxima en la dirección. */
-    public static int pisoCritico(ResultadoTiempoHistoria r, int dir) {
+    public static int walterQuispesayhuaPisoCritico(ResultadoTiempoHistoria r, int dir) {
         double[] d = dir == 0 ? r.derivaMaximaPisoX() : r.derivaMaximaPisoY();
         int k = 0;
         for (int i = 1; i < d.length; i++) if (d[i] > d[k]) k = i;
@@ -122,23 +122,23 @@ public final class ResumenSimulacion {
     }
 
     /** Serie del desplazamiento relativo (m) del último piso. */
-    public static double[] techoRelativo(ResultadoTiempoHistoria r, int dir) {
+    public static double[] walterQuispesayhuaTechoRelativo(ResultadoTiempoHistoria r, int dir) {
         double[] s = new double[r.pasos()];
-        for (int p = 0; p < s.length; p++) s[p] = relativo(r, dir, p, r.pisos() - 1);
+        for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaRelativo(r, dir, p, r.pisos() - 1);
         return s;
     }
 
     /** Serie del desplazamiento absoluto (m) del último piso. */
-    public static double[] techoAbsoluto(ResultadoTiempoHistoria r, int dir) {
+    public static double[] walterQuispesayhuaTechoAbsoluto(ResultadoTiempoHistoria r, int dir) {
         double[] s = new double[r.pasos()];
-        for (int p = 0; p < s.length; p++) s[p] = absoluto(r, dir, p, r.pisos() - 1);
+        for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaAbsoluto(r, dir, p, r.pisos() - 1);
         return s;
     }
 
     /** Serie de la deriva (valor absoluto) de un entrepiso. */
-    public static double[] derivaPiso(ResultadoTiempoHistoria r, int dir, int piso) {
+    public static double[] walterQuispesayhuaDerivaPiso(ResultadoTiempoHistoria r, int dir, int piso) {
         double[] s = new double[r.pasos()];
-        for (int p = 0; p < s.length; p++) s[p] = deriva(r, dir, p, piso);
+        for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaDeriva(r, dir, p, piso);
         return s;
     }
 
@@ -148,21 +148,21 @@ public final class ResumenSimulacion {
      * @param espectroCompatible {@code true} para sintéticos compatibles, {@code false} para registros reales importados
      * @param progreso           recibe la fracción completada (0 a 1); puede ser {@code null}
      */
-    public static ResumenTiempoHistoria simular(ModeloDinamico modelo, Parametros norma, List<RegistroSismico> registros,
+    public static ResumenTiempoHistoria walterQuispesayhuaSimular(ModeloDinamico modelo, Parametros norma, List<RegistroSismico> registros,
                                                 boolean espectroCompatible, double periodoFundamental, String origen,
                                                 DoubleConsumer progreso) {
         if (registros == null || registros.isEmpty()) throw new IllegalArgumentException("No hay registros para simular.");
         DoubleConsumer p = progreso == null ? x -> { } : progreso;
         int n = registros.size();
         p.accept(0.0);
-        var esc = EscaladoRegistros.escalar(registros, norma, periodoFundamental, espectroCompatible);
+        var esc = EscaladoRegistros.fernandoHuancaEscalar(registros, norma, periodoFundamental, espectroCompatible);
         p.accept(1.0 / (n + 2));
         List<ResultadoTiempoHistoria> res = new ArrayList<>();
         for (int i = 0; i < n; i++) {
-            res.add(AnalisisTiempoHistoria.resolver(modelo, esc.escalados().get(i), AMORTIGUAMIENTO));
+            res.add(AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, esc.escalados().get(i), WALTER_QUISPESAYHUA_AMORTIGUAMIENTO));
             p.accept((i + 2.0) / (n + 2));
         }
-        var ver = AnalisisTiempoHistoria.verificar(res, norma);
+        var ver = AnalisisTiempoHistoria.fernandoHuancaVerificar(res, norma);
         p.accept(1.0);
         return new ResumenTiempoHistoria(origen, periodoFundamental, esc, List.copyOf(res), ver);
     }

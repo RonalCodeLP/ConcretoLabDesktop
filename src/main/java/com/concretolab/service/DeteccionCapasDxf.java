@@ -60,18 +60,18 @@ public final class DeteccionCapasDxf {
         }
     }
 
-    private static final Set<String> TIPOS_PUNTUALES = Set.of("POINT", "BLOQUE", "RECTÁNGULO", "CÍRCULO");
+    private static final Set<String> ERICK_DELGADO_TIPOS_PUNTUALES = Set.of("POINT", "BLOQUE", "RECTÁNGULO", "CÍRCULO");
 
     /** Quita tildes, pasa a mayúsculas y separa en palabras (por guiones, puntos, espacios, $, _ y |). */
-    static List<String> palabras(String capa) {
+    static List<String> erickDelgadoPalabras(String capa) {
         String limpio = Normalizer.normalize(capa, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toUpperCase(Locale.ROOT);
         return Arrays.stream(limpio.split("[^A-Z0-9]+")).filter(s -> !s.isEmpty()).toList();
     }
 
     /** Puntaje del nombre de capa para un rol: palabra exacta 3, prefijo de palabra 2, contenido 1, nada 0. */
-    public static int puntaje(String capa, Rol rol) {
+    public static int erickDelgadoPuntaje(String capa, Rol rol) {
         int mejor = 0;
-        for (String p : palabras(capa)) {
+        for (String p : erickDelgadoPalabras(capa)) {
             for (String clave : rol.palabras) {
                 if (p.equals(clave)) mejor = Math.max(mejor, 3);
                 else if (clave.length() >= 4 && (p.startsWith(clave) || clave.startsWith(p) && p.length() >= 4)) mejor = Math.max(mejor, 2);
@@ -81,21 +81,21 @@ public final class DeteccionCapasDxf {
         return mejor;
     }
 
-    private static Map<String, List<Entidad>> porCapa(Plano plano) {
+    private static Map<String, List<Entidad>> erickDelgadoPorCapa(Plano plano) {
         return plano.entidades().stream().collect(Collectors.groupingBy(Entidad::capa, TreeMap::new, Collectors.toList()));
     }
 
-    private static boolean compatible(List<Entidad> es, Set<String> tipos) {
+    private static boolean erickDelgadoCompatible(List<Entidad> es, Set<String> tipos) {
         return !es.isEmpty() && es.size() <= 200 && es.stream().allMatch(e -> tipos.contains(e.tipo()));
     }
 
     /** Sugiere una capa por rol entre las capas compatibles con el uso previsto (puntos/rectángulos o líneas). */
-    public static Mapeo sugerir(Plano plano) {
+    public static Mapeo erickDelgadoSugerir(Plano plano) {
         var mapa = new LinkedHashMap<Rol, String>();
-        var capas = porCapa(plano);
+        var capas = erickDelgadoPorCapa(plano);
         for (Rol rol : Rol.values()) {
             Set<String> tipos = switch (rol) {
-                case COLUMNAS, ZAPATAS -> TIPOS_PUNTUALES;
+                case COLUMNAS, ZAPATAS -> ERICK_DELGADO_TIPOS_PUNTUALES;
                 case VIGAS, EJES -> Set.of("LINE");
                 case LOSAS -> Set.of("RECTÁNGULO");
                 case MUROS -> Set.of("LINE");
@@ -103,8 +103,8 @@ public final class DeteccionCapasDxf {
             String elegida = null;
             int mejorPuntaje = 0;
             for (var e : capas.entrySet()) {
-                if (!tipos.isEmpty() && !compatible(e.getValue(), tipos)) continue;
-                int p = puntaje(e.getKey(), rol);
+                if (!tipos.isEmpty() && !erickDelgadoCompatible(e.getValue(), tipos)) continue;
+                int p = erickDelgadoPuntaje(e.getKey(), rol);
                 if (p > mejorPuntaje) {
                     mejorPuntaje = p;
                     elegida = e.getKey();
@@ -116,15 +116,15 @@ public final class DeteccionCapasDxf {
     }
 
     /** Metros por unidad: la declarada en $INSUNITS o, si falta, una estimación por el tamaño del dibujo. */
-    public static Unidad unidad(Plano plano) {
-        double declarado = FernandoHuancaPlanoDxf.metrosPorUnidad(plano.unidad());
+    public static Unidad erickDelgadoUnidad(Plano plano) {
+        double declarado = FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad(plano.unidad());
         if (!Double.isNaN(declarado)) {
-            return new Unidad(declarado, FernandoHuancaPlanoDxf.nombreUnidad(plano.unidad()), true);
+            return new Unidad(declarado, FernandoHuancaPlanoDxf.fernandoHuancaNombreUnidad(plano.unidad()), true);
         }
         double minX = Double.MAX_VALUE, maxX = -Double.MAX_VALUE, minY = Double.MAX_VALUE, maxY = -Double.MAX_VALUE;
         boolean hay = false;
         for (Entidad e : plano.entidades()) {
-            if (e.inicio() == null || !(TIPOS_PUNTUALES.contains(e.tipo()) || "LINE".equals(e.tipo()))) continue;
+            if (e.inicio() == null || !(ERICK_DELGADO_TIPOS_PUNTUALES.contains(e.tipo()) || "LINE".equals(e.tipo()))) continue;
             for (var p : new FernandoHuancaPlanoDxf.Punto[] {e.inicio(), e.fin()}) {
                 if (p == null) continue;
                 hay = true;
@@ -141,25 +141,25 @@ public final class DeteccionCapasDxf {
         return new Unidad(1.0, "metros (estimado por el tamaño del dibujo)", false);
     }
 
-    public static Diagnostico diagnosticar(Plano plano) {
+    public static Diagnostico erickDelgadoDiagnosticar(Plano plano) {
         var lineas = new ArrayList<String>();
         var avisos = new ArrayList<String>();
-        var capas = porCapa(plano);
-        var mapeo = sugerir(plano);
+        var capas = erickDelgadoPorCapa(plano);
+        var mapeo = erickDelgadoSugerir(plano);
         for (var e : capas.entrySet()) {
             var conteo = e.getValue().stream().collect(Collectors.groupingBy(Entidad::tipo, TreeMap::new, Collectors.counting()));
             String rol = Arrays.stream(Rol.values()).filter(r -> e.getKey().equals(mapeo.de(r))).map(Rol::etiqueta).findFirst()
-                    .orElseGet(() -> Arrays.stream(Rol.values()).filter(r -> puntaje(e.getKey(), r) >= 2).map(Rol::etiqueta).findFirst().orElse(null));
+                    .orElseGet(() -> Arrays.stream(Rol.values()).filter(r -> erickDelgadoPuntaje(e.getKey(), r) >= 2).map(Rol::etiqueta).findFirst().orElse(null));
             lineas.add(e.getKey() + " · " + conteo + (rol == null ? "" : "  → " + rol));
         }
         var tiposIgnorados = plano.entidades().stream().map(Entidad::tipo)
-                .filter(t -> !TIPOS_PUNTUALES.contains(t) && !"LINE".equals(t)).collect(Collectors.groupingBy(t -> t, TreeMap::new, Collectors.counting()));
+                .filter(t -> !ERICK_DELGADO_TIPOS_PUNTUALES.contains(t) && !"LINE".equals(t)).collect(Collectors.groupingBy(t -> t, TreeMap::new, Collectors.counting()));
         if (!tiposIgnorados.isEmpty()) {
             avisos.add("Se ignoran entidades que no definen elementos estructurales: " + tiposIgnorados + ".");
         }
         for (Rol rol : List.of(Rol.LOSAS, Rol.MUROS)) {
             if (mapeo.de(rol) == null) {
-                capas.keySet().stream().filter(c -> puntaje(c, rol) >= 2).findFirst().ifPresent(c -> avisos.add(
+                capas.keySet().stream().filter(c -> erickDelgadoPuntaje(c, rol) >= 2).findFirst().ifPresent(c -> avisos.add(
                         "La capa " + c + " parece de " + rol.etiqueta() + " pero no se puede importar: "
                         + (rol == Rol.LOSAS ? "las losas deben ser rectángulos cerrados" : "los muros deben ser líneas o polilíneas de 2 puntos")
                         + " (≤ 200 entidades) sin otros tipos en la capa."));
@@ -180,7 +180,7 @@ public final class DeteccionCapasDxf {
         if (plano.entidades().stream().anyMatch(e -> "PRESENTACIÓN".equals(e.tipo()))) {
             avisos.add("Se ignoran las entidades del espacio papel (presentaciones).");
         }
-        var unidad = unidad(plano);
+        var unidad = erickDelgadoUnidad(plano);
         if (!unidad.declarada()) {
             avisos.add("El archivo no declara unidades: se estima " + unidad.descripcion() + ". Verifique la escala antes de guardar.");
         }

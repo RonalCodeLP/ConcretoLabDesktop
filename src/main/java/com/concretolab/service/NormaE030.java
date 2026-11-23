@@ -156,5 +156,5 @@ public final class NormaE030 {
     }
 
     /** Distorsión máxima de entrepiso para concreto armado (2026: Tabla 14; 2018: Tabla 11). */
-    public static final double DERIVA_LIMITE_CONCRETO = 0.007;
+    public static final double FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO = 0.007;
 }

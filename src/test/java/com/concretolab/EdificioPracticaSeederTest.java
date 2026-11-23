@@ -44,13 +44,13 @@ class EdificioPracticaSeederTest {
 
     @Test
     void creaPracticaIncompletaPermiteTerminarlaYConservaCambios() {
-        var proyecto = proyectos.proyectos().stream().filter(p -> EdificioPracticaSeeder.NOMBRE.equals(p.getNombre())).findFirst().orElseThrow();
+        var proyecto = proyectos.proyectos().stream().filter(p -> EdificioPracticaSeeder.WALTER_QUISPESAYHUA_NOMBRE.equals(p.getNombre())).findFirst().orElseThrow();
         var iniciales = proyectos.elementos(proyecto.getId());
         assertEquals(22, iniciales.size());
         assertEquals(6, iniciales.stream().filter(e -> "ZAPATA".equals(e.getTipo())).count());
         assertEquals(8, iniciales.stream().filter(e -> "COLUMNA".equals(e.getTipo())).count());
         assertEquals(8, iniciales.stream().filter(e -> "VIGA".equals(e.getTipo())).count());
-        var guardada = cuadriculas.obtener(proyecto.getId()).orElseThrow();
+        var guardada = cuadriculas.walterQuispesayhuaObtener(proyecto.getId()).orElseThrow();
         assertEquals("5.0; 4.0", guardada.getSeparacionesX());
         assertEquals("4.0", guardada.getSeparacionesY());
         assertEquals("0.0; 3.0; 6.0", guardada.getNiveles());
@@ -69,21 +69,21 @@ class EdificioPracticaSeederTest {
 
         Elemento eliminado = iniciales.get(0);
         Elemento editado = iniciales.get(1);
-        proyectos.eliminar(eliminado.getId());
+        proyectos.yefriLermaEliminar(eliminado.getId());
         editado.setNombre("Ajustado por el usuario");
-        proyectos.guardar(editado);
-        assertEquals(0, seeders.sembrar());
+        proyectos.yefriLermaGuardar(editado);
+        assertEquals(0, seeders.fernandoHuancaSembrar());
         var finales = proyectos.elementos(proyecto.getId());
         assertEquals(31, finales.size());
         assertTrue(finales.stream().noneMatch(e -> e.getId().equals(eliminado.getId())));
         assertTrue(finales.stream().anyMatch(e -> e.getId().equals(editado.getId()) && "Ajustado por el usuario".equals(e.getNombre())));
-        assertEquals(1, proyectos.proyectos().stream().filter(p -> EdificioPracticaSeeder.NOMBRE.equals(p.getNombre())).count());
+        assertEquals(1, proyectos.proyectos().stream().filter(p -> EdificioPracticaSeeder.WALTER_QUISPESAYHUA_NOMBRE.equals(p.getNombre())).count());
     }
 
     private void crearSinSuperposiciones(Long proyectoId, Solicitud solicitud, int cantidad) {
-        var vista = cuadriculas.previsualizar(proyectoId, solicitud);
+        var vista = cuadriculas.walterQuispesayhuaPrevisualizar(proyectoId, solicitud);
         assertEquals(cantidad, vista.elementos().size());
         assertTrue(vista.superposiciones().isEmpty(), vista.superposiciones().toString());
-        cuadriculas.crear(proyectoId, solicitud);
+        cuadriculas.walterQuispesayhuaCrear(proyectoId, solicitud);
     }
 }

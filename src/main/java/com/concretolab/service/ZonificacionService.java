@@ -28,8 +28,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ZonificacionService {
 
-    private static final String RECURSO = "/data/zonificacion-e030-2026.csv";
-    private static final String FUENTE = "E.030 2026 (R.M. 183-2026-VIVIENDA), Anexo II";
+    private static final String FERNANDO_HUANCA_RECURSO = "/data/zonificacion-e030-2026.csv";
+    private static final String FERNANDO_HUANCA_FUENTE = "E.030 2026 (R.M. 183-2026-VIVIENDA), Anexo II";
 
     /** Un distrito con su zona sismica (1 a 4). */
     public record Ubicacion(String departamento, String provincia, String distrito, int zona) {
@@ -51,13 +51,13 @@ public class ZonificacionService {
     private volatile Datos datos;
 
     /** Departamentos en el orden de la norma. */
-    public List<String> departamentos() {
-        return cargar().departamentos();
+    public List<String> fernandoHuancaDepartamentos() {
+        return fernandoHuancaCargar().departamentos();
     }
 
     /** Provincias del departamento indicado; lista vacia si no existe. */
-    public List<String> provincias(String departamento) {
-        Datos d = cargar();
+    public List<String> fernandoHuancaProvincias(String departamento) {
+        Datos d = fernandoHuancaCargar();
         String dep = d.departamentoPorClave().get(clave(departamento));
         if (dep == null) {
             return List.of();
@@ -66,8 +66,8 @@ public class ZonificacionService {
     }
 
     /** Distritos de la provincia indicada; lista vacia si el departamento o la provincia no existen. */
-    public List<String> distritos(String departamento, String provincia) {
-        List<Ubicacion> lista = ubicaciones(departamento, provincia);
+    public List<String> fernandoHuancaDistritos(String departamento, String provincia) {
+        List<Ubicacion> lista = fernandoHuancaUbicaciones(departamento, provincia);
         List<String> nombres = new ArrayList<>(lista.size());
         for (Ubicacion u : lista) {
             nombres.add(u.distrito());
@@ -76,12 +76,12 @@ public class ZonificacionService {
     }
 
     /** Zona sismica (1 a 4) del distrito, o vacio si no se encuentra. */
-    public OptionalInt zona(String departamento, String provincia, String distrito) {
+    public OptionalInt fernandoHuancaZona(String departamento, String provincia, String distrito) {
         String buscado = clave(distrito);
         if (buscado.isEmpty()) {
             return OptionalInt.empty();
         }
-        for (Ubicacion u : ubicaciones(departamento, provincia)) {
+        for (Ubicacion u : fernandoHuancaUbicaciones(departamento, provincia)) {
             if (clave(u.distrito()).equals(buscado)) {
                 return OptionalInt.of(u.zona());
             }
@@ -95,14 +95,14 @@ public class ZonificacionService {
      * por el texto, despues los distritos que lo contienen y al final las provincias que lo contienen;
      * dentro de cada grupo se respeta el orden de la norma.
      */
-    public List<Ubicacion> buscar(String texto, int limite) {
+    public List<Ubicacion> fernandoHuancaBuscar(String texto, int limite) {
         String q = clave(texto);
         if (q.isEmpty() || limite <= 0) {
             return List.of();
         }
         List<List<Ubicacion>> grupos = List.of(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
                 new ArrayList<>());
-        for (Fila f : cargar().filas()) {
+        for (Fila f : fernandoHuancaCargar().filas()) {
             if (f.distritoNorm().startsWith(q)) {
                 grupos.get(0).add(f.ubicacion());
             } else if (f.provinciaNorm().startsWith(q)) {
@@ -126,19 +126,19 @@ public class ZonificacionService {
     }
 
     /** Numero total de distritos cargados. */
-    public int totalDistritos() {
-        return cargar().filas().size();
+    public int fernandoHuancaTotalDistritos() {
+        return fernandoHuancaCargar().filas().size();
     }
 
     /** Referencia normativa de los datos. */
-    public String fuente() {
-        return FUENTE;
+    public String fernandoHuancaFuente() {
+        return FERNANDO_HUANCA_FUENTE;
     }
 
     // ------------------------------------------------------------------ internos
 
-    private List<Ubicacion> ubicaciones(String departamento, String provincia) {
-        Datos d = cargar();
+    private List<Ubicacion> fernandoHuancaUbicaciones(String departamento, String provincia) {
+        Datos d = fernandoHuancaCargar();
         String dep = d.departamentoPorClave().get(clave(departamento));
         if (dep == null) {
             return List.of();
@@ -150,13 +150,13 @@ public class ZonificacionService {
         return d.arbol().get(dep).get(prov);
     }
 
-    private Datos cargar() {
+    private Datos fernandoHuancaCargar() {
         Datos d = datos;
         if (d == null) {
             synchronized (this) {
                 d = datos;
                 if (d == null) {
-                    d = leer();
+                    d = fernandoHuancaLeer();
                     datos = d;
                 }
             }
@@ -164,15 +164,15 @@ public class ZonificacionService {
         return d;
     }
 
-    private Datos leer() {
+    private Datos fernandoHuancaLeer() {
         List<Fila> filas = new ArrayList<>();
         Map<String, String> depPorClave = new LinkedHashMap<>();
         Map<String, Map<String, String>> provPorClave = new LinkedHashMap<>();
         Map<String, Map<String, List<Ubicacion>>> arbol = new LinkedHashMap<>();
 
-        try (InputStream in = ZonificacionService.class.getResourceAsStream(RECURSO)) {
+        try (InputStream in = ZonificacionService.class.getResourceAsStream(FERNANDO_HUANCA_RECURSO)) {
             if (in == null) {
-                throw new IllegalStateException("No se encontro el recurso " + RECURSO);
+                throw new IllegalStateException("No se encontro el recurso " + FERNANDO_HUANCA_RECURSO);
             }
             BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             String linea;
@@ -187,16 +187,16 @@ public class ZonificacionService {
                 }
                 String[] c = linea.split(";", -1);
                 if (c.length != 4) {
-                    throw new IllegalStateException(RECURSO + ", linea " + numero + ": se esperaban 4 columnas");
+                    throw new IllegalStateException(FERNANDO_HUANCA_RECURSO + ", linea " + numero + ": se esperaban 4 columnas");
                 }
                 int zona;
                 try {
                     zona = Integer.parseInt(c[3].trim());
                 } catch (NumberFormatException e) {
-                    throw new IllegalStateException(RECURSO + ", linea " + numero + ": zona invalida", e);
+                    throw new IllegalStateException(FERNANDO_HUANCA_RECURSO + ", linea " + numero + ": zona invalida", e);
                 }
                 if (zona < 1 || zona > 4) {
-                    throw new IllegalStateException(RECURSO + ", linea " + numero + ": zona fuera de rango");
+                    throw new IllegalStateException(FERNANDO_HUANCA_RECURSO + ", linea " + numero + ": zona fuera de rango");
                 }
                 String dep = c[0].trim();
                 String prov = c[1].trim();
@@ -210,7 +210,7 @@ public class ZonificacionService {
                 filas.add(new Fila(u, clave(u.distrito()), clave(prov)));
             }
         } catch (IOException e) {
-            throw new UncheckedIOException("Error leyendo " + RECURSO, e);
+            throw new UncheckedIOException("Error leyendo " + FERNANDO_HUANCA_RECURSO, e);
         }
 
         // Congelar las listas

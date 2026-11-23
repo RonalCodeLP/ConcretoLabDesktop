@@ -81,7 +81,7 @@ class TiempoHistoriaTest {
         var modelo = unPiso();
         double t0 = modelo.periodos()[0], w0 = 2 * Math.PI / t0, xi = 0.05, r = 0.5, A = 1.5, w = r * w0;
         double dt = 0.002;
-        var res = AnalisisTiempoHistoria.resolver(modelo, registro(dt, 60 * t0, t -> A * Math.sin(w * t), t -> 0), xi);
+        var res = AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, registro(dt, 60 * t0, t -> A * Math.sin(w * t), t -> 0), xi);
         double esperado = A / (w0 * w0) / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * xi * r, 2));
         int desde = (int) (res.pasos() * 0.8);
         assertThat(maximoAbs(columna(res.ux(), 0), desde)).isCloseTo(esperado, within(0.015 * esperado));
@@ -93,7 +93,7 @@ class TiempoHistoriaTest {
 
     @Test
     void sinCargaNadaSeMueve() {
-        var res = AnalisisTiempoHistoria.resolver(dosPisos(), registro(0.01, 5, t -> 0, t -> 0), 0.0);
+        var res = AnalisisTiempoHistoria.fernandoHuancaResolver(dosPisos(), registro(0.01, 5, t -> 0, t -> 0), 0.0);
         assertThat(res.derivaMaximaX()).isZero();
         assertThat(res.derivaMaximaY()).isZero();
         assertThat(res.desplazamientoTechoMaximoX()).isZero();
@@ -108,7 +108,7 @@ class TiempoHistoriaTest {
         double t1 = modelo.periodos()[0];
         double dt = 0.001;
         // Impulso corto en el primer paso; luego vibración libre sin amortiguamiento
-        var res = AnalisisTiempoHistoria.resolver(modelo, registro(dt, 25, t -> t < 0.0015 ? 20.0 : 0.0, t -> 0), 0.0);
+        var res = AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, registro(dt, 25, t -> t < 0.0015 ? 20.0 : 0.0, t -> 0), 0.0);
         // Coordenada modal del modo fundamental: q = v1ᵀ M^½ u, con v1 el autovector del menor autovalor
         double[] m = modelo.masas();
         RealMatrix a = new Array2DRowRealMatrix(6, 6);
@@ -161,7 +161,7 @@ class TiempoHistoriaTest {
 
     @Test
     void simetriaSinMovimientoEnYNiGiro() {
-        var res = AnalisisTiempoHistoria.resolver(dosPisos(),
+        var res = AnalisisTiempoHistoria.fernandoHuancaResolver(dosPisos(),
                 registro(0.01, 10, t -> 3 * Math.sin(2 * Math.PI * 1.3 * t) + Math.sin(2 * Math.PI * 4 * t), t -> 0), 0.05);
         assertThat(res.desplazamientoTechoMaximoX()).isGreaterThan(1e-4);
         assertThat(res.desplazamientoTechoMaximoY()).isLessThan(1e-12);
@@ -177,8 +177,8 @@ class TiempoHistoriaTest {
     void convergenciaConDtYMitad() {
         DoubleUnaryOperator fx = t -> 2 * Math.sin(2 * Math.PI * 1.25 * t) + Math.sin(2 * Math.PI * 3 * t);
         DoubleUnaryOperator fy = t -> 1.5 * Math.sin(2 * Math.PI * 0.9 * t);
-        var r1 = AnalisisTiempoHistoria.resolver(dosPisos(), registro(0.01, 10, fx, fy), 0.05);
-        var r2 = AnalisisTiempoHistoria.resolver(dosPisos(), registro(0.005, 10, fx, fy), 0.05);
+        var r1 = AnalisisTiempoHistoria.fernandoHuancaResolver(dosPisos(), registro(0.01, 10, fx, fy), 0.05);
+        var r2 = AnalisisTiempoHistoria.fernandoHuancaResolver(dosPisos(), registro(0.005, 10, fx, fy), 0.05);
         assertThat(r1.desplazamientoTechoMaximoX()).isCloseTo(r2.desplazamientoTechoMaximoX(), within(0.01 * r2.desplazamientoTechoMaximoX()));
         assertThat(r1.desplazamientoTechoMaximoY()).isCloseTo(r2.desplazamientoTechoMaximoY(), within(0.01 * r2.desplazamientoTechoMaximoY()));
         assertThat(r1.derivaMaximaX()).isCloseTo(r2.derivaMaximaX(), within(0.01 * r2.derivaMaximaX()));
@@ -188,7 +188,7 @@ class TiempoHistoriaTest {
     @Test
     void desplazamientoAbsolutoEsRelativoMasSuelo() {
         var reg = registro(0.01, 8, t -> 2 * Math.sin(2 * Math.PI * 1.1 * t), t -> Math.cos(2 * Math.PI * 0.7 * t));
-        var res = AnalisisTiempoHistoria.resolver(dosPisos(), reg, 0.05);
+        var res = AnalisisTiempoHistoria.fernandoHuancaResolver(dosPisos(), reg, 0.05);
         assertThat(res.sueloX()).containsExactly(reg.desplazamiento(0));
         assertThat(res.sueloY()).containsExactly(reg.desplazamiento(1));
         for (int p = 0; p < res.pasos(); p++) {
@@ -201,11 +201,11 @@ class TiempoHistoriaTest {
     void validaEntradas() {
         var modelo = dosPisos();
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> AnalisisTiempoHistoria.resolver(modelo, registro(0.01, 2, t -> 0, t -> 0), 0.25));
+                () -> AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, registro(0.01, 2, t -> 0, t -> 0), 0.25));
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> AnalisisTiempoHistoria.resolver(modelo, registro(0.2, 2, t -> 0, t -> 0), 0.05));
+                () -> AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, registro(0.2, 2, t -> 0, t -> 0), 0.05));
         org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
-                () -> AnalisisTiempoHistoria.resolver(modelo, new RegistroSismico("x", "y", 0.01, new double[10], new double[9]), 0.05));
+                () -> AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, new RegistroSismico("x", "y", 0.01, new double[10], new double[9]), 0.05));
     }
 
     // ---------- verificación E.030 ----------
@@ -230,7 +230,7 @@ class TiempoHistoriaTest {
         var n2018 = NormaE030.Parametros.v2018(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S1_2018, 8, 1, 1, 35);
 
         // Siete conjuntos: promedio = 0,007 (el máximo 0,010 incumpliría el límite 0,00875)
-        var v7 = AnalisisTiempoHistoria.verificar(conjunto(7), n2026);
+        var v7 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(7), n2026);
         assertThat(v7.limite()).isCloseTo(0.00875, within(1e-12));
         assertThat(v7.criterio()).isEqualTo("promedio");
         assertThat(v7.conjuntosSuficientes()).isTrue();
@@ -241,10 +241,10 @@ class TiempoHistoriaTest {
         assertThat(String.join(" ", v7.avisos())).contains("VERIFICACIÓN complementaria").contains("R = 1").contains("empotrada");
 
         // 2018 con siete conjuntos también promedia
-        assertThat(AnalisisTiempoHistoria.verificar(conjunto(7), n2018).pisosX().get(0).derivaDiseno()).isCloseTo(0.007, within(1e-12));
+        assertThat(AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(7), n2018).pisosX().get(0).derivaDiseno()).isCloseTo(0.007, within(1e-12));
 
         // 2018 con tres conjuntos {0,004; 0,005; 0,006}: máximo 0,006 cumple; suficientes
-        var v3 = AnalisisTiempoHistoria.verificar(conjunto(3), n2018);
+        var v3 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(3), n2018);
         assertThat(v3.criterio()).isEqualTo("máximo");
         assertThat(v3.conjuntosSuficientes()).isTrue();
         assertThat(v3.pisosX().get(0).derivaDiseno()).isCloseTo(0.006, within(1e-12));
@@ -252,18 +252,18 @@ class TiempoHistoriaTest {
         // 2018 con menos de siete toma el máximo aunque el promedio cumpliría
         var lista = new ArrayList<>(conjunto(3));
         lista.set(2, sintetico(0.010, 0.002, 0.001, 0.001));
-        var vMax = AnalisisTiempoHistoria.verificar(lista, n2018);
+        var vMax = AnalisisTiempoHistoria.fernandoHuancaVerificar(lista, n2018);
         assertThat(vMax.pisosX().get(0).derivaDiseno()).isCloseTo(0.010, within(1e-12));
         assertThat(vMax.pisosX().get(0).cumple()).isFalse();
         assertThat(vMax.cumple()).isFalse();
 
         // 2026 con tres conjuntos: insuficientes
-        var v3_2026 = AnalisisTiempoHistoria.verificar(conjunto(3), n2026);
+        var v3_2026 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(3), n2026);
         assertThat(v3_2026.conjuntosSuficientes()).isFalse();
         assertThat(v3_2026.cumple()).isFalse();
         assertThat(v3_2026.conjuntos()).isEqualTo(3);
 
         // 2018 con dos conjuntos: insuficientes
-        assertThat(AnalisisTiempoHistoria.verificar(conjunto(2), n2018).conjuntosSuficientes()).isFalse();
+        assertThat(AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(2), n2018).conjuntosSuficientes()).isFalse();
     }
 }

@@ -46,12 +46,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class MainController {
 
-    private static final double ANCHO_EXPANDIDO = 248;
-    private static final double ANCHO_CONTRAIDO = 76;
-    private static final Duration DURACION_MENU = Duration.millis(260);
+    private static final double FERNANDO_HUANCA_ANCHO_EXPANDIDO = 248;
+    private static final double FERNANDO_HUANCA_ANCHO_CONTRAIDO = 76;
+    private static final Duration FERNANDO_HUANCA_DURACION_MENU = Duration.millis(260);
 
-    private final ApplicationContext context;
-    private final Notificador notificador;
+    private final ApplicationContext fernandoHuancaContext;
+    private final Notificador fernandoHuancaNotificador;
 
     @FXML private StackPane raiz;
     @FXML private VBox sidebar;
@@ -76,18 +76,18 @@ public class MainController {
     @FXML private Button btnContraer;
     @FXML private Button btnAcerca;
     @org.springframework.beans.factory.annotation.Value("${app.version:desconocida}")
-    private String version;
+    private String fernandoHuancaVersion;
 
     /** Vistas ya cargadas: se construyen una sola vez y se reutilizan. */
-    private final Map<String, Vista> vistas = new HashMap<>();
-    private boolean oscuro = false;
-    private boolean contraido = false;
+    private final Map<String, Vista> fernandoHuancaVistas = new HashMap<>();
+    private boolean fernandoHuancaOscuro = false;
+    private boolean fernandoHuancaContraido = false;
 
     private record Vista(Parent nodo, Object controlador) {}
 
     @FXML
     public void initialize() {
-        notificador.registrar(modalPanel, modalDialogo, zonaNotificaciones);
+        fernandoHuancaNotificador.fernandoHuancaRegistrar(modalPanel, modalDialogo, zonaNotificaciones);
         modalPanel.setAlignment(javafx.geometry.Pos.TOP_RIGHT);
         modalDialogo.setAlignment(javafx.geometry.Pos.CENTER);
 
@@ -99,7 +99,7 @@ public class MainController {
         navBalance.setUserData("balance-view");
         navMezclas.setUserData("mezclas-view");
         navDatos.setUserData("datos-view");
-        for (ToggleButton b : botonesMenu()) {
+        for (ToggleButton b : fernandoHuancaBotonesMenu()) {
             Tooltip t = new Tooltip(b.getText());
             t.setShowDelay(Duration.millis(300));
             b.setTooltip(t);
@@ -111,26 +111,26 @@ public class MainController {
                 menu.selectToggle(anterior);
                 return;
             }
-            mostrar((String) actual.getUserData());
-            moverIndicador(actual);
+            fernandoHuancaMostrar((String) actual.getUserData());
+            fernandoHuancaMoverIndicador(actual);
         });
 
         menu.selectToggle(navInicio);
-        Platform.runLater(() -> moverIndicador(navInicio));
+        Platform.runLater(() -> fernandoHuancaMoverIndicador(navInicio));
     }
 
     // ----------------------------------------------------------- navegacion
 
     /** Cambia a otra vista como si se hubiera pulsado su opcion en el menu lateral. */
-    public void irA(String vista) {
-        botonesMenu().stream()
+    public void fernandoHuancaIrA(String vista) {
+        fernandoHuancaBotonesMenu().stream()
                 .filter(b -> vista.equals(b.getUserData()))
                 .findFirst()
                 .ifPresent(menu::selectToggle);
     }
 
-    private void mostrar(String nombre) {
-        Vista vista = vistas.computeIfAbsent(nombre, this::cargar);
+    private void fernandoHuancaMostrar(String nombre) {
+        Vista vista = fernandoHuancaVistas.computeIfAbsent(nombre, this::fernandoHuancaCargar);
         contenido.getChildren().setAll(vista.nodo());
         if (vista.controlador() instanceof Refrescable r) {
             r.refrescar();
@@ -138,9 +138,9 @@ public class MainController {
         Animations.fadeInUp(vista.nodo(), Duration.millis(380)).play();
     }
 
-    private Vista cargar(String nombre) {
+    private Vista fernandoHuancaCargar(String nombre) {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/" + nombre + ".fxml"));
-        loader.setControllerFactory(context::getBean);
+        loader.setControllerFactory(fernandoHuancaContext::getBean);
         // Explicito: en macOS el hilo de eventos puede no tener class loader de contexto.
         loader.setClassLoader(getClass().getClassLoader());
         try {
@@ -152,7 +152,7 @@ public class MainController {
     }
 
     /** Desliza el fondo resaltado hasta la opcion seleccionada. */
-    private void moverIndicador(Toggle toggle) {
+    private void fernandoHuancaMoverIndicador(Toggle toggle) {
         Node boton = (Node) toggle;
         double destino = boton.getBoundsInParent().getMinY();
         indicador.setPrefHeight(boton.getBoundsInParent().getHeight());
@@ -165,66 +165,66 @@ public class MainController {
 
     @FXML
     private void onCambiarTema() {
-        oscuro = !oscuro;
-        Application.setUserAgentStylesheet(oscuro
+        fernandoHuancaOscuro = !fernandoHuancaOscuro;
+        Application.setUserAgentStylesheet(fernandoHuancaOscuro
                 ? new PrimerDark().getUserAgentStylesheet()
                 : new PrimerLight().getUserAgentStylesheet());
-        if (oscuro) {
+        if (fernandoHuancaOscuro) {
             raiz.getStyleClass().add("dark");
         } else {
             raiz.getStyleClass().remove("dark");
         }
-        ((FontIcon) btnTema.getGraphic()).setIconCode(oscuro ? Feather.SUN : Feather.MOON);
-        btnTema.setText(oscuro ? "Modo claro" : "Modo oscuro");
+        ((FontIcon) btnTema.getGraphic()).setIconCode(fernandoHuancaOscuro ? Feather.SUN : Feather.MOON);
+        btnTema.setText(fernandoHuancaOscuro ? "Modo claro" : "Modo oscuro");
         Animations.fadeIn(contenido, Duration.millis(300)).play();
     }
 
     @FXML
     private void onAcercaDe() {
-        boolean cifrada = context.getBean(com.concretolab.service.ClaveBaseService.class).estaCifrada();
-        com.concretolab.ui.AcercaDe.mostrar(raiz.getScene().getWindow(), version, cifrada,
-                com.concretolab.service.RespaldoDatos.carpetaDatos().toString());
+        boolean cifrada = fernandoHuancaContext.getBean(com.concretolab.service.ClaveBaseService.class).erickDelgadoEstaCifrada();
+        com.concretolab.ui.AcercaDe.fernandoHuancaMostrar(raiz.getScene().getWindow(), fernandoHuancaVersion, cifrada,
+                com.concretolab.service.RespaldoDatos.erickDelgadoCarpetaDatos().toString());
     }
 
     @FXML
     private void onContraerMenu() {
-        contraido = !contraido;
-        double ancho = contraido ? ANCHO_CONTRAIDO : ANCHO_EXPANDIDO;
+        fernandoHuancaContraido = !fernandoHuancaContraido;
+        double ancho = fernandoHuancaContraido ? FERNANDO_HUANCA_ANCHO_CONTRAIDO : FERNANDO_HUANCA_ANCHO_EXPANDIDO;
 
-        Timeline ajuste = new Timeline(new KeyFrame(DURACION_MENU,
+        Timeline ajuste = new Timeline(new KeyFrame(FERNANDO_HUANCA_DURACION_MENU,
                 new KeyValue(sidebar.prefWidthProperty(), ancho, Interpolator.SPLINE(0.4, 0, 0.2, 1)),
                 new KeyValue(sidebar.minWidthProperty(), ancho, Interpolator.SPLINE(0.4, 0, 0.2, 1))));
 
-        ContentDisplay modo = contraido ? ContentDisplay.GRAPHIC_ONLY : ContentDisplay.LEFT;
+        ContentDisplay modo = fernandoHuancaContraido ? ContentDisplay.GRAPHIC_ONLY : ContentDisplay.LEFT;
         List<Node> textos = new ArrayList<>(sidebar.lookupAll(".nav-seccion"));
         textos.add(marcaTextos);
 
-        if (contraido) {
+        if (fernandoHuancaContraido) {
             textos.forEach(n -> { n.setVisible(false); n.setManaged(false); });
-            todosLosBotones().forEach(b -> b.setContentDisplay(modo));
+            fernandoHuancaTodosLosBotones().forEach(b -> b.setContentDisplay(modo));
             ajuste.play();
         } else {
             ajuste.setOnFinished(e -> {
                 textos.forEach(n -> { n.setVisible(true); n.setManaged(true); });
-                todosLosBotones().forEach(b -> b.setContentDisplay(modo));
+                fernandoHuancaTodosLosBotones().forEach(b -> b.setContentDisplay(modo));
                 ParallelTransition aparicion = new ParallelTransition();
                 textos.forEach(n -> aparicion.getChildren().add(Animations.fadeIn(n, Duration.millis(200))));
                 aparicion.play();
-                Platform.runLater(() -> moverIndicador(menu.getSelectedToggle()));
+                Platform.runLater(() -> fernandoHuancaMoverIndicador(menu.getSelectedToggle()));
             });
             ajuste.play();
         }
         ((FontIcon) btnContraer.getGraphic()).setIconCode(
-                contraido ? Feather.CHEVRONS_RIGHT : Feather.CHEVRONS_LEFT);
-        Platform.runLater(() -> moverIndicador(menu.getSelectedToggle()));
+                fernandoHuancaContraido ? Feather.CHEVRONS_RIGHT : Feather.CHEVRONS_LEFT);
+        Platform.runLater(() -> fernandoHuancaMoverIndicador(menu.getSelectedToggle()));
     }
 
-    private List<ToggleButton> botonesMenu() {
+    private List<ToggleButton> fernandoHuancaBotonesMenu() {
         return List.of(navInicio, navModelo, navSismo, navMateriales, navGranulometria, navBalance, navMezclas, navDatos);
     }
 
-    private List<ButtonBase> todosLosBotones() {
-        List<ButtonBase> todos = new ArrayList<>(botonesMenu());
+    private List<ButtonBase> fernandoHuancaTodosLosBotones() {
+        List<ButtonBase> todos = new ArrayList<>(fernandoHuancaBotonesMenu());
         todos.add(btnTema);
         todos.add(btnAcerca);
         todos.add(btnContraer);

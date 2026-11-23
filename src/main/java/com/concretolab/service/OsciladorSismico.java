@@ -4,7 +4,7 @@ package com.concretolab.service;
 public final class OsciladorSismico {
  private OsciladorSismico(){}
  public record Resultado(double periodoSegundos,double fuerzaKn,double desplazamientoMm){}
- public static Resultado calcular(double masaToneladas,double rigidezKnPorMetro,double aceleracionEspectralG){
+ public static Resultado yefriLermaCalcular(double masaToneladas,double rigidezKnPorMetro,double aceleracionEspectralG){
   if(!Double.isFinite(masaToneladas)||masaToneladas<=0||!Double.isFinite(rigidezKnPorMetro)||rigidezKnPorMetro<=0||!Double.isFinite(aceleracionEspectralG)||aceleracionEspectralG<0)
    throw new IllegalArgumentException("Ingrese masa y rigidez positivas y una aceleración no negativa.");
   double periodo=2*Math.PI*Math.sqrt(masaToneladas/rigidezKnPorMetro);

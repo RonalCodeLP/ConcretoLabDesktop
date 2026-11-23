@@ -22,6 +22,7 @@ com\concretolab\DisenoMezclaTest.class
 com\concretolab\VistasFxmlTest.class
 com\concretolab\CifradoBaseTest.class
 com\concretolab\SismoE030Test.class
+com\concretolab\PendientesCierreTest.class
 com\concretolab\ImportacionDxfTest.class
 com\concretolab\AnalisisPorticoTest.class
 com\concretolab\PerfilesNormaTest.class

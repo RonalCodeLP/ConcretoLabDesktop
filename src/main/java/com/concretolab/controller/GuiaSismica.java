@@ -32,7 +32,7 @@ public final class GuiaSismica {
     }
 
     /** Zona de la E.030 a partir del numero 1 a 4 del Anexo II. */
-    public static Zona zonaDe(int numero) {
+    public static Zona walterQuispesayhuaZonaDe(int numero) {
         return switch (numero) {
             case 1 -> Zona.Z1;
             case 2 -> Zona.Z2;
@@ -43,7 +43,7 @@ public final class GuiaSismica {
     }
 
     /** Numero de zona (1 a 4). */
-    public static int numeroZona(Zona z) {
+    public static int walterQuispesayhuaNumeroZona(Zona z) {
         return switch (z) {
             case Z1 -> 1;
             case Z2 -> 2;
@@ -56,23 +56,23 @@ public final class GuiaSismica {
      * Tabla 9 (E.030 2026, art. 21): en categoria A (A1/A2) y zonas 2 a 4 no se permiten porticos como sistema
      * (se exigen dual, muros o albanileria). Para B y C si se permiten.
      */
-    public static boolean porticosPermitidos(Categoria categoria, Zona zona) {
-        return porticosPermitidos(categoria, zona, false);
+    public static boolean walterQuispesayhuaPorticosPermitidos(Categoria categoria, Zona zona) {
+        return walterQuispesayhuaPorticosPermitidos(categoria, zona, false);
     }
 
     /** Con A1 (salud de 2.º y 3.er nivel) los pórticos no se permiten en ninguna zona: aislamiento en 3 y 4; dual, muros o albañilería en 1 y 2. */
-    public static boolean porticosPermitidos(Categoria categoria, Zona zona, boolean esA1) {
+    public static boolean walterQuispesayhuaPorticosPermitidos(Categoria categoria, Zona zona, boolean esA1) {
         if (esA1) return false;
         return !(categoria == Categoria.A && zona != Zona.Z1);
     }
 
     /** Texto del aviso si los porticos no estan permitidos; {@code null} si lo estan. */
-    public static String avisoTabla9(Categoria categoria, Zona zona, Version version) {
-        return avisoTabla9(categoria, zona, version, false);
+    public static String walterQuispesayhuaAvisoTabla9(Categoria categoria, Zona zona, Version version) {
+        return walterQuispesayhuaAvisoTabla9(categoria, zona, version, false);
     }
 
-    public static String avisoTabla9(Categoria categoria, Zona zona, Version version, boolean esA1) {
-        if (porticosPermitidos(categoria, zona, esA1)) {
+    public static String walterQuispesayhuaAvisoTabla9(Categoria categoria, Zona zona, Version version, boolean esA1) {
+        if (walterQuispesayhuaPorticosPermitidos(categoria, zona, esA1)) {
             return null;
         }
         String tabla = version == Version.V2026 ? "Tabla 9 (art. 21)" : "Tabla 6";
@@ -83,7 +83,7 @@ public final class GuiaSismica {
     }
 
     /** Cargas {cm, cv} en kN/m2 para cada piso segun el uso: todos con la carga viva de pisos salvo el ultimo, que usa la de techo. */
-    public static double[][] cargasPorUso(UsoEdificacion uso, int pisos) {
+    public static double[][] walterQuispesayhuaCargasPorUso(UsoEdificacion uso, int pisos) {
         double[][] r = new double[Math.max(pisos, 0)][];
         for (int i = 0; i < r.length; i++) {
             boolean techo = i == r.length - 1;
@@ -96,7 +96,7 @@ public final class GuiaSismica {
      * Arma los parametros de la norma desde las elecciones del asistente. {@code ct} nulo usa el del sistema; Vs30 solo se
      * aplica con la version 2026 y un suelo que interpola (S2/S3), en otro caso se ignora.
      */
-    public static Parametros parametros(Version version, Zona zona, UsoEdificacion uso, TipoSuelo tipoSuelo,
+    public static Parametros walterQuispesayhuaParametros(Version version, Zona zona, UsoEdificacion uso, TipoSuelo tipoSuelo,
                                         SistemaEstructural sistema, double ia, double ip, Double ct, double vs30) {
         NormaE030.Suelo suelo = tipoSuelo.suelo(version);
         double vs = version == Version.V2026 && suelo.interpola() ? vs30 : Double.NaN;
@@ -105,7 +105,7 @@ public final class GuiaSismica {
     }
 
     /** Lo que falta elegir para poder calcular (lista vacia si todo esta listo). */
-    public static List<String> faltantes(Zona zona, UsoEdificacion uso, TipoSuelo suelo, SistemaEstructural sistema, boolean hayPisos) {
+    public static List<String> walterQuispesayhuaFaltantes(Zona zona, UsoEdificacion uso, TipoSuelo suelo, SistemaEstructural sistema, boolean hayPisos) {
         List<String> f = new ArrayList<>();
         if (zona == null) f.add("la ubicación o la zona sísmica (paso 1)");
         if (uso == null) f.add("el uso de la edificación (paso 2)");
@@ -117,9 +117,9 @@ public final class GuiaSismica {
     }
 
     /** Verifica el resultado y devuelve las lineas del semaforo. */
-    public static List<Verificacion> verificaciones(Parametros norma, Resultado r, UsoEdificacion uso) {
+    public static List<Verificacion> walterQuispesayhuaVerificaciones(Parametros norma, Resultado r, UsoEdificacion uso) {
         List<Verificacion> v = new ArrayList<>();
-        double lim = NormaE030.DERIVA_LIMITE_CONCRETO;
+        double lim = NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO;
         for (var par : List.of(new Object[]{"Estático", r.estaticoX()}, new Object[]{"Estático", r.estaticoY()},
                 new Object[]{"Espectral", r.espectralX()}, new Object[]{"Espectral", r.espectralY()})) {
             Direccion d = (Direccion) par[1];
@@ -132,7 +132,7 @@ public final class GuiaSismica {
                 ? new Verificacion(Nivel.ALERTA, "Cortante mínimo (" + norma.art("minimo") + "): el cortante dinámico era menor y se escalaron las fuerzas por "
                         + String.format(Locale.ROOT, "%.2f", escala) + ".")
                 : new Verificacion(Nivel.OK, "Cortante mínimo (" + norma.art("minimo") + "): el cortante dinámico alcanza el mínimo, sin escalar."));
-        double razon = razonTorsionMaxima(r);
+        double razon = walterQuispesayhuaRazonTorsionMaxima(r);
         if (razon > 1.5) v.add(new Verificacion(Nivel.ERROR, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (irregularidad torsional extrema; revise Ip)."));
         else if (razon > 1.3) v.add(new Verificacion(Nivel.ALERTA, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (posible irregularidad torsional; revise Ip)."));
         else v.add(new Verificacion(Nivel.OK, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (sin irregularidad torsional)."));
@@ -141,7 +141,7 @@ public final class GuiaSismica {
         v.add(estaticoAplica
                 ? new Verificacion(Nivel.OK, "Método estático aplicable (" + norma.art("aplicabilidad") + ").")
                 : new Verificacion(Nivel.ALERTA, "El método estático NO es aplicable (" + norma.art("aplicabilidad") + "): use el resultado espectral."));
-        String t9 = avisoTabla9(norma.categoria(), norma.zona(), norma.version());
+        String t9 = walterQuispesayhuaAvisoTabla9(norma.categoria(), norma.zona(), norma.version());
         v.add(t9 == null
                 ? new Verificacion(Nivel.OK, "Sistema estructural: los pórticos están permitidos para la categoría " + norma.categoria().name() + " en esta zona.")
                 : new Verificacion(Nivel.ERROR, t9));
@@ -155,8 +155,8 @@ public final class GuiaSismica {
     }
 
     /** Mayor razon Δmax/Δprom entre las direcciones, en los pisos con deriva mayor que la mitad del limite. */
-    static double razonTorsionMaxima(Resultado r) {
-        double lim = NormaE030.DERIVA_LIMITE_CONCRETO;
+    static double walterQuispesayhuaRazonTorsionMaxima(Resultado r) {
+        double lim = NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO;
         double max = 1;
         for (Direccion d : List.of(r.estaticoX(), r.estaticoY(), r.espectralX(), r.espectralY())) {
             for (int s = 0; s < d.derivasMaximas().length; s++) {

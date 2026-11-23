@@ -28,30 +28,30 @@ import java.util.stream.Stream;
 public final class RespaldoDatos {
 
     /** Propiedad de sistema para cambiar la carpeta de datos (pruebas). */
-    public static final String PROPIEDAD_DATOS = "concretolab.datos";
+    public static final String ERICK_DELGADO_PROPIEDAD_DATOS = "concretolab.datos";
 
-    /** Motivos automáticos: se conservan solo las últimas {@link #MAXIMO_AUTOMATICAS} de cada uno. */
-    public static final int MAXIMO_AUTOMATICAS = 10;
+    /** Motivos automáticos: se conservan solo las últimas {@link #ERICK_DELGADO_MAXIMO_AUTOMATICAS} de cada uno. */
+    public static final int ERICK_DELGADO_MAXIMO_AUTOMATICAS = 10;
     /** Máximo de copias «previa-restauracion» conservadas. */
-    public static final int MAXIMO_PREVIAS = 20;
+    public static final int ERICK_DELGADO_MAXIMO_PREVIAS = 20;
 
-    public static final String MOTIVO_INICIO = "inicio";
-    public static final String MOTIVO_CIERRE = "cierre";
-    public static final String MOTIVO_MANUAL = "manual";
-    public static final String MOTIVO_PREVIA = "previa-restauracion";
+    public static final String ERICK_DELGADO_MOTIVO_INICIO = "inicio";
+    public static final String ERICK_DELGADO_MOTIVO_CIERRE = "cierre";
+    public static final String ERICK_DELGADO_MOTIVO_MANUAL = "manual";
+    public static final String ERICK_DELGADO_MOTIVO_PREVIA = "previa-restauracion";
 
     /** Formato de la marca de tiempo del nombre de la copia. */
-    public static final DateTimeFormatter FORMATO_MARCA = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
+    public static final DateTimeFormatter ERICK_DELGADO_FORMATO_MARCA = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
     /** Patrón del nombre: grupo 1 = marca de tiempo, grupo 2 = motivo. */
-    public static final Pattern PATRON_NOMBRE =
+    public static final Pattern ERICK_DELGADO_PATRON_NOMBRE =
             Pattern.compile("concretolab-(\\d{8}-\\d{6})-([a-z]+(?:-[a-z]+)*)\\.db");
 
-    private static final String NOMBRE_BASE = "concretolab.db";
-    private static final String NOMBRE_MARCADOR = "restaurar.pendiente";
-    private static final byte[] CABECERA_SQLITE = "SQLite format 3\0".getBytes(StandardCharsets.ISO_8859_1);
+    private static final String ERICK_DELGADO_NOMBRE_BASE = "concretolab.db";
+    private static final String ERICK_DELGADO_NOMBRE_MARCADOR = "restaurar.pendiente";
+    private static final byte[] ERICK_DELGADO_CABECERA_SQLITE = "SQLite format 3\0".getBytes(StandardCharsets.ISO_8859_1);
 
-    private static final System.Logger LOG = System.getLogger(RespaldoDatos.class.getName());
+    private static final System.Logger ERICK_DELGADO_LOG = System.getLogger(RespaldoDatos.class.getName());
 
     private RespaldoDatos() {
     }
@@ -59,54 +59,54 @@ public final class RespaldoDatos {
     // ---------------------------------------------------------------- Rutas
 
     /** Carpeta de datos: {@code ~/.concretolab}, o la indicada en la propiedad {@code concretolab.datos}. */
-    public static Path carpetaDatos() {
-        String sobrescrita = System.getProperty(PROPIEDAD_DATOS);
+    public static Path erickDelgadoCarpetaDatos() {
+        String sobrescrita = System.getProperty(ERICK_DELGADO_PROPIEDAD_DATOS);
         if (sobrescrita != null && !sobrescrita.isBlank()) {
             return Path.of(sobrescrita);
         }
         return Path.of(System.getProperty("user.home"), ".concretolab");
     }
 
-    public static Path carpetaCopias() {
-        return carpetaDatos().resolve("backups");
+    public static Path erickDelgadoCarpetaCopias() {
+        return erickDelgadoCarpetaDatos().resolve("backups");
     }
 
-    public static Path carpetaRegistros() {
-        return carpetaDatos().resolve("logs");
+    public static Path erickDelgadoCarpetaRegistros() {
+        return erickDelgadoCarpetaDatos().resolve("logs");
     }
 
-    public static Path archivoBaseDatos() {
-        return carpetaDatos().resolve(NOMBRE_BASE);
+    public static Path erickDelgadoArchivoBaseDatos() {
+        return erickDelgadoCarpetaDatos().resolve(ERICK_DELGADO_NOMBRE_BASE);
     }
 
-    private static Path archivoMarcador() {
-        return carpetaDatos().resolve(NOMBRE_MARCADOR);
+    private static Path erickDelgadoArchivoMarcador() {
+        return erickDelgadoCarpetaDatos().resolve(ERICK_DELGADO_NOMBRE_MARCADOR);
     }
 
     // ---------------------------------------------------------------- Nombres
 
     /** Normaliza el motivo: minúsculas, sin acentos ni espacios (solo a-z y guiones). Vacío = «manual». */
-    public static String normalizarMotivo(String motivo) {
-        if (motivo == null) return MOTIVO_MANUAL;
+    public static String erickDelgadoNormalizarMotivo(String motivo) {
+        if (motivo == null) return ERICK_DELGADO_MOTIVO_MANUAL;
         String texto = Normalizer.normalize(motivo.trim().toLowerCase(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")
                 .replaceAll("[\\s_]+", "-")
                 .replaceAll("[^a-z-]", "")
                 .replaceAll("-{2,}", "-")
                 .replaceAll("^-|-$", "");
-        return texto.isEmpty() ? MOTIVO_MANUAL : texto;
+        return texto.isEmpty() ? ERICK_DELGADO_MOTIVO_MANUAL : texto;
     }
 
     /** Nombre de archivo de una copia: {@code concretolab-AAAAMMdd-HHmmss-<motivo>.db}. */
-    public static String nombreCopia(LocalDateTime momento, String motivo) {
-        return "concretolab-" + FORMATO_MARCA.format(momento) + "-" + normalizarMotivo(motivo) + ".db";
+    public static String erickDelgadoNombreCopia(LocalDateTime momento, String motivo) {
+        return "concretolab-" + ERICK_DELGADO_FORMATO_MARCA.format(momento) + "-" + erickDelgadoNormalizarMotivo(motivo) + ".db";
     }
 
     // ---------------------------------------------------------------- Copias
 
     /** Copia el archivo de la base con el momento actual. Devuelve vacío si no hay nada que copiar o falla. */
-    public static Optional<Path> respaldarArchivo(String motivo) {
-        return respaldarArchivo(motivo, LocalDateTime.now());
+    public static Optional<Path> erickDelgadoRespaldarArchivo(String motivo) {
+        return erickDelgadoRespaldarArchivo(motivo, LocalDateTime.now());
     }
 
     /**
@@ -114,21 +114,21 @@ public final class RespaldoDatos {
      * Si ya existe una copia con esa marca, avanza un segundo hasta encontrar un nombre libre.
      * Nunca lanza excepciones: ante un error lo registra y devuelve vacío.
      */
-    public static Optional<Path> respaldarArchivo(String motivo, LocalDateTime momento) {
+    public static Optional<Path> erickDelgadoRespaldarArchivo(String motivo, LocalDateTime momento) {
         try {
-            Path base = archivoBaseDatos();
+            Path base = erickDelgadoArchivoBaseDatos();
             if (!Files.isRegularFile(base) || Files.size(base) == 0) {
                 return Optional.empty();
             }
-            String motivoNormal = normalizarMotivo(motivo);
-            Path carpeta = carpetaCopias();
+            String motivoNormal = erickDelgadoNormalizarMotivo(motivo);
+            Path carpeta = erickDelgadoCarpetaCopias();
             Files.createDirectories(carpeta);
 
-            Path destino = carpeta.resolve(nombreCopia(momento, motivoNormal));
+            Path destino = carpeta.resolve(erickDelgadoNombreCopia(momento, motivoNormal));
             LocalDateTime marca = momento;
             while (Files.exists(destino)) {
                 marca = marca.plusSeconds(1);
-                destino = carpeta.resolve(nombreCopia(marca, motivoNormal));
+                destino = carpeta.resolve(erickDelgadoNombreCopia(marca, motivoNormal));
             }
             // Se copia a un temporal y luego se renombra: nunca queda una copia a medias con nombre válido.
             Path temporal = carpeta.resolve(destino.getFileName() + ".tmp");
@@ -138,32 +138,32 @@ public final class RespaldoDatos {
             } finally {
                 Files.deleteIfExists(temporal);
             }
-            rotar(motivoNormal);
+            erickDelgadoRotar(motivoNormal);
             return Optional.of(destino);
         } catch (IOException | RuntimeException e) {
-            LOG.log(System.Logger.Level.WARNING, "No se pudo crear la copia de seguridad «" + motivo + "»: " + e);
+            ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "No se pudo crear la copia de seguridad «" + motivo + "»: " + e);
             return Optional.empty();
         }
     }
 
     /** Borra las copias más antiguas del motivo según el límite (las manuales nunca se borran). */
-    private static void rotar(String motivo) {
+    private static void erickDelgadoRotar(String motivo) {
         int limite;
-        if (MOTIVO_INICIO.equals(motivo) || MOTIVO_CIERRE.equals(motivo)) {
-            limite = MAXIMO_AUTOMATICAS;
-        } else if (MOTIVO_PREVIA.equals(motivo)) {
-            limite = MAXIMO_PREVIAS;
+        if (ERICK_DELGADO_MOTIVO_INICIO.equals(motivo) || ERICK_DELGADO_MOTIVO_CIERRE.equals(motivo)) {
+            limite = ERICK_DELGADO_MAXIMO_AUTOMATICAS;
+        } else if (ERICK_DELGADO_MOTIVO_PREVIA.equals(motivo)) {
+            limite = ERICK_DELGADO_MAXIMO_PREVIAS;
         } else {
             return;
         }
         List<Path> copias = new ArrayList<>();
-        try (Stream<Path> archivos = Files.list(carpetaCopias())) {
+        try (Stream<Path> archivos = Files.list(erickDelgadoCarpetaCopias())) {
             archivos.filter(Files::isRegularFile).forEach(p -> {
-                var m = PATRON_NOMBRE.matcher(p.getFileName().toString());
+                var m = ERICK_DELGADO_PATRON_NOMBRE.matcher(p.getFileName().toString());
                 if (m.matches() && m.group(2).equals(motivo)) copias.add(p);
             });
         } catch (IOException e) {
-            LOG.log(System.Logger.Level.WARNING, "No se pudo aplicar la rotación de copias: " + e);
+            ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "No se pudo aplicar la rotación de copias: " + e);
             return;
         }
         // La marca de tiempo está en el nombre: el orden alfabético inverso es del más reciente al más antiguo.
@@ -172,7 +172,7 @@ public final class RespaldoDatos {
             try {
                 Files.deleteIfExists(copias.get(i));
             } catch (IOException e) {
-                LOG.log(System.Logger.Level.WARNING, "No se pudo borrar la copia antigua " + copias.get(i) + ": " + e);
+                ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "No se pudo borrar la copia antigua " + copias.get(i) + ": " + e);
             }
         }
     }
@@ -180,13 +180,13 @@ public final class RespaldoDatos {
     // ---------------------------------------------------------------- Restauración
 
     /** Indica si el archivo existe, no está vacío y empieza con la cabecera «SQLite format 3\0». */
-    public static boolean esSqliteValido(Path archivo) {
+    public static boolean erickDelgadoEsSqliteValido(Path archivo) {
         if (archivo == null) return false;
         try {
-            if (!Files.isRegularFile(archivo) || Files.size(archivo) < CABECERA_SQLITE.length) return false;
+            if (!Files.isRegularFile(archivo) || Files.size(archivo) < ERICK_DELGADO_CABECERA_SQLITE.length) return false;
             try (InputStream in = Files.newInputStream(archivo)) {
-                byte[] leido = in.readNBytes(CABECERA_SQLITE.length);
-                if (Arrays.equals(leido, CABECERA_SQLITE)) return true;
+                byte[] leido = in.readNBytes(ERICK_DELGADO_CABECERA_SQLITE.length);
+                if (Arrays.equals(leido, ERICK_DELGADO_CABECERA_SQLITE)) return true;
             }
             // Base cifrada: no tiene cabecera legible; se admite un archivo con páginas completas (múltiplo de 512, mínimo 4 KB).
             long tamano = Files.size(archivo);
@@ -202,22 +202,22 @@ public final class RespaldoDatos {
      * @throws IllegalArgumentException si la copia no existe o no es un archivo SQLite válido
      * @throws UncheckedIOException     si no se puede escribir el marcador
      */
-    public static void programarRestauracion(Path copia) {
-        if (!esSqliteValido(copia)) {
+    public static void erickDelgadoProgramarRestauracion(Path copia) {
+        if (!erickDelgadoEsSqliteValido(copia)) {
             throw new IllegalArgumentException("La copia no existe o no es una base de datos SQLite válida: " + copia);
         }
         try {
-            Files.createDirectories(carpetaDatos());
-            Files.writeString(archivoMarcador(), copia.toAbsolutePath().toString(), StandardCharsets.UTF_8);
+            Files.createDirectories(erickDelgadoCarpetaDatos());
+            Files.writeString(erickDelgadoArchivoMarcador(), copia.toAbsolutePath().toString(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("No se pudo programar la restauración", e);
         }
     }
 
     /** Ruta de la copia pendiente de restaurar, si hay marcador legible. */
-    public static Optional<Path> restauracionPendiente() {
+    public static Optional<Path> erickDelgadoRestauracionPendiente() {
         try {
-            Path marcador = archivoMarcador();
+            Path marcador = erickDelgadoArchivoMarcador();
             if (!Files.isRegularFile(marcador)) return Optional.empty();
             String texto = Files.readString(marcador, StandardCharsets.UTF_8).trim();
             return texto.isEmpty() ? Optional.empty() : Optional.of(Path.of(texto));
@@ -233,17 +233,17 @@ public final class RespaldoDatos {
      *
      * @return true si la base fue reemplazada
      */
-    public static boolean aplicarRestauracionPendiente() {
-        Path marcador = archivoMarcador();
+    public static boolean erickDelgadoAplicarRestauracionPendiente() {
+        Path marcador = erickDelgadoArchivoMarcador();
         try {
             if (!Files.exists(marcador)) return false;
             try {
-                return restaurar(marcador);
+                return erickDelgadoRestaurar(marcador);
             } finally {
                 Files.deleteIfExists(marcador);
             }
         } catch (IOException | RuntimeException e) {
-            LOG.log(System.Logger.Level.ERROR, "Falló la restauración pendiente; se conserva la base actual: " + e);
+            ERICK_DELGADO_LOG.log(System.Logger.Level.ERROR, "Falló la restauración pendiente; se conserva la base actual: " + e);
             try {
                 Files.deleteIfExists(marcador);
             } catch (IOException | RuntimeException ignorada) {
@@ -253,44 +253,44 @@ public final class RespaldoDatos {
         }
     }
 
-    private static boolean restaurar(Path marcador) {
+    private static boolean erickDelgadoRestaurar(Path marcador) {
         Path temporal = null;
         try {
             String texto = Files.readString(marcador, StandardCharsets.UTF_8).trim();
             if (texto.isEmpty()) {
-                LOG.log(System.Logger.Level.WARNING, "El marcador de restauración está vacío; se ignora.");
+                ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "El marcador de restauración está vacío; se ignora.");
                 return false;
             }
             Path copia = Path.of(texto);
             if (!Files.isRegularFile(copia)) {
-                LOG.log(System.Logger.Level.WARNING, "La copia a restaurar no existe: " + copia);
+                ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "La copia a restaurar no existe: " + copia);
                 return false;
             }
-            if (!esSqliteValido(copia)) {
-                LOG.log(System.Logger.Level.WARNING, "La copia a restaurar no es una base SQLite válida: " + copia);
+            if (!erickDelgadoEsSqliteValido(copia)) {
+                ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "La copia a restaurar no es una base SQLite válida: " + copia);
                 return false;
             }
 
-            Path base = archivoBaseDatos();
+            Path base = erickDelgadoArchivoBaseDatos();
             boolean baseConDatos = Files.isRegularFile(base) && Files.size(base) > 0;
-            if (baseConDatos && respaldarArchivo(MOTIVO_PREVIA).isEmpty()) {
-                LOG.log(System.Logger.Level.WARNING, "No se pudo respaldar la base actual; se cancela la restauración.");
+            if (baseConDatos && erickDelgadoRespaldarArchivo(ERICK_DELGADO_MOTIVO_PREVIA).isEmpty()) {
+                ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "No se pudo respaldar la base actual; se cancela la restauración.");
                 return false;
             }
 
             // Se copia primero a un temporal junto a la base y luego se mueve: el reemplazo es casi atómico.
             Files.createDirectories(base.getParent());
-            temporal = base.resolveSibling(NOMBRE_BASE + ".restaurando");
+            temporal = base.resolveSibling(ERICK_DELGADO_NOMBRE_BASE + ".restaurando");
             Files.copy(copia, temporal, StandardCopyOption.REPLACE_EXISTING);
             for (String sufijo : new String[]{"-wal", "-shm", "-journal"}) {
-                Files.deleteIfExists(base.resolveSibling(NOMBRE_BASE + sufijo));
+                Files.deleteIfExists(base.resolveSibling(ERICK_DELGADO_NOMBRE_BASE + sufijo));
             }
             Files.move(temporal, base, StandardCopyOption.REPLACE_EXISTING);
             temporal = null;
-            LOG.log(System.Logger.Level.INFO, "Base de datos restaurada desde " + copia);
+            ERICK_DELGADO_LOG.log(System.Logger.Level.INFO, "Base de datos restaurada desde " + copia);
             return true;
         } catch (IOException | RuntimeException e) {
-            LOG.log(System.Logger.Level.ERROR, "No se pudo restaurar la copia: " + e);
+            ERICK_DELGADO_LOG.log(System.Logger.Level.ERROR, "No se pudo restaurar la copia: " + e);
             return false;
         } finally {
             if (temporal != null) {

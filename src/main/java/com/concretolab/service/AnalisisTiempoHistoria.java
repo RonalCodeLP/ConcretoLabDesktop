@@ -39,9 +39,9 @@ public final class AnalisisTiempoHistoria {
     private AnalisisTiempoHistoria() {}
 
     /** Distorsión de entrepiso admisible de concreto armado, Tabla 14 de la E.030. */
-    private static final double DERIVA_CONCRETO = 0.007;
+    private static final double FERNANDO_HUANCA_DERIVA_CONCRETO = 0.007;
     /** Factor de amplificación del límite para tiempo-historia (E.030 2026 art. 49.2; 2018 art. 4.7.3). */
-    private static final double FACTOR_LIMITE = 1.25;
+    private static final double FERNANDO_HUANCA_FACTOR_LIMITE = 1.25;
 
     /**
      * Resuelve el sistema acoplado de 3·S GDL con ambas componentes del registro actuando a la vez.
@@ -52,7 +52,7 @@ public final class AnalisisTiempoHistoria {
      * @return historia completa de respuesta relativa, derivas y cortantes
      * @throws IllegalArgumentException si los datos son inválidos
      */
-    public static ResultadoTiempoHistoria resolver(FernandoHuancaAnalisisSismico.ModeloDinamico modelo,
+    public static ResultadoTiempoHistoria fernandoHuancaResolver(FernandoHuancaAnalisisSismico.ModeloDinamico modelo,
                                                    RegistroSismico registro, double amortiguamiento) {
         if (modelo == null || registro == null) throw new IllegalArgumentException("Falta el modelo o el registro sísmico.");
         double dt = registro.dt();
@@ -112,7 +112,7 @@ public final class AnalisisTiempoHistoria {
         double[] u = new double[n], v = new double[n], a = new double[n];
         double[] cbx = new double[N], cby = new double[N];
         for (int s = 0; s < S; s++) { a[3 * s] = -ax[0]; a[3 * s + 1] = -ay[0]; }
-        registrarCortante(m, S, a, ax[0], ay[0], cbx, cby, 0);
+        fernandoHuancaRegistrarCortante(m, S, a, ax[0], ay[0], cbx, cby, 0);
 
         double[] rhs = new double[n], w1v = new double[n], w2v = new double[n];
         for (int i = 1; i < N; i++) {
@@ -136,7 +136,7 @@ public final class AnalisisTiempoHistoria {
                 u[j] = un[j]; v[j] = vn; a[j] = an;
             }
             System.arraycopy(u, 0, U[i], 0, n);
-            registrarCortante(m, S, a, ax[i], ay[i], cbx, cby, i);
+            fernandoHuancaRegistrarCortante(m, S, a, ax[i], ay[i], cbx, cby, i);
         }
 
         // Salidas por piso
@@ -161,8 +161,8 @@ public final class AnalisisTiempoHistoria {
             double h = modelo.alturas()[s];
             for (int i = 0; i < N; i++) {
                 for (double[] p : pts) {
-                    maxX[s] = Math.max(maxX[s], Math.abs(derivaPunto(U[i], 0, s, p[0], p[1], modelo, h)));
-                    maxY[s] = Math.max(maxY[s], Math.abs(derivaPunto(U[i], 1, s, p[0], p[1], modelo, h)));
+                    maxX[s] = Math.max(maxX[s], Math.abs(fernandoHuancaDerivaPunto(U[i], 0, s, p[0], p[1], modelo, h)));
+                    maxY[s] = Math.max(maxY[s], Math.abs(fernandoHuancaDerivaPunto(U[i], 1, s, p[0], p[1], modelo, h)));
                 }
             }
         }
@@ -180,7 +180,7 @@ public final class AnalisisTiempoHistoria {
     }
 
     /** Cortante basal = suma de fuerzas de inercia del piso: −Σ m·(ü_rel + ag), igual a la suma de fuerzas resistentes (K·u + C·u̇). */
-    private static void registrarCortante(double[] m, int S, double[] a, double agx, double agy, double[] cbx, double[] cby, int i) {
+    private static void fernandoHuancaRegistrarCortante(double[] m, int S, double[] a, double agx, double agy, double[] cbx, double[] cby, int i) {
         double sx = 0, sy = 0;
         for (int s = 0; s < S; s++) {
             sx -= m[3 * s] * (a[3 * s] + agx);
@@ -190,12 +190,12 @@ public final class AnalisisTiempoHistoria {
     }
 
     /** Deriva de entrepiso en un punto del piso: (desp. piso s − desp. piso s−1 en el mismo punto) / altura; desp. = u_dir ∓ (coord − cm)·rz. */
-    private static double derivaPunto(double[] u, int dir, int s, double x, double y,
+    private static double fernandoHuancaDerivaPunto(double[] u, int dir, int s, double x, double y,
                                       FernandoHuancaAnalisisSismico.ModeloDinamico mo, double h) {
-        return (desplazamientoPunto(u, dir, s, x, y, mo) - desplazamientoPunto(u, dir, s - 1, x, y, mo)) / h;
+        return (fernandoHuancaDesplazamientoPunto(u, dir, s, x, y, mo) - fernandoHuancaDesplazamientoPunto(u, dir, s - 1, x, y, mo)) / h;
     }
 
-    private static double desplazamientoPunto(double[] u, int dir, int s, double x, double y,
+    private static double fernandoHuancaDesplazamientoPunto(double[] u, int dir, int s, double x, double y,
                                               FernandoHuancaAnalisisSismico.ModeloDinamico mo) {
         if (s < 0) return 0;
         return dir == 0 ? u[3 * s] - (y - mo.ycm()[s]) * u[3 * s + 2] : u[3 * s + 1] + (x - mo.xcm()[s]) * u[3 * s + 2];
@@ -209,12 +209,12 @@ public final class AnalisisTiempoHistoria {
      * </ul>
      * El límite 0,007 corresponde a concreto armado. {@code cumple} exige además conjuntos suficientes.
      *
-     * @param resultados resultados de {@link #resolver} (uno por registro; mismo número de pisos)
+     * @param resultados resultados de {@link #fernandoHuancaResolver} (uno por registro; mismo número de pisos)
      * @param norma      parámetros de la norma (se usa solo la versión)
      * @return verificación por dirección y piso
      * @throws IllegalArgumentException si la lista está vacía o los pisos no coinciden
      */
-    public static VerificacionTiempoHistoria verificar(List<ResultadoTiempoHistoria> resultados, NormaE030.Parametros norma) {
+    public static VerificacionTiempoHistoria fernandoHuancaVerificar(List<ResultadoTiempoHistoria> resultados, NormaE030.Parametros norma) {
         if (resultados == null || resultados.isEmpty()) throw new IllegalArgumentException("Se requiere al menos un resultado tiempo-historia.");
         if (norma == null) throw new IllegalArgumentException("Faltan los parámetros de la norma.");
         int S = resultados.get(0).pisos();
@@ -224,7 +224,7 @@ public final class AnalisisTiempoHistoria {
         int minimo = v2026 ? 7 : 3;
         boolean suficientes = n >= minimo;
         boolean promedio = v2026 || n >= 7;
-        double limite = FACTOR_LIMITE * DERIVA_CONCRETO;
+        double limite = FERNANDO_HUANCA_FACTOR_LIMITE * FERNANDO_HUANCA_DERIVA_CONCRETO;
 
         List<VerificacionTiempoHistoria.Piso> px = new ArrayList<>(), py = new ArrayList<>();
         boolean cumple = suficientes;
@@ -249,7 +249,7 @@ public final class AnalisisTiempoHistoria {
         avisos.add("El análisis tiempo-historia es una VERIFICACIÓN complementaria y no sustituye al análisis estático o espectral (arts. 46.1 y 32.3 del texto 2026).");
         avisos.add("Modelo lineal-elástico con el registro escalado a R = 1: es conservador porque no hay reducción por ductilidad ni se multiplica por 0,75·R (art. 48.4 permite propiedades lineales solo si el análisis demuestra que los elementos permanecen elásticos).");
         avisos.add("Base empotrada, sin interacción suelo-estructura (art. 48.6 lo permite).");
-        avisos.add(String.format(Locale.ROOT, "Límite de distorsión: 1,25 × %.3f = %.5f (concreto armado, Tabla 14).", DERIVA_CONCRETO, limite));
+        avisos.add(String.format(Locale.ROOT, "Límite de distorsión: 1,25 × %.3f = %.5f (concreto armado, Tabla 14).", FERNANDO_HUANCA_DERIVA_CONCRETO, limite));
 
         return new VerificacionTiempoHistoria(norma.version(), promedio ? "promedio" : "máximo", n, minimo, suficientes, limite,
                 List.copyOf(px), List.copyOf(py), cumple, List.copyOf(avisos));

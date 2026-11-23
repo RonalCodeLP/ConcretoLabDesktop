@@ -8,7 +8,7 @@ public final class AnalisisPortico {
  public record Barra(String nombre,String inicio,String fin,double eKnM2,double areaM2,double inerciaM4){}
  public record ResultadoNudo(String nombre,double uxM,double uyM,double giroRad,double rxKn,double ryKn,double momentoKnM){}
  public record Resultado(List<ResultadoNudo> nudos){}
- public static Resultado resolver(List<Nudo> nudos,List<Barra> barras){
+ public static Resultado yefriLermaResolver(List<Nudo> nudos,List<Barra> barras){
   if(nudos==null||nudos.size()<2||nudos.size()>60||barras==null||barras.isEmpty()||barras.size()>180)throw new IllegalArgumentException("Ingrese entre 2 y 60 nudos y de 1 a 180 barras.");
   int total=nudos.size()*3;double[][] k=new double[total][total];double[] f=new double[total];boolean[] fijo=new boolean[total];Map<String,Integer> mapa=new HashMap<>();
   for(int i=0;i<nudos.size();i++){Nudo n=nudos.get(i);if(n==null||n.nombre()==null||n.nombre().isBlank()||mapa.putIfAbsent(n.nombre(),i)!=null||!finito(n.x(),n.y(),n.fx(),n.fy(),n.momento()))throw new IllegalArgumentException("Revise los nombres, coordenadas y cargas de los nudos.");
@@ -29,12 +29,12 @@ public final class AnalisisPortico {
   for(int i=0;i<conexiones.length;i++)if(conexiones[i]==0)throw new IllegalArgumentException("El nudo "+nudos.get(i).nombre()+" no está conectado a ninguna barra.");
   List<Integer> libres=new ArrayList<>();for(int i=0;i<total;i++)if(!fijo[i])libres.add(i);if(libres.isEmpty())throw new IllegalArgumentException("No hay grados de libertad libres.");
   double[][] a=new double[libres.size()][libres.size()];double[] b=new double[libres.size()];for(int i=0;i<libres.size();i++){b[i]=f[libres.get(i)];for(int j=0;j<libres.size();j++)a[i][j]=k[libres.get(i)][libres.get(j)];}
-  double[] solucion=resolverSistema(a,b),u=new double[total];for(int i=0;i<libres.size();i++)u[libres.get(i)]=solucion[i];
+  double[] solucion=yefriLermaResolverSistema(a,b),u=new double[total];for(int i=0;i<libres.size();i++)u[libres.get(i)]=solucion[i];
   List<ResultadoNudo> salida=new ArrayList<>();for(int i=0;i<nudos.size();i++){double[] reacciones={-f[3*i],-f[3*i+1],-f[3*i+2]};for(int j=0;j<total;j++)for(int h=0;h<3;h++)reacciones[h]+=k[3*i+h][j]*u[j];
    salida.add(new ResultadoNudo(nudos.get(i).nombre(),u[3*i],u[3*i+1],u[3*i+2],fijo[3*i]?reacciones[0]:0,fijo[3*i+1]?reacciones[1]:0,fijo[3*i+2]?reacciones[2]:0));}
   return new Resultado(List.copyOf(salida));
  }
- private static double[] resolverSistema(double[][] a,double[] b){int n=b.length;double max=0;for(double[] fila:a)for(double v:fila){if(!Double.isFinite(v))throw new IllegalArgumentException("Matriz de rigidez inválida.");max=Math.max(max,Math.abs(v));}if(max==0)throw new IllegalArgumentException("El modelo es inestable.");
+ private static double[] yefriLermaResolverSistema(double[][] a,double[] b){int n=b.length;double max=0;for(double[] fila:a)for(double v:fila){if(!Double.isFinite(v))throw new IllegalArgumentException("Matriz de rigidez inválida.");max=Math.max(max,Math.abs(v));}if(max==0)throw new IllegalArgumentException("El modelo es inestable.");
   for(int p=0;p<n;p++){int mejor=p;for(int i=p+1;i<n;i++)if(Math.abs(a[i][p])>Math.abs(a[mejor][p]))mejor=i;if(Math.abs(a[mejor][p])<max*1e-12)throw new IllegalArgumentException("Modelo inestable o mal condicionado; revise apoyos y conexiones.");double[] tmp=a[p];a[p]=a[mejor];a[mejor]=tmp;double aux=b[p];b[p]=b[mejor];b[mejor]=aux;for(int i=p+1;i<n;i++){double m=a[i][p]/a[p][p];for(int j=p;j<n;j++)a[i][j]-=m*a[p][j];b[i]-=m*b[p];}}
   double[] x=new double[n];for(int i=n-1;i>=0;i--){double v=b[i];for(int j=i+1;j<n;j++)v-=a[i][j]*x[j];x[i]=v/a[i][i];if(!Double.isFinite(x[i]))throw new IllegalArgumentException("Resultado no finito.");}return x;}
  private static boolean finito(double... v){for(double x:v)if(!Double.isFinite(x))return false;return true;}

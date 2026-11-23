@@ -7,7 +7,7 @@ public final class GranulometriaService {
  public record Tamiz(double aberturaMm,double retenidoG){}
  public record Fila(double aberturaMm,double retenidoG,double retenidoPorcentaje,double retenidoAcumulado,double pasaPorcentaje){}
  public record Resultado(List<Fila> filas,double recuperadoG,double diferenciaG,double diferenciaPorcentaje){}
- public static Resultado calcular(double masaInicial,List<Tamiz> tamices,double fondo){
+ public static Resultado yefriLermaCalcular(double masaInicial,List<Tamiz> tamices,double fondo){
   if(!Double.isFinite(masaInicial)||masaInicial<=0)throw new IllegalArgumentException("La masa inicial seca debe ser positiva.");
   if(!Double.isFinite(fondo)||fondo<0)throw new IllegalArgumentException("La masa del fondo debe ser cero o positiva.");
   if(tamices==null||tamices.isEmpty())throw new IllegalArgumentException("Ingrese al menos un tamiz.");

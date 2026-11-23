@@ -24,7 +24,7 @@ public final class EvaluacionResistencia {
         }
     }
 
-    public static Resultado evaluar(double fc, List<Double> resultadosMpa) {
+    public static Resultado yefriLermaEvaluar(double fc, List<Double> resultadosMpa) {
         if (!Double.isFinite(fc) || fc <= 0) {
             throw new IllegalArgumentException("f'c debe ser positiva.");
         }

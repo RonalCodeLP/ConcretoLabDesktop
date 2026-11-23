@@ -4,10 +4,10 @@ Proyecto desarrollado por el equipo ConcretoLab.
 
 Autores declarados por el equipo
 
-- Yefri Lerma
-- Fernando Huanca
-- Miajeld Delgado
-- Walter Quispe Sayhuan
+- Yefri Ronaldiño Lerma Pacompia
+- Erick Mijael Delgado Lima
+- Fernando André Huanca Huallpa
+- Walter David Quispesayhua Quispe
 
 Los autores se declaran en la documentación del proyecto, los entregables, la pantalla Acerca de y el repositorio. Los nombres de variables, métodos y clases describen su responsabilidad técnica para conservar trazabilidad, legibilidad y mantenibilidad.
 

@@ -54,28 +54,28 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class IntercambioProyectoService {
 
-    public static final String FORMATO = "concretolab-proyecto";
-    public static final int VERSION_FORMATO = 1;
-    static final String ENTRADA_MANIFIESTO = "manifiesto.json";
-    static final String ENTRADA_DATOS = "datos.json";
-    static final long MAX_ARCHIVO = 50L * 1024 * 1024;
-    static final long MAX_DATOS = 100L * 1024 * 1024;
-    static final long MAX_MANIFIESTO = 1024L * 1024;
-    static final int MAX_ELEMENTOS = 20_000;
-    static final int MAX_MEZCLAS = 2_000;
-    static final int MAX_ENSAYOS = 20_000;
-    private static final Set<String> TIPOS = Set.of("ZAPATA", "COLUMNA", "VIGA", "LOSA", "MURO");
-    private static final String MSG_INVALIDO = "El archivo no es un proyecto de ConcretoLab válido o está dañado.";
+    public static final String ERICK_DELGADO_FORMATO = "concretolab-proyecto";
+    public static final int ERICK_DELGADO_VERSION_FORMATO = 1;
+    static final String ERICK_DELGADO_ENTRADA_MANIFIESTO = "manifiesto.json";
+    static final String ERICK_DELGADO_ENTRADA_DATOS = "datos.json";
+    static final long ERICK_DELGADO_MAX_ARCHIVO = 50L * 1024 * 1024;
+    static final long ERICK_DELGADO_MAX_DATOS = 100L * 1024 * 1024;
+    static final long ERICK_DELGADO_MAX_MANIFIESTO = 1024L * 1024;
+    static final int ERICK_DELGADO_MAX_ELEMENTOS = 20_000;
+    static final int ERICK_DELGADO_MAX_MEZCLAS = 2_000;
+    static final int ERICK_DELGADO_MAX_ENSAYOS = 20_000;
+    private static final Set<String> ERICK_DELGADO_TIPOS = Set.of("ZAPATA", "COLUMNA", "VIGA", "LOSA", "MURO");
+    private static final String ERICK_DELGADO_MSG_INVALIDO = "El archivo no es un proyecto de ConcretoLab válido o está dañado.";
 
     private final ProyectoRepository proyectos;
     private final ElementoRepository elementos;
     private final VinculoGeometricoRepository vinculos;
-    private final CuadriculaProyectoRepository cuadriculas;
-    private final ExpedienteRepository expedientes;
+    private final CuadriculaProyectoRepository erickDelgadoCuadriculas;
+    private final ExpedienteRepository erickDelgadoExpedientes;
     private final MezclaRepository mezclas;
     private final EnsayoRepository ensayos;
     private final BitacoraService bitacora;
-    private final ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper erickDelgadoMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public record Resultado(Proyecto proyecto, int elementos, int mezclas, int ensayos, List<String> avisos) {
     }
@@ -99,7 +99,7 @@ public class IntercambioProyectoService {
     // ---- Exportación ----
 
     @Transactional
-    public Path exportar(Long proyectoId, Path destino, char[] contrasena) {
+    public Path erickDelgadoExportar(Long proyectoId, Path destino, char[] contrasena) {
         if (destino == null) throw new IllegalArgumentException("Indique dónde guardar el archivo.");
         Proyecto proyecto = proyectoId == null ? null : proyectos.findById(proyectoId).orElse(null);
         if (proyecto == null) throw new IllegalArgumentException("El proyecto ya no existe.");
@@ -117,10 +117,10 @@ public class IntercambioProyectoService {
             Integer w = indice.get(v.getVigaId());
             if (c != null && w != null) vinculosDto.add(new VinculoDto(c, w));
         }
-        CuadriculaDto cuadriculaDto = cuadriculas.findById(proyectoId)
+        CuadriculaDto cuadriculaDto = erickDelgadoCuadriculas.findById(proyectoId)
                 .map(c -> new CuadriculaDto(c.getSeparacionesX(), c.getSeparacionesY(), c.getNiveles(), c.getOrigenX(), c.getOrigenY()))
                 .orElse(null);
-        ExpedienteDto expedienteDto = expedientes.findById(proyectoId)
+        ExpedienteDto expedienteDto = erickDelgadoExpedientes.findById(proyectoId)
                 .map(x -> new ExpedienteDto(x.getUbicacion(), x.getUso(), x.getFechaProyecto(), x.getEstadoProyecto(), x.getProfesional(),
                         x.getNorma(), x.getJustificacionNorma(), x.getEstudioSuelos(), x.getObservaciones()))
                 .orElse(null);
@@ -145,27 +145,27 @@ public class IntercambioProyectoService {
         try {
             DatosDto datos = new DatosDto(new ProyectoDto(proyecto.getNombre(), proyecto.getUbicacion()), elementosDto,
                     cuadriculaDto, vinculosDto, mezclasDto, expedienteDto);
-            byte[] datosJson = mapper.writeValueAsBytes(datos);
+            byte[] datosJson = erickDelgadoMapper.writeValueAsBytes(datos);
             Map<String, Integer> conteos = new LinkedHashMap<>();
             conteos.put("elementos", elementosDto.size());
             conteos.put("vinculos", vinculosDto.size());
             conteos.put("mezclas", mezclasDto.size());
             conteos.put("ensayos", totalEnsayos);
-            ManifiestoDto manifiesto = new ManifiestoDto(FORMATO, VERSION_FORMATO, "ConcretoLab Desktop", Instant.now().toString(),
-                    sha256(datosJson), conteos);
+            ManifiestoDto manifiesto = new ManifiestoDto(ERICK_DELGADO_FORMATO, ERICK_DELGADO_VERSION_FORMATO, "ConcretoLab Desktop", Instant.now().toString(),
+                    erickDelgadoSha256(datosJson), conteos);
             ByteArrayOutputStream zip = new ByteArrayOutputStream();
             try (ZipOutputStream salida = new ZipOutputStream(zip, StandardCharsets.UTF_8)) {
-                salida.putNextEntry(new ZipEntry(ENTRADA_MANIFIESTO));
-                salida.write(mapper.writeValueAsBytes(manifiesto));
+                salida.putNextEntry(new ZipEntry(ERICK_DELGADO_ENTRADA_MANIFIESTO));
+                salida.write(erickDelgadoMapper.writeValueAsBytes(manifiesto));
                 salida.closeEntry();
-                salida.putNextEntry(new ZipEntry(ENTRADA_DATOS));
+                salida.putNextEntry(new ZipEntry(ERICK_DELGADO_ENTRADA_DATOS));
                 salida.write(datosJson);
                 salida.closeEntry();
             }
             boolean cifrar = contrasena != null && contrasena.length > 0;
-            byte[] contenido = cifrar ? CifradoArchivo.cifrar(zip.toByteArray(), contrasena) : zip.toByteArray();
-            escribirAtomico(destino, contenido);
-            bitacora.registrar("PROYECTO_EXPORTADO", "Proyecto «" + proyecto.getNombre() + "» (id " + proyectoId + ") exportado a "
+            byte[] contenido = cifrar ? CifradoArchivo.erickDelgadoCifrar(zip.toByteArray(), contrasena) : zip.toByteArray();
+            erickDelgadoEscribirAtomico(destino, contenido);
+            bitacora.erickDelgadoRegistrar("PROYECTO_EXPORTADO", "Proyecto «" + proyecto.getNombre() + "» (id " + proyectoId + ") exportado a "
                     + destino.getFileName() + (cifrar ? " con contraseña" : ""));
             return destino;
         } catch (IOException e) {
@@ -173,7 +173,7 @@ public class IntercambioProyectoService {
         }
     }
 
-    private static void escribirAtomico(Path destino, byte[] contenido) throws IOException {
+    private static void erickDelgadoEscribirAtomico(Path destino, byte[] contenido) throws IOException {
         Path carpeta = destino.toAbsolutePath().getParent();
         if (carpeta == null) throw new IOException("Sin carpeta");
         Files.createDirectories(carpeta);
@@ -192,28 +192,28 @@ public class IntercambioProyectoService {
 
     // ---- Importación ----
 
-    public boolean estaCifrado(Path archivo) {
+    public boolean erickDelgadoEstaCifrado(Path archivo) {
         if (archivo == null) return false;
         try (InputStream in = Files.newInputStream(archivo)) {
-            return CifradoArchivo.estaCifrado(in.readNBytes(8));
+            return CifradoArchivo.erickDelgadoEstaCifrado(in.readNBytes(8));
         } catch (IOException e) {
             return false;
         }
     }
 
     @Transactional
-    public Resultado importar(Path archivo, char[] contrasena) {
+    public Resultado erickDelgadoImportar(Path archivo, char[] contrasena) {
         if (archivo == null || !Files.isRegularFile(archivo)) throw new IllegalArgumentException("No se encontró el archivo indicado.");
         byte[] contenido;
         try {
-            if (Files.size(archivo) > MAX_ARCHIVO) throw new IllegalArgumentException("El archivo supera el tamaño máximo permitido (50 MB).");
+            if (Files.size(archivo) > ERICK_DELGADO_MAX_ARCHIVO) throw new IllegalArgumentException("El archivo supera el tamaño máximo permitido (50 MB).");
             contenido = Files.readAllBytes(archivo);
         } catch (IOException e) {
             throw new IllegalArgumentException("No se pudo leer el archivo.");
         }
-        if (CifradoArchivo.estaCifrado(contenido)) {
+        if (CifradoArchivo.erickDelgadoEstaCifrado(contenido)) {
             if (contrasena == null || contrasena.length == 0) throw new IllegalArgumentException("El archivo está protegido: ingrese la contraseña.");
-            contenido = CifradoArchivo.descifrar(contenido, contrasena);
+            contenido = CifradoArchivo.erickDelgadoDescifrar(contenido, contrasena);
         }
 
         byte[] manifiestoBytes = null;
@@ -223,51 +223,51 @@ public class IntercambioProyectoService {
             while ((entrada = zip.getNextEntry()) != null) {
                 String nombre = entrada.getName();
                 if (nombre.contains("..") || nombre.startsWith("/") || nombre.startsWith("\\") || nombre.contains(":")
-                        || entrada.isDirectory() || !(ENTRADA_MANIFIESTO.equals(nombre) || ENTRADA_DATOS.equals(nombre))) {
+                        || entrada.isDirectory() || !(ERICK_DELGADO_ENTRADA_MANIFIESTO.equals(nombre) || ERICK_DELGADO_ENTRADA_DATOS.equals(nombre))) {
                     throw new IllegalArgumentException("El archivo contiene entradas no permitidas y fue rechazado.");
                 }
-                if (ENTRADA_MANIFIESTO.equals(nombre)) {
-                    if (manifiestoBytes != null) throw new IllegalArgumentException(MSG_INVALIDO);
-                    manifiestoBytes = leerLimitado(zip, MAX_MANIFIESTO);
+                if (ERICK_DELGADO_ENTRADA_MANIFIESTO.equals(nombre)) {
+                    if (manifiestoBytes != null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
+                    manifiestoBytes = erickDelgadoLeerLimitado(zip, ERICK_DELGADO_MAX_MANIFIESTO);
                 } else {
-                    if (datosBytes != null) throw new IllegalArgumentException(MSG_INVALIDO);
-                    datosBytes = leerLimitado(zip, MAX_DATOS);
+                    if (datosBytes != null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
+                    datosBytes = erickDelgadoLeerLimitado(zip, ERICK_DELGADO_MAX_DATOS);
                 }
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException(MSG_INVALIDO);
+            throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
         }
-        if (manifiestoBytes == null || datosBytes == null) throw new IllegalArgumentException(MSG_INVALIDO);
+        if (manifiestoBytes == null || datosBytes == null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
 
         ManifiestoDto manifiesto;
         try {
-            manifiesto = mapper.readValue(manifiestoBytes, ManifiestoDto.class);
+            manifiesto = erickDelgadoMapper.readValue(manifiestoBytes, ManifiestoDto.class);
         } catch (IOException e) {
-            throw new IllegalArgumentException(MSG_INVALIDO);
+            throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
         }
-        if (manifiesto == null || !FORMATO.equals(manifiesto.formato())) throw new IllegalArgumentException(MSG_INVALIDO);
-        if (manifiesto.version() > VERSION_FORMATO) {
+        if (manifiesto == null || !ERICK_DELGADO_FORMATO.equals(manifiesto.formato())) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
+        if (manifiesto.version() > ERICK_DELGADO_VERSION_FORMATO) {
             throw new IllegalArgumentException("El archivo fue creado con una versión más nueva de ConcretoLab (formato " + manifiesto.version()
                     + "). Actualice la aplicación para abrirlo.");
         }
         if (manifiesto.version() < 1 || manifiesto.sha256() == null
-                || !MessageDigest.isEqual(sha256(datosBytes).getBytes(StandardCharsets.US_ASCII),
+                || !MessageDigest.isEqual(erickDelgadoSha256(datosBytes).getBytes(StandardCharsets.US_ASCII),
                         manifiesto.sha256().toLowerCase().getBytes(StandardCharsets.US_ASCII))) {
             throw new IllegalArgumentException("El archivo fue modificado o está dañado.");
         }
 
         DatosDto datos;
         try {
-            datos = mapper.readValue(datosBytes, DatosDto.class);
+            datos = erickDelgadoMapper.readValue(datosBytes, DatosDto.class);
         } catch (IOException e) {
-            throw new IllegalArgumentException(MSG_INVALIDO);
+            throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
         }
         List<String> avisos = new ArrayList<>();
-        validar(datos, avisos);
+        erickDelgadoValidar(datos, avisos);
 
         // Todo validado: se guarda (la transacción revierte cualquier fallo inesperado).
         String nombreBase = datos.proyecto().nombre().trim();
-        String nombre = nombreLibre(nombreBase, avisos);
+        String nombre = erickDelgadoNombreLibre(nombreBase, avisos);
         Proyecto proyecto = new Proyecto();
         proyecto.setNombre(nombre);
         proyecto.setUbicacion(datos.proyecto().ubicacion() == null ? "" : datos.proyecto().ubicacion().trim());
@@ -275,7 +275,7 @@ public class IntercambioProyectoService {
         Long id = proyecto.getId();
 
         List<Elemento> nuevos = new ArrayList<>();
-        for (ElementoDto d : lista(datos.elementos())) {
+        for (ElementoDto d : erickDelgadoLista(datos.elementos())) {
             Elemento e = new Elemento();
             e.setProyectoId(id);
             e.setTipo(d.tipo());
@@ -289,7 +289,7 @@ public class IntercambioProyectoService {
             nuevos.add(elementos.save(e));
         }
         Set<String> vistos = new HashSet<>();
-        for (VinculoDto d : lista(datos.vinculos())) {
+        for (VinculoDto d : erickDelgadoLista(datos.vinculos())) {
             if (!vistos.add(d.columna() + ":" + d.viga())) continue;
             VinculoGeometrico v = new VinculoGeometrico();
             v.setColumnaId(nuevos.get(d.columna()).getId());
@@ -305,7 +305,7 @@ public class IntercambioProyectoService {
             c.setNiveles(d.niveles());
             c.setOrigenX(d.origenX());
             c.setOrigenY(d.origenY());
-            cuadriculas.save(c);
+            erickDelgadoCuadriculas.save(c);
         }
         if (datos.expediente() != null) {
             ExpedienteDto d = datos.expediente();
@@ -320,11 +320,11 @@ public class IntercambioProyectoService {
             x.setJustificacionNorma(d.justificacionNorma());
             x.setEstudioSuelos(d.estudioSuelos());
             x.setObservaciones(d.observaciones());
-            expedientes.save(x);
+            erickDelgadoExpedientes.save(x);
         }
         int totalMezclas = 0;
         int totalEnsayos = 0;
-        for (MezclaDto d : lista(datos.mezclas())) {
+        for (MezclaDto d : erickDelgadoLista(datos.mezclas())) {
             Mezcla m = new Mezcla();
             m.setProyectoId(id);
             m.setNombre(d.nombre());
@@ -343,7 +343,7 @@ public class IntercambioProyectoService {
             m.setHumedadGrueso(d.humedadGrueso());
             m = mezclas.save(m);
             totalMezclas++;
-            for (EnsayoDto ed : lista(d.ensayos())) {
+            for (EnsayoDto ed : erickDelgadoLista(d.ensayos())) {
                 Ensayo e = new Ensayo();
                 e.setMezclaId(m.getId());
                 e.setFecha(ed.fecha());
@@ -356,39 +356,39 @@ public class IntercambioProyectoService {
                 totalEnsayos++;
             }
         }
-        bitacora.registrar("PROYECTO_IMPORTADO", "Proyecto «" + nombre + "» (id " + id + ") importado de " + archivo.getFileName()
+        bitacora.erickDelgadoRegistrar("PROYECTO_IMPORTADO", "Proyecto «" + nombre + "» (id " + id + ") importado de " + archivo.getFileName()
                 + ": " + nuevos.size() + " elementos, " + totalMezclas + " mezclas, " + totalEnsayos + " ensayos");
         return new Resultado(proyecto, nuevos.size(), totalMezclas, totalEnsayos, List.copyOf(avisos));
     }
 
     // ---- Validación ----
 
-    private void validar(DatosDto datos, List<String> avisos) {
-        if (datos == null || datos.proyecto() == null) throw new IllegalArgumentException(MSG_INVALIDO);
+    private void erickDelgadoValidar(DatosDto datos, List<String> avisos) {
+        if (datos == null || datos.proyecto() == null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
         String nombre = datos.proyecto().nombre();
         if (nombre == null || nombre.isBlank() || nombre.trim().length() > 120) {
             throw new IllegalArgumentException("El archivo tiene un nombre de proyecto no válido (hasta 120 caracteres).");
         }
         String ubicacion = datos.proyecto().ubicacion();
         if (ubicacion != null && ubicacion.length() > 200) throw new IllegalArgumentException("La ubicación del proyecto supera 200 caracteres.");
-        List<ElementoDto> els = lista(datos.elementos());
-        List<MezclaDto> mzs = lista(datos.mezclas());
-        if (els.size() > MAX_ELEMENTOS) throw new IllegalArgumentException("El archivo tiene demasiados elementos (máximo " + MAX_ELEMENTOS + ").");
-        if (mzs.size() > MAX_MEZCLAS) throw new IllegalArgumentException("El archivo tiene demasiadas mezclas (máximo " + MAX_MEZCLAS + ").");
+        List<ElementoDto> els = erickDelgadoLista(datos.elementos());
+        List<MezclaDto> mzs = erickDelgadoLista(datos.mezclas());
+        if (els.size() > ERICK_DELGADO_MAX_ELEMENTOS) throw new IllegalArgumentException("El archivo tiene demasiados elementos (máximo " + ERICK_DELGADO_MAX_ELEMENTOS + ").");
+        if (mzs.size() > ERICK_DELGADO_MAX_MEZCLAS) throw new IllegalArgumentException("El archivo tiene demasiadas mezclas (máximo " + ERICK_DELGADO_MAX_MEZCLAS + ").");
         long totalEnsayos = 0;
         for (MezclaDto m : mzs) {
-            if (m == null) throw new IllegalArgumentException(MSG_INVALIDO);
-            totalEnsayos += lista(m.ensayos()).size();
+            if (m == null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
+            totalEnsayos += erickDelgadoLista(m.ensayos()).size();
         }
-        if (totalEnsayos > MAX_ENSAYOS) throw new IllegalArgumentException("El archivo tiene demasiados ensayos (máximo " + MAX_ENSAYOS + ").");
+        if (totalEnsayos > ERICK_DELGADO_MAX_ENSAYOS) throw new IllegalArgumentException("El archivo tiene demasiados ensayos (máximo " + ERICK_DELGADO_MAX_ENSAYOS + ").");
 
         for (int i = 0; i < els.size(); i++) {
             ElementoDto e = els.get(i);
             String ref = "Elemento " + (i + 1) + ": ";
-            if (e == null) throw new IllegalArgumentException(MSG_INVALIDO);
-            if (e.tipo() == null || !TIPOS.contains(e.tipo())) throw new IllegalArgumentException(ref + "tipo no válido (use ZAPATA, COLUMNA o VIGA).");
+            if (e == null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
+            if (e.tipo() == null || !ERICK_DELGADO_TIPOS.contains(e.tipo())) throw new IllegalArgumentException(ref + "tipo no válido (use ZAPATA, COLUMNA o VIGA).");
             if (e.nombre() == null || e.nombre().isBlank() || e.nombre().length() > 200) throw new IllegalArgumentException(ref + "nombre no válido.");
-            if (!positivo(e.largo()) || !positivo(e.ancho()) || !positivo(e.altura()) || !Double.isFinite(e.largo() * e.ancho() * e.altura())) {
+            if (!erickDelgadoPositivo(e.largo()) || !erickDelgadoPositivo(e.ancho()) || !erickDelgadoPositivo(e.altura()) || !Double.isFinite(e.largo() * e.ancho() * e.altura())) {
                 throw new IllegalArgumentException(ref + "las dimensiones deben ser números positivos y finitos.");
             }
             if (!Double.isFinite(e.x()) || !Double.isFinite(e.y()) || !Double.isFinite(e.z())) {
@@ -396,7 +396,7 @@ public class IntercambioProyectoService {
             }
         }
         Set<String> pares = new HashSet<>();
-        for (VinculoDto v : lista(datos.vinculos())) {
+        for (VinculoDto v : erickDelgadoLista(datos.vinculos())) {
             if (v == null || v.columna() == null || v.viga() == null || v.columna() < 0 || v.viga() < 0
                     || v.columna() >= els.size() || v.viga() >= els.size()) {
                 throw new IllegalArgumentException("Un vínculo hace referencia a un elemento que no existe.");
@@ -427,16 +427,16 @@ public class IntercambioProyectoService {
             MezclaDto m = mzs.get(i);
             String ref = "Mezcla " + (i + 1) + ": ";
             if (m.nombre() == null || m.nombre().isBlank() || m.nombre().length() > 200) throw new IllegalArgumentException(ref + "nombre no válido.");
-            if (!positivo(m.resistencia()) || !positivo(m.cemento()) || !positivo(m.agua()) || !positivo(m.finoSss()) || !positivo(m.gruesoSss())) {
+            if (!erickDelgadoPositivo(m.resistencia()) || !erickDelgadoPositivo(m.cemento()) || !erickDelgadoPositivo(m.agua()) || !erickDelgadoPositivo(m.finoSss()) || !erickDelgadoPositivo(m.gruesoSss())) {
                 throw new IllegalArgumentException(ref + "cantidades y resistencia deben ser positivas y finitas.");
             }
-            if (!porcentaje(m.absorcionFino()) || !porcentaje(m.humedadFino()) || !porcentaje(m.absorcionGrueso()) || !porcentaje(m.humedadGrueso())) {
+            if (!erickDelgadoPorcentaje(m.absorcionFino()) || !erickDelgadoPorcentaje(m.humedadFino()) || !erickDelgadoPorcentaje(m.absorcionGrueso()) || !erickDelgadoPorcentaje(m.humedadGrueso())) {
                 throw new IllegalArgumentException(ref + "humedad y absorción deben estar entre 0 y 100 %.");
             }
             for (String t : new String[] {m.referencia(), m.observaciones(), m.materialFino(), m.materialGrueso()}) {
                 if (t != null && t.length() > 5000) throw new IllegalArgumentException(ref + "un texto es demasiado largo.");
             }
-            for (EnsayoDto e : lista(m.ensayos())) {
+            for (EnsayoDto e : erickDelgadoLista(m.ensayos())) {
                 if (e == null || e.identificacion() == null || e.identificacion().isBlank() || e.identificacion().length() > 200) {
                     throw new IllegalArgumentException(ref + "un ensayo tiene identificación no válida.");
                 }
@@ -445,7 +445,7 @@ public class IntercambioProyectoService {
                 } catch (RuntimeException ex) {
                     throw new IllegalArgumentException(ref + "un ensayo tiene fecha no válida.");
                 }
-                if (!positivo(e.edadDias()) || !positivo(e.resistenciaMpa()) || !Double.isFinite(e.asentamientoMm()) || e.asentamientoMm() < 0) {
+                if (!erickDelgadoPositivo(e.edadDias()) || !erickDelgadoPositivo(e.resistenciaMpa()) || !Double.isFinite(e.asentamientoMm()) || e.asentamientoMm() < 0) {
                     throw new IllegalArgumentException(ref + "revise edad, resistencia y asentamiento de los ensayos.");
                 }
                 if (e.observaciones() != null && e.observaciones().length() > 5000) throw new IllegalArgumentException(ref + "un texto es demasiado largo.");
@@ -453,7 +453,7 @@ public class IntercambioProyectoService {
         }
     }
 
-    private String nombreLibre(String base, List<String> avisos) {
+    private String erickDelgadoNombreLibre(String base, List<String> avisos) {
         Set<String> existentes = new HashSet<>();
         for (Proyecto p : proyectos.findAll()) existentes.add(p.getNombre());
         if (!existentes.contains(base)) return base;
@@ -472,19 +472,19 @@ public class IntercambioProyectoService {
 
     // ---- Utilidades ----
 
-    private static <T> List<T> lista(List<T> l) {
+    private static <T> List<T> erickDelgadoLista(List<T> l) {
         return l == null ? List.of() : l;
     }
 
-    private static boolean positivo(double v) {
+    private static boolean erickDelgadoPositivo(double v) {
         return Double.isFinite(v) && v > 0;
     }
 
-    private static boolean porcentaje(double v) {
+    private static boolean erickDelgadoPorcentaje(double v) {
         return Double.isFinite(v) && v >= 0 && v <= 100;
     }
 
-    private static byte[] leerLimitado(InputStream in, long maximo) throws IOException {
+    private static byte[] erickDelgadoLeerLimitado(InputStream in, long maximo) throws IOException {
         ByteArrayOutputStream salida = new ByteArrayOutputStream();
         byte[] buffer = new byte[8192];
         long total = 0;
@@ -497,7 +497,7 @@ public class IntercambioProyectoService {
         return salida.toByteArray();
     }
 
-    static String sha256(byte[] datos) {
+    static String erickDelgadoSha256(byte[] datos) {
         try {
             byte[] h = MessageDigest.getInstance("SHA-256").digest(datos);
             StringBuilder sb = new StringBuilder(h.length * 2);

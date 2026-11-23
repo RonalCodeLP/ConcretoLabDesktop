@@ -17,7 +17,7 @@ public final class EdificioCortante {
             return base+(u[j][t]-base)*fraccion*fraccion*(3-2*fraccion);
         }
     }
-    public static Resultado simular(List<Elemento> elementos,double modulo,boolean x,double masa,double amort,double dt,double[] registro){
+    public static Resultado yefriLermaSimular(List<Elemento> elementos,double modulo,boolean x,double masa,double amort,double dt,double[] registro){
         if(!Double.isFinite(masa)||masa<=0)throw new IllegalArgumentException("Revisa la masa por piso.");
         var grupos=new TreeMap<Double,List<Elemento>>();
         for(var e:elementos)if("COLUMNA".equals(e.getTipo())){
@@ -29,7 +29,7 @@ public final class EdificioCortante {
         List<Nivel> niveles=new ArrayList<>();
         double[][] matriz=new double[n][n], vectores=new double[n][n];
         for(var grupo:grupos.entrySet()){
-            var piso=HistoriaPiso.piso(grupo.getValue(),modulo,x);
+            var piso=HistoriaPiso.yefriLermaPiso(grupo.getValue(),modulo,x);
             int i=niveles.size();
             if(i>0 && Math.abs(grupo.getKey()-piso.altura()-niveles.get(i-1).techo())>2e-6)
                 throw new IllegalArgumentException("Las cotas de las columnas deben formar entrepisos continuos.");
@@ -38,10 +38,10 @@ public final class EdificioCortante {
             matriz[i][i]+=k; vectores[i][i]=1;
             if(i>0){matriz[i-1][i-1]+=k;matriz[i][i-1]=matriz[i-1][i]=-k;}
         }
-        diagonalizar(matriz,vectores);
+        yefriLermaDiagonalizar(matriz,vectores);
         double[][] u=new double[n][registro.length]; double periodo=0;
         for(int j=0;j<n;j++){
-            var modo=HistoriaPiso.resolver(1,matriz[j][j],amort,dt,registro);
+            var modo=HistoriaPiso.yefriLermaResolver(1,matriz[j][j],amort,dt,registro);
             periodo=Math.max(periodo,modo.periodo());
             double participacion=0;
             for(double[] v:vectores) participacion+=v[j];
@@ -56,7 +56,7 @@ public final class EdificioCortante {
         }
         return new Resultado(List.copyOf(niveles),u,periodo,pico,max,derivas);
     }
-    private static void diagonalizar(double[][] a,double[][] v){
+    private static void yefriLermaDiagonalizar(double[][] a,double[][] v){
         int n=a.length;
         for(int iter=0;iter<100*n*n;iter++){
             int p=0,q=0;double mayor=0,diagonal=0;

@@ -41,22 +41,22 @@ public class Exportador {
         }
     }
 
-    private final Notificador notificador;
-    private HostServices hostServices;
-    private File ultimaCarpeta = new File(System.getProperty("user.home"));
+    private final Notificador fernandoHuancaNotificador;
+    private HostServices fernandoHuancaHostServices;
+    private File fernandoHuancaUltimaCarpeta = new File(System.getProperty("user.home"));
 
     public void setHostServices(HostServices hostServices) {
-        this.hostServices = hostServices;
+        this.fernandoHuancaHostServices = hostServices;
     }
 
     /** Pide al usuario donde guardar, genera el archivo y lo abre al terminar. */
-    public void guardar(Window ventana, String titulo, String nombreSugerido, Formato formato, Generador generador) {
+    public void fernandoHuancaGuardar(Window ventana, String titulo, String nombreSugerido, Formato formato, Generador generador) {
         FileChooser selector = new FileChooser();
         selector.setTitle(titulo);
         selector.setInitialFileName(nombreSugerido + formato.extension);
         selector.getExtensionFilters().add(new FileChooser.ExtensionFilter(formato.descripcion, formato.patron));
-        if (ultimaCarpeta.isDirectory()) {
-            selector.setInitialDirectory(ultimaCarpeta);
+        if (fernandoHuancaUltimaCarpeta.isDirectory()) {
+            selector.setInitialDirectory(fernandoHuancaUltimaCarpeta);
         }
         File elegido = selector.showSaveDialog(ventana);
         if (elegido == null) {
@@ -65,16 +65,16 @@ public class Exportador {
         File destino = elegido.getName().toLowerCase().endsWith(formato.extension)
                 ? elegido
                 : new File(elegido.getParentFile(), elegido.getName() + formato.extension);
-        ultimaCarpeta = destino.getParentFile();
+        fernandoHuancaUltimaCarpeta = destino.getParentFile();
 
-        ejecutar(destino, generador, () -> {
-            notificador.exito("Archivo guardado: " + destino.getName());
-            abrir(destino);
+        fernandoHuancaEjecutar(destino, generador, () -> {
+            fernandoHuancaNotificador.exito("Archivo guardado: " + destino.getName());
+            fernandoHuancaAbrir(destino);
         });
     }
 
     /** Genera el archivo en una carpeta temporal y lo abre para verlo o imprimirlo. */
-    public void abrirTemporal(String nombre, Formato formato, Generador generador) {
+    public void fernandoHuancaAbrirTemporal(String nombre, Formato formato, Generador generador) {
         File destino;
         try {
             File carpeta = Files.createTempDirectory("comprobantes").toFile();
@@ -82,16 +82,16 @@ public class Exportador {
             destino = new File(carpeta, nombre + formato.extension);
             destino.deleteOnExit();
         } catch (IOException e) {
-            notificador.error("No se pudo crear el archivo temporal: " + e.getMessage());
+            fernandoHuancaNotificador.fernandoHuancaError("No se pudo crear el archivo temporal: " + e.getMessage());
             return;
         }
-        ejecutar(destino, generador, () -> {
-            notificador.info("Abriendo " + destino.getName() + "…");
-            abrir(destino);
+        fernandoHuancaEjecutar(destino, generador, () -> {
+            fernandoHuancaNotificador.fernandoHuancaInfo("Abriendo " + destino.getName() + "…");
+            fernandoHuancaAbrir(destino);
         });
     }
 
-    private void ejecutar(File destino, Generador generador, Runnable alTerminar) {
+    private void fernandoHuancaEjecutar(File destino, Generador generador, Runnable alTerminar) {
         Task<Void> tarea = new Task<>() {
             @Override
             protected Void call() throws Exception {
@@ -103,7 +103,7 @@ public class Exportador {
         tarea.setOnFailed(e -> {
             Throwable causa = tarea.getException();
             log.error("No se pudo generar {}", destino, causa);
-            notificador.error("No se pudo generar el archivo: " + causa.getMessage());
+            fernandoHuancaNotificador.fernandoHuancaError("No se pudo generar el archivo: " + causa.getMessage());
         });
         Thread hilo = new Thread(tarea, "exportador");
         hilo.setDaemon(true);
@@ -111,17 +111,17 @@ public class Exportador {
     }
 
     /** Abre una carpeta en el explorador del sistema. */
-    public void abrirCarpeta(File carpeta) {
+    public void fernandoHuancaAbrirCarpeta(File carpeta) {
         if (carpeta == null || !carpeta.isDirectory()) {
-            notificador.advertencia("La carpeta todavía no existe.");
+            fernandoHuancaNotificador.fernandoHuancaAdvertencia("La carpeta todavía no existe.");
             return;
         }
-        abrir(carpeta);
+        fernandoHuancaAbrir(carpeta);
     }
 
-    private void abrir(File archivo) {
-        if (hostServices != null) {
-            hostServices.showDocument(archivo.toURI().toString());
+    private void fernandoHuancaAbrir(File archivo) {
+        if (fernandoHuancaHostServices != null) {
+            fernandoHuancaHostServices.showDocument(archivo.toURI().toString());
         }
     }
 }

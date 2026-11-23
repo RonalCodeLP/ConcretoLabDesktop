@@ -9,7 +9,7 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MezclasController.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\ModeloController.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\TiempoHistoriaController.java
-C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\WalterQuispeSayhuanSismoController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\WalterQuispesayhuaSismoController.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\exception\NegocioException.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\JavaFxApplication.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\Launcher.java
@@ -47,6 +47,7 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CifradoArchivo.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ClaveBaseService.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuadriculaService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuantiasAcero.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DeteccionCapasDxf.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DiagnosticoSismico.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DisenoMezclaACI.java
@@ -91,11 +92,11 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\DialogoClaveBase.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorCuadricula.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorMovimiento.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoImportacionDxf.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoVisor3D.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Exportador.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\FormatoNumeros.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Formularios.java
-C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\MiajeldDelgadoImportacionDxf.java
-C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\MiajeldDelgadoVisor3D.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Notificador.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Paginador.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Refrescable.java

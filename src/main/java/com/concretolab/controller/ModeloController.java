@@ -12,7 +12,7 @@ import com.concretolab.ui.Notificador;
 import com.concretolab.ui.Refrescable;
 import com.concretolab.ui.SesionProyecto;
 import com.concretolab.ui.Tablas;
-import com.concretolab.ui.MiajeldDelgadoVisor3D;
+import com.concretolab.ui.ErickDelgadoVisor3D;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
@@ -42,11 +42,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ModeloController implements Refrescable {
 
-    private final YefriLermaProyectoService servicio;
-    private final com.concretolab.service.FernandoHuancaPlanoDxf importadorDxf;
+    private final YefriLermaProyectoService yefriLermaServicio;
+    private final com.concretolab.service.FernandoHuancaPlanoDxf yefriLermaImportadorDxf;
 
     @FXML private void onExportarDxf() {
-        Proyecto activo = sesion.getProyecto();
+        Proyecto activo = yefriLermaSesion.getProyecto();
         if (activo == null) {
             new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
                     "Selecciona el proyecto que quieres exportar.").showAndWait();
@@ -59,7 +59,7 @@ public class ModeloController implements Refrescable {
         var destino = selector.showSaveDialog(tabla.getScene().getWindow());
         if (destino == null) return;
         try {
-            importadorDxf.fernandoHuancaExportar(destino.toPath(),servicio.elementos(activo.getId()));
+            yefriLermaImportadorDxf.fernandoHuancaExportar(destino.toPath(),yefriLermaServicio.elementos(activo.getId()));
             new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
                     "DXF guardado. Abre el archivo en AutoCAD y selecciona una vista isométrica.").showAndWait();
         } catch (java.io.IOException | IllegalArgumentException ex) {
@@ -68,20 +68,20 @@ public class ModeloController implements Refrescable {
     }
 
     @FXML private void onExportarIfc() {
-        Proyecto activo = sesion.getProyecto();
+        Proyecto activo = yefriLermaSesion.getProyecto();
         if (activo == null) {
-            notificador.advertencia("Seleccione el proyecto que quiere exportar.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Seleccione el proyecto que quiere exportar.");
             return;
         }
-        guardarTexto("Exportar modelo en IFC", activo.getNombre() + ".ifc", "Modelo IFC (IFC2X3)", "*.ifc",
-                () -> com.concretolab.service.ExportadorIfc.generar(activo.getNombre(), servicio.elementos(activo.getId())),
+        yefriLermaGuardarTexto("Exportar modelo en IFC", activo.getNombre() + ".ifc", "Modelo IFC (IFC2X3)", "*.ifc",
+                () -> com.concretolab.service.ExportadorIfc.erickDelgadoGenerar(activo.getNombre(), yefriLermaServicio.elementos(activo.getId())),
                 "IFC guardado. Ábralo en un visor IFC (BIMvision, Solibri, Revit…) para verificarlo.");
     }
 
     @FXML private void onExportarEtabs() {
-        Proyecto activo = sesion.getProyecto();
+        Proyecto activo = yefriLermaSesion.getProyecto();
         if (activo == null) {
-            notificador.advertencia("Seleccione el proyecto que quiere exportar.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Seleccione el proyecto que quiere exportar.");
             return;
         }
         var dialogo = new javafx.scene.control.TextInputDialog("21");
@@ -94,14 +94,14 @@ public class ModeloController implements Refrescable {
         try {
             fc = Double.parseDouble(respuesta.get().trim().replace(',', '.'));
         } catch (NumberFormatException ex) {
-            notificador.advertencia("Ingrese una f’c numérica.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Ingrese una f’c numérica.");
             return;
         }
         double fcFinal = fc;
         var avisos = new java.util.ArrayList<String>();
-        guardarTexto("Exportar modelo a ETABS (.e2k)", activo.getNombre() + ".e2k", "Texto de ETABS", "*.e2k",
+        yefriLermaGuardarTexto("Exportar modelo a ETABS (.e2k)", activo.getNombre() + ".e2k", "Texto de ETABS", "*.e2k",
                 () -> {
-                    var r = com.concretolab.service.ExportadorEtabs.generar(activo.getNombre(), fcFinal, servicio.elementos(activo.getId()));
+                    var r = com.concretolab.service.ExportadorEtabs.erickDelgadoGenerar(activo.getNombre(), fcFinal, yefriLermaServicio.elementos(activo.getId()));
                     avisos.addAll(r.avisos());
                     return r.texto();
                 },
@@ -114,7 +114,7 @@ public class ModeloController implements Refrescable {
         }
     }
 
-    private void guardarTexto(String titulo, String nombre, String descripcion, String patron,
+    private void yefriLermaGuardarTexto(String titulo, String nombre, String descripcion, String patron,
                               java.util.function.Supplier<String> contenido, String mensajeOk) {
         var selector = new javafx.stage.FileChooser();
         selector.setTitle(titulo);
@@ -124,27 +124,27 @@ public class ModeloController implements Refrescable {
         if (destino == null) return;
         try {
             java.nio.file.Files.writeString(destino.toPath(), contenido.get(), java.nio.charset.StandardCharsets.UTF_8);
-            notificador.exito(mensajeOk);
+            yefriLermaNotificador.exito(mensajeOk);
         } catch (java.io.IOException | IllegalArgumentException ex) {
-            notificador.error(ex.getMessage() == null ? "No se pudo exportar." : ex.getMessage());
+            yefriLermaNotificador.fernandoHuancaError(ex.getMessage() == null ? "No se pudo exportar." : ex.getMessage());
         }
     }
 
     @FXML private void onImportarDxf() {
-        new com.concretolab.ui.MiajeldDelgadoImportacionDxf(importadorDxf, servicio)
-                .miajeldDelgadoAbrir(tabla.getScene().getWindow(), sesion.getProyecto())
+        new com.concretolab.ui.ErickDelgadoImportacionDxf(yefriLermaImportadorDxf, yefriLermaServicio)
+                .erickDelgadoAbrir(tabla.getScene().getWindow(), yefriLermaSesion.getProyecto())
                 .ifPresent(p -> {
-                    cargarProyectos(p.getId());
-                    cargarElementos();
+                    yefriLermaCargarProyectos(p.getId());
+                    yefriLermaCargarElementos();
                 });
     }
-    private final SesionProyecto sesion;
-    private final Notificador notificador;
-    private final EditorCuadricula editorCuadricula;
-    private final MovimientoElementoService movimientos;
+    private final SesionProyecto yefriLermaSesion;
+    private final Notificador yefriLermaNotificador;
+    private final EditorCuadricula yefriLermaEditorCuadricula;
+    private final MovimientoElementoService yefriLermaMovimientos;
 
     /** Se crea en initialize(): construye nodos 3D de JavaFX, que no existen todavía cuando Spring instancia el controlador. */
-    private MiajeldDelgadoVisor3D visor3d;
+    private ErickDelgadoVisor3D yefriLermaVisor3d;
 
     // ---- cabecera
     @FXML private ComboBox<Proyecto> cmbProyecto;
@@ -198,106 +198,106 @@ public class ModeloController implements Refrescable {
     @FXML private TextField txtAlturaViga;
 
     /** Evita que los cambios hechos por codigo en el combo se propaguen como si los hubiera hecho el usuario. */
-    private boolean sincronizando;
+    private boolean yefriLermaSincronizando;
     /** Id del elemento en edicion; {@code null} cuando el panel registra uno nuevo. */
-    private Long idEditando;
-    private EditorMovimiento editorMovimiento;
-    private Operacion ultimoMovimiento;
+    private Long yefriLermaIdEditando;
+    private EditorMovimiento yefriLermaEditorMovimiento;
+    private Operacion yefriLermaUltimoMovimiento;
 
     @FXML
     public void initialize() {
-        visor3d = new MiajeldDelgadoVisor3D();
-        contenedorVisor.getChildren().add(visor3d.nodo());
+        yefriLermaVisor3d = new ErickDelgadoVisor3D();
+        contenedorVisor.getChildren().add(yefriLermaVisor3d.erickDelgadoNodo());
 
         colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo()));
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
-        colVolumen.setCellValueFactory(c -> new SimpleStringProperty(volumen(c.getValue().volumen())));
-        Tablas.configurar(tabla, "Agregue elementos al proyecto", this::editar);
-        tabla.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> dibujar(false));
+        colVolumen.setCellValueFactory(c -> new SimpleStringProperty(yefriLermaVolumen(c.getValue().volumen())));
+        Tablas.fernandoHuancaConfigurar(tabla, "Agregue elementos al proyecto", this::yefriLermaEditar);
+        tabla.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> yefriLermaDibujar(false));
 
         var seleccion = tabla.getSelectionModel().selectedItemProperty();
         btnEditar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
         btnEliminar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
         btnMover.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
         btnDeshacerMovimiento.setDisable(true);
-        editorMovimiento = new EditorMovimiento(movimientos, visor3d, panelMovimiento, guardado -> {
-            ultimoMovimiento = guardado;
+        yefriLermaEditorMovimiento = new EditorMovimiento(yefriLermaMovimientos, yefriLermaVisor3d, panelMovimiento, guardado -> {
+            yefriLermaUltimoMovimiento = guardado;
             btnDeshacerMovimiento.setDisable(false);
-            cargarElementos();
-            notificador.exito("Movimiento guardado.");
+            yefriLermaCargarElementos();
+            yefriLermaNotificador.exito("Movimiento guardado.");
         }, () -> {
-            habilitarEdicion(true);
-            dibujar(false);
+            yefriLermaHabilitarEdicion(true);
+            yefriLermaDibujar(false);
         });
         btnEliminarProyecto.disableProperty().bind(cmbProyecto.valueProperty().isNull().or(panelMovimiento.visibleProperty()));
         btnExportarDxf.disableProperty().bind(cmbProyecto.valueProperty().isNull()
                 .or(Bindings.isEmpty(tabla.getItems())).or(panelMovimiento.visibleProperty()));
 
         cmbProyecto.valueProperty().addListener((o, a, b) -> {
-            if (sincronizando) {
+            if (yefriLermaSincronizando) {
                 return;
             }
-            sesion.setProyecto(b);
-            ultimoMovimiento = null;
+            yefriLermaSesion.setProyecto(b);
+            yefriLermaUltimoMovimiento = null;
             btnDeshacerMovimiento.setDisable(true);
-            cargarElementos();
+            yefriLermaCargarElementos();
         });
 
         cmbTipo.setItems(FXCollections.observableArrayList("ZAPATA", "COLUMNA", "VIGA", "LOSA", "MURO"));
-        cmbTipo.valueProperty().addListener((o, a, b) -> Formularios.limpiarError(cmbTipo));
-        Formularios.limpiarAlEditar(txtNombreProyecto, txtUbicacionProyecto, txtNombreElemento,
+        cmbTipo.valueProperty().addListener((o, a, b) -> Formularios.fernandoHuancaLimpiarError(cmbTipo));
+        Formularios.fernandoHuancaLimpiarAlEditar(txtNombreProyecto, txtUbicacionProyecto, txtNombreElemento,
                 txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
-        Formularios.limpiarAlEditar(camposPlantilla().toArray(new TextField[0]));
+        Formularios.fernandoHuancaLimpiarAlEditar(yefriLermaCamposPlantilla().toArray(new TextField[0]));
     }
 
     @Override
     public void refrescar() {
-        Proyecto activo = sesion.getProyecto();
-        if (panelMovimiento.isVisible()) editorMovimiento.cerrar();
-        if (ultimoMovimiento != null && (activo == null || !ultimoMovimiento.vista().original().proyectoId().equals(activo.getId()))) {
-            ultimoMovimiento = null;
+        Proyecto activo = yefriLermaSesion.getProyecto();
+        if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
+        if (yefriLermaUltimoMovimiento != null && (activo == null || !yefriLermaUltimoMovimiento.vista().original().proyectoId().equals(activo.getId()))) {
+            yefriLermaUltimoMovimiento = null;
             btnDeshacerMovimiento.setDisable(true);
         }
-        cargarProyectos(activo == null ? null : activo.getId());
-        cargarElementos();
+        yefriLermaCargarProyectos(activo == null ? null : activo.getId());
+        yefriLermaCargarElementos();
     }
 
     // ------------------------------------------------------------- proyecto
 
     @FXML
     private void onNuevoProyecto() {
-        Formularios.limpiarErrores(txtNombreProyecto, txtUbicacionProyecto);
+        Formularios.fernandoHuancaLimpiarErrores(txtNombreProyecto, txtUbicacionProyecto);
         txtNombreProyecto.clear();
         txtUbicacionProyecto.clear();
-        notificador.abrirPanel(panelProyecto);
+        yefriLermaNotificador.fernandoHuancaAbrirPanel(panelProyecto);
         Platform.runLater(txtNombreProyecto::requestFocus);
     }
 
     @FXML
     private void onGuardarProyecto() {
-        Formularios.limpiarErrores(txtNombreProyecto, txtUbicacionProyecto);
+        Formularios.fernandoHuancaLimpiarErrores(txtNombreProyecto, txtUbicacionProyecto);
         String nombre = txtNombreProyecto.getText();
         String ubicacion = txtUbicacionProyecto.getText();
         boolean valido = true;
         if (nombre.isBlank() || nombre.trim().length() > 120) {
-            Formularios.marcarError(txtNombreProyecto, "Ingrese un nombre de proyecto de hasta 120 caracteres.");
+            Formularios.fernandoHuancaMarcarError(txtNombreProyecto, "Ingrese un nombre de proyecto de hasta 120 caracteres.");
             valido = false;
         }
         if (ubicacion.length() > 200) {
-            Formularios.marcarError(txtUbicacionProyecto, "La ubicación no puede superar 200 caracteres.");
+            Formularios.fernandoHuancaMarcarError(txtUbicacionProyecto, "La ubicación no puede superar 200 caracteres.");
             valido = false;
         }
         if (!valido) {
             return;
         }
         try {
-            Proyecto nuevo = servicio.crearProyecto(nombre, ubicacion);
-            notificador.cerrarPanel();
-            notificador.exito("Proyecto \"" + nuevo.getNombre() + "\" creado.");
-            cargarProyectos(nuevo.getId());
-            cargarElementos();
+            Proyecto nuevo = yefriLermaServicio.yefriLermaCrearProyecto(nombre, ubicacion);
+            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            yefriLermaNotificador.exito("Proyecto \"" + nuevo.getNombre() + "\" creado.");
+            yefriLermaCargarProyectos(nuevo.getId());
+            yefriLermaCargarElementos();
         } catch (Exception e) {
-            notificador.error(mensaje(e));
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
@@ -305,28 +305,28 @@ public class ModeloController implements Refrescable {
 
     @FXML
     private void onNuevoElemento() {
-        if (!hayProyecto()) {
+        if (!yefriLermaHayProyecto()) {
             return;
         }
         tabla.getSelectionModel().clearSelection();
-        abrirElemento(null);
+        yefriLermaAbrirElemento(null);
     }
 
     @FXML
     private void onEditarElemento() {
-        editar(tabla.getSelectionModel().getSelectedItem());
+        yefriLermaEditar(tabla.getSelectionModel().getSelectedItem());
     }
 
-    private void editar(Elemento e) {
-        if (e == null || !hayProyecto()) {
+    private void yefriLermaEditar(Elemento e) {
+        if (e == null || !yefriLermaHayProyecto()) {
             return;
         }
-        abrirElemento(e);
+        yefriLermaAbrirElemento(e);
     }
 
-    private void abrirElemento(Elemento anterior) {
-        Formularios.limpiarErrores(cmbTipo, txtNombreElemento, txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
-        idEditando = anterior == null ? null : anterior.getId();
+    private void yefriLermaAbrirElemento(Elemento anterior) {
+        Formularios.fernandoHuancaLimpiarErrores(cmbTipo, txtNombreElemento, txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
+        yefriLermaIdEditando = anterior == null ? null : anterior.getId();
         lblTituloElemento.setText(anterior == null ? "Nuevo elemento" : "Editar elemento");
         cmbTipo.setValue(anterior == null ? "ZAPATA" : anterior.getTipo());
         txtNombreElemento.setText(anterior == null ? "" : anterior.getNombre());
@@ -336,7 +336,7 @@ public class ModeloController implements Refrescable {
         txtX.setText(Double.toString(anterior == null ? 0 : anterior.getX()));
         txtY.setText(Double.toString(anterior == null ? 0 : anterior.getY()));
         txtZ.setText(Double.toString(anterior == null ? 0 : anterior.getZ()));
-        notificador.abrirPanel(panelElemento);
+        yefriLermaNotificador.fernandoHuancaAbrirPanel(panelElemento);
         Platform.runLater(txtNombreElemento::requestFocus);
     }
 
@@ -344,28 +344,28 @@ public class ModeloController implements Refrescable {
     private void onGuardarElemento() {
         Proyecto p = cmbProyecto.getValue();
         if (p == null) {
-            notificador.advertencia("Seleccione o cree un proyecto.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Seleccione o cree un proyecto.");
             return;
         }
-        Formularios.limpiarErrores(cmbTipo, txtNombreElemento, txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
+        Formularios.fernandoHuancaLimpiarErrores(cmbTipo, txtNombreElemento, txtLargo, txtAncho, txtAltura, txtX, txtY, txtZ);
         boolean valido = true;
         if (cmbTipo.getValue() == null) {
-            Formularios.marcarError(cmbTipo, "Seleccione un tipo válido.");
+            Formularios.fernandoHuancaMarcarError(cmbTipo, "Seleccione un tipo válido.");
             valido = false;
         }
         if (txtNombreElemento.getText().isBlank()) {
-            Formularios.marcarError(txtNombreElemento, "Ingrese un nombre.");
+            Formularios.fernandoHuancaMarcarError(txtNombreElemento, "Ingrese un nombre.");
             valido = false;
         }
-        Double largo = numero(txtLargo), ancho = numero(txtAncho), altura = numero(txtAltura);
-        Double x = numero(txtX), y = numero(txtY), z = numero(txtZ);
+        Double largo = yefriLermaNumero(txtLargo), ancho = yefriLermaNumero(txtAncho), altura = yefriLermaNumero(txtAltura);
+        Double x = yefriLermaNumero(txtX), y = yefriLermaNumero(txtY), z = yefriLermaNumero(txtZ);
         if (!valido || largo == null || ancho == null || altura == null || x == null || y == null || z == null) {
             return;
         }
         try {
             Elemento elemento = new Elemento();
-            if (idEditando != null) {
-                elemento.setId(idEditando);
+            if (yefriLermaIdEditando != null) {
+                elemento.setId(yefriLermaIdEditando);
             }
             elemento.setProyectoId(p.getId());
             elemento.setTipo(cmbTipo.getValue());
@@ -376,15 +376,15 @@ public class ModeloController implements Refrescable {
             elemento.setX(x);
             elemento.setY(y);
             elemento.setZ(z);
-            boolean esNuevo = idEditando == null;
-            Elemento guardado = servicio.guardar(elemento);
-            notificador.cerrarPanel();
-            notificador.exito(esNuevo
+            boolean esNuevo = yefriLermaIdEditando == null;
+            Elemento guardado = yefriLermaServicio.yefriLermaGuardar(elemento);
+            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            yefriLermaNotificador.exito(esNuevo
                     ? "Elemento \"" + guardado.getNombre() + "\" registrado."
                     : "Elemento \"" + guardado.getNombre() + "\" actualizado.");
-            cargarElementos();
+            yefriLermaCargarElementos();
         } catch (Exception e) {
-            notificador.error(mensaje(e));
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
@@ -394,13 +394,13 @@ public class ModeloController implements Refrescable {
         if (seleccionado == null) {
             return;
         }
-        notificador.confirmar("Eliminar elemento", "¿Eliminar el elemento seleccionado?", "Eliminar", () -> {
+        yefriLermaNotificador.fernandoHuancaConfirmar("Eliminar elemento", "¿Eliminar el elemento seleccionado?", "Eliminar", () -> {
             try {
-                servicio.eliminar(seleccionado.getId());
-                notificador.exito("Elemento eliminado.");
-                cargarElementos();
+                yefriLermaServicio.yefriLermaEliminar(seleccionado.getId());
+                yefriLermaNotificador.exito("Elemento eliminado.");
+                yefriLermaCargarElementos();
             } catch (Exception e) {
-                notificador.error(mensaje(e));
+                yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
             }
         });
     }
@@ -409,18 +409,18 @@ public class ModeloController implements Refrescable {
     private void onEliminarProyecto() {
         Proyecto seleccionado = cmbProyecto.getValue();
         if (seleccionado == null) return;
-        notificador.confirmar("Eliminar proyecto",
+        yefriLermaNotificador.fernandoHuancaConfirmar("Eliminar proyecto",
                 "¿Eliminar «" + seleccionado.getNombre() + "»? Se borrarán sus elementos, mezclas y ensayos. "
                         + "Esta acción es permanente.", "Eliminar proyecto", () -> {
                     try {
-                        servicio.yefriLermaEliminarProyecto(seleccionado.getId());
-                        ultimoMovimiento = null;
+                        yefriLermaServicio.yefriLermaEliminarProyecto(seleccionado.getId());
+                        yefriLermaUltimoMovimiento = null;
                         btnDeshacerMovimiento.setDisable(true);
-                        cargarProyectos(null);
-                        cargarElementos();
-                        notificador.exito("Proyecto eliminado.");
+                        yefriLermaCargarProyectos(null);
+                        yefriLermaCargarElementos();
+                        yefriLermaNotificador.exito("Proyecto eliminado.");
                     } catch (Exception e) {
-                        notificador.error(mensaje(e));
+                        yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
                     }
                 });
     }
@@ -429,27 +429,27 @@ public class ModeloController implements Refrescable {
 
     @FXML
     private void onPlantilla() {
-        if (!hayProyecto()) {
+        if (!yefriLermaHayProyecto()) {
             return;
         }
-        Formularios.limpiarErrores(camposPlantilla().toArray(new TextField[0]));
-        camposPlantilla().forEach(TextField::clear);
-        notificador.abrirPanel(panelPlantilla);
+        Formularios.fernandoHuancaLimpiarErrores(yefriLermaCamposPlantilla().toArray(new TextField[0]));
+        yefriLermaCamposPlantilla().forEach(TextField::clear);
+        yefriLermaNotificador.fernandoHuancaAbrirPanel(panelPlantilla);
         Platform.runLater(txtSeparacionX::requestFocus);
     }
 
     @FXML
     private void onCuadricula() {
-        if (!hayProyecto()) {
+        if (!yefriLermaHayProyecto()) {
             return;
         }
         try {
-            if (editorCuadricula.abrir(cmbProyecto.getValue().getId(), List.copyOf(tabla.getItems()))) {
-                cargarElementos();
-                notificador.exito("Elementos generados.");
+            if (yefriLermaEditorCuadricula.walterQuispesayhuaAbrir(cmbProyecto.getValue().getId(), List.copyOf(tabla.getItems()))) {
+                yefriLermaCargarElementos();
+                yefriLermaNotificador.exito("Elementos generados.");
             }
         } catch (Exception e) {
-            notificador.error(mensaje(e));
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
@@ -458,53 +458,53 @@ public class ModeloController implements Refrescable {
         Elemento seleccionado = tabla.getSelectionModel().getSelectedItem();
         if (seleccionado == null) return;
         try {
-            habilitarEdicion(false);
-            editorMovimiento.iniciar(seleccionado);
+            yefriLermaHabilitarEdicion(false);
+            yefriLermaEditorMovimiento.walterQuispesayhuaIniciar(seleccionado);
         } catch (Exception e) {
-            editorMovimiento.cerrar();
-            notificador.error(mensaje(e));
+            yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
     @FXML
     private void onDeshacerMovimiento() {
-        if (ultimoMovimiento == null) return;
+        if (yefriLermaUltimoMovimiento == null) return;
         try {
-            movimientos.deshacer(ultimoMovimiento);
-            ultimoMovimiento = null;
+            yefriLermaMovimientos.walterQuispesayhuaDeshacer(yefriLermaUltimoMovimiento);
+            yefriLermaUltimoMovimiento = null;
             btnDeshacerMovimiento.setDisable(true);
-            cargarElementos();
-            notificador.exito("Movimiento deshecho.");
+            yefriLermaCargarElementos();
+            yefriLermaNotificador.exito("Movimiento deshecho.");
         } catch (Exception e) {
-            ultimoMovimiento = null;
+            yefriLermaUltimoMovimiento = null;
             btnDeshacerMovimiento.setDisable(true);
-            notificador.error(mensaje(e));
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
-    private void habilitarEdicion(boolean habilitada) {
+    private void yefriLermaHabilitarEdicion(boolean habilitada) {
         cmbProyecto.setDisable(!habilitada);
         btnNuevoProyecto.setDisable(!habilitada);
         btnNuevoElemento.setDisable(!habilitada);
         btnPlantilla.setDisable(!habilitada);
         btnCuadricula.setDisable(!habilitada);
         tabla.setDisable(!habilitada);
-        btnDeshacerMovimiento.setDisable(!habilitada || ultimoMovimiento == null);
+        btnDeshacerMovimiento.setDisable(!habilitada || yefriLermaUltimoMovimiento == null);
     }
 
     @FXML
     private void onGuardarPlantilla() {
         Proyecto p = cmbProyecto.getValue();
         if (p == null) {
-            notificador.advertencia("Seleccione o cree un proyecto.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Seleccione o cree un proyecto.");
             return;
         }
-        Formularios.limpiarErrores(camposPlantilla().toArray(new TextField[0]));
+        Formularios.fernandoHuancaLimpiarErrores(yefriLermaCamposPlantilla().toArray(new TextField[0]));
         double[] v = new double[9];
-        List<TextField> campos = camposPlantilla();
+        List<TextField> campos = yefriLermaCamposPlantilla();
         boolean valido = true;
         for (int i = 0; i < campos.size(); i++) {
-            Double n = numero(campos.get(i), "Ingrese un número válido.");
+            Double n = yefriLermaNumero(campos.get(i), "Ingrese un número válido.");
             if (n == null) {
                 valido = false;
             } else {
@@ -515,112 +515,164 @@ public class ModeloController implements Refrescable {
             return;
         }
         try {
-            servicio.crearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(
+            yefriLermaServicio.yefriLermaCrearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(
                     v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8]));
-            notificador.cerrarPanel();
-            notificador.exito("Plantilla rectangular creada: 4 zapatas, 4 columnas y 4 vigas.");
-            cargarElementos();
+            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            yefriLermaNotificador.exito("Plantilla rectangular creada: 4 zapatas, 4 columnas y 4 vigas.");
+            yefriLermaCargarElementos();
         } catch (Exception e) {
-            notificador.error(mensaje(e));
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
 
     @FXML
     private void onCerrarPanel() {
-        notificador.cerrarPanel();
+        yefriLermaNotificador.fernandoHuancaCerrarPanel();
     }
 
     // ----------------------------------------------------------------- apoyo
 
-    private List<TextField> camposPlantilla() {
+    private List<TextField> yefriLermaCamposPlantilla() {
         return List.of(txtSeparacionX, txtSeparacionY, txtLargoZapata, txtAnchoZapata, txtAlturaZapata,
                 txtLadoColumna, txtAlturaColumna, txtAnchoViga, txtAlturaViga);
     }
 
     /** Recarga el combo y deja seleccionado (y en la sesion) el proyecto con ese id, si existe. */
-    private void cargarProyectos(Long idActivo) {
-        sincronizando = true;
+    private void yefriLermaCargarProyectos(Long idActivo) {
+        yefriLermaSincronizando = true;
         try {
-            List<Proyecto> lista = servicio.proyectos();
+            List<Proyecto> lista = yefriLermaServicio.proyectos();
             cmbProyecto.setItems(FXCollections.observableArrayList(lista));
             Proyecto activo = idActivo == null ? null : lista.stream()
                     .filter(p -> idActivo.equals(p.getId()))
                     .findFirst().orElse(null);
             cmbProyecto.setValue(activo);
-            sesion.setProyecto(activo);
+            yefriLermaSesion.setProyecto(activo);
         } finally {
-            sincronizando = false;
+            yefriLermaSincronizando = false;
         }
     }
 
-    private void cargarElementos() {
+    private void yefriLermaCargarElementos() {
         Proyecto p = cmbProyecto.getValue();
         tabla.getItems().clear();
         if (p == null) {
             lblResumen.setText("Seleccione un proyecto");
-            dibujar(true);
+            yefriLermaDibujar(true);
             return;
         }
-        tabla.getItems().setAll(servicio.elementos(p.getId()));
-        lblResumen.setText(resumenMetrado(tabla.getItems()));
-        dibujar(true);
+        tabla.getItems().setAll(yefriLermaServicio.elementos(p.getId()));
+        lblResumen.setText(yefriLermaResumenMetrado(tabla.getItems()));
+        yefriLermaDibujar(true);
     }
 
     /** Metrado de concreto neto (sin doble conteo en cruces) con encofrado y acero referenciales por tipo. */
-    static String resumenMetrado(java.util.List<Elemento> elementos) {
+    static String yefriLermaResumenMetrado(java.util.List<Elemento> elementos) {
         if (elementos.isEmpty()) {
             return "El proyecto no tiene elementos.";
         }
-        var m = com.concretolab.service.MetradoNeto.calcular(elementos);
+        var cuantias = com.concretolab.service.CuantiasAcero.yefriLermaLeer();
+        var m = com.concretolab.service.MetradoNeto.yefriLermaCalcular(elementos, cuantias);
+        boolean propias = !cuantias.equals(com.concretolab.service.MetradoNeto.yefriLermaCuantiasReferenciales());
         var sb = new StringBuilder();
-        sb.append("Concreto neto ").append(volumen(m.volumenNeto())).append(" m³ (bruto ").append(volumen(m.volumenBruto()))
-                .append(", cruces ").append(volumen(m.descontado())).append(")\n");
+        sb.append("Concreto neto ").append(yefriLermaVolumen(m.volumenNeto())).append(" m³ (bruto ").append(yefriLermaVolumen(m.volumenBruto()))
+                .append(", cruces ").append(yefriLermaVolumen(m.descontado())).append(")\n");
         sb.append("Por tipo: concreto neto · encofrado · acero ref.\n");
         for (var f : m.filas()) {
-            sb.append(f.tipo()).append(" ×").append(f.cantidad()).append(" · ").append(volumen(f.volumenNeto())).append(" m³ · ")
+            sb.append(f.tipo()).append(" ×").append(f.cantidad()).append(" · ").append(yefriLermaVolumen(f.volumenNeto())).append(" m³ · ")
                     .append(String.format(java.util.Locale.ROOT, "%.1f", f.encofradoM2())).append(" m² · ")
                     .append(String.format(java.util.Locale.ROOT, "%.0f", f.aceroKg())).append(" kg\n");
         }
         sb.append("Total ").append(String.format(java.util.Locale.ROOT, "%.1f", m.encofradoM2()))
                 .append(" m² · ").append(String.format(java.util.Locale.ROOT, "%.0f", m.aceroKg()))
-                .append(" kg (cuantías típicas, anteproyecto)");
+                .append(propias ? " kg (cuantías propias, anteproyecto)" : " kg (cuantías típicas, anteproyecto)");
         return sb.toString();
     }
 
+    /** Edita las cuantías de acero (kg/m³) que usa el metrado; se guardan en la carpeta de datos. */
+    @FXML
+    private void onEditarCuantias() {
+        var actuales = com.concretolab.service.CuantiasAcero.yefriLermaLeer();
+        var dialogo = new javafx.scene.control.Dialog<java.util.Map<String, Double>>();
+        dialogo.initOwner(tabla.getScene().getWindow());
+        dialogo.setTitle("Cuantías de acero");
+        dialogo.setHeaderText("Cuantía de acero por tipo de elemento (kg por m³ de concreto)");
+        var grilla = new javafx.scene.layout.GridPane();
+        grilla.setHgap(10);
+        grilla.setVgap(8);
+        var campos = new java.util.LinkedHashMap<String, TextField>();
+        int fila = 0;
+        for (var e : actuales.entrySet()) {
+            var campo = new TextField(String.format(java.util.Locale.ROOT, "%.0f", e.getValue()));
+            campo.setPrefColumnCount(6);
+            grilla.addRow(fila++, new javafx.scene.control.Label(e.getKey()), campo);
+            campos.put(e.getKey(), campo);
+        }
+        var aviso = new javafx.scene.control.Label("Valores de 0 a " + (int) com.concretolab.service.CuantiasAcero.YEFRI_LERMA_MAXIMO
+                + " kg/m³. Use las del proyecto o de un metrado similar; las referenciales son solo para anteproyecto.");
+        aviso.setWrapText(true);
+        aviso.setPrefWidth(360);
+        var restaurar = new Button("Restaurar referenciales");
+        restaurar.setOnAction(ev -> com.concretolab.service.MetradoNeto.yefriLermaCuantiasReferenciales()
+                .forEach((k, v) -> campos.get(k).setText(String.format(java.util.Locale.ROOT, "%.0f", v))));
+        var contenido = new javafx.scene.layout.VBox(10, grilla, restaurar, aviso);
+        contenido.setPadding(new javafx.geometry.Insets(10));
+        dialogo.getDialogPane().setContent(contenido);
+        var guardar = new javafx.scene.control.ButtonType("Guardar", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        dialogo.getDialogPane().getButtonTypes().addAll(guardar, javafx.scene.control.ButtonType.CANCEL);
+        dialogo.getDialogPane().lookupButton(guardar).addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+            try {
+                var valores = new java.util.LinkedHashMap<String, Double>();
+                campos.forEach((k, c) -> valores.put(k, Double.parseDouble(c.getText().trim().replace(',', '.'))));
+                com.concretolab.service.CuantiasAcero.yefriLermaGuardar(valores);
+            } catch (NumberFormatException ex) {
+                aviso.setText("Ingrese números válidos en todas las cuantías.");
+                ev.consume();
+            } catch (IllegalArgumentException | java.io.IOException ex) {
+                aviso.setText(ex.getMessage());
+                ev.consume();
+            }
+        });
+        dialogo.showAndWait();
+        if (cmbProyecto.getValue() != null) {
+            lblResumen.setText(yefriLermaResumenMetrado(tabla.getItems()));
+        }
+    }
+
     /** Reencuadra la camara al cargar datos, pero no al seleccionar una fila. */
-    private void dibujar(boolean reencuadrar) {
-        visor3d.mostrar(tabla.getItems(), tabla.getSelectionModel().getSelectedItem(),
+    private void yefriLermaDibujar(boolean reencuadrar) {
+        yefriLermaVisor3d.erickDelgadoMostrar(tabla.getItems(), tabla.getSelectionModel().getSelectedItem(),
                 e -> tabla.getSelectionModel().select(e), reencuadrar);
     }
 
-    private boolean hayProyecto() {
+    private boolean yefriLermaHayProyecto() {
         if (cmbProyecto.getValue() == null) {
-            notificador.advertencia("Seleccione o cree un proyecto.");
+            yefriLermaNotificador.fernandoHuancaAdvertencia("Seleccione o cree un proyecto.");
             return false;
         }
         return true;
     }
 
-    private Double numero(TextField campo) {
-        return numero(campo, "Ingrese un número válido.");
+    private Double yefriLermaNumero(TextField campo) {
+        return yefriLermaNumero(campo, "Ingrese un número válido.");
     }
 
     /** Lee un decimal (acepta coma); si no es valido marca el campo y devuelve {@code null}. */
-    private Double numero(TextField campo, String mensajeError) {
+    private Double yefriLermaNumero(TextField campo, String mensajeError) {
         try {
             return Double.parseDouble(campo.getText().trim().replace(',', '.'));
         } catch (NumberFormatException e) {
-            Formularios.marcarError(campo, mensajeError);
+            Formularios.fernandoHuancaMarcarError(campo, mensajeError);
             return null;
         }
     }
 
-    private String mensaje(Exception e) {
+    private String yefriLermaMensaje(Exception e) {
         return e.getMessage() == null ? "No se pudo completar la operación." : e.getMessage();
     }
 
     /** Mismo formato que {@code FormatoNumeros.volumen} (esa clase no es visible fuera de {@code ui}). */
-    private static String volumen(double valor) {
+    private static String yefriLermaVolumen(double valor) {
         return BigDecimal.valueOf(valor).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros()
                 .toPlainString().replace('.', ',');
     }

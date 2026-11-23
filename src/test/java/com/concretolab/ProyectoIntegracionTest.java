@@ -22,11 +22,11 @@ class ProyectoIntegracionTest {
     @Autowired com.concretolab.repository.EnsayoRepository ensayos;
 
     @Test void eliminaSoloElProyectoSeleccionadoYSusDatos() {
-        var eliminar = servicio.crearProyecto("Proyecto para eliminar", "");
-        var conservar = servicio.crearProyecto("Proyecto para conservar", "");
+        var eliminar = servicio.yefriLermaCrearProyecto("Proyecto para eliminar", "");
+        var conservar = servicio.yefriLermaCrearProyecto("Proyecto para conservar", "");
         var plantilla = new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5);
-        servicio.crearPlantilla(eliminar.getId(), plantilla);
-        servicio.crearPlantilla(conservar.getId(), plantilla);
+        servicio.yefriLermaCrearPlantilla(eliminar.getId(), plantilla);
+        servicio.yefriLermaCrearPlantilla(conservar.getId(), plantilla);
 
         var mezcla = new Mezcla();
         mezcla.setProyectoId(eliminar.getId());
@@ -45,40 +45,40 @@ class ProyectoIntegracionTest {
         assertEquals(12, servicio.elementos(conservar.getId()).size());
     }
     @Test void guardaElementosYValidaDimensiones(){
-        Proyecto p=servicio.crearProyecto("Proyecto de prueba","Lima");
+        Proyecto p=servicio.yefriLermaCrearProyecto("Proyecto de prueba","Lima");
         Elemento e=new Elemento();e.setProyectoId(p.getId());e.setTipo("ZAPATA");e.setNombre("Z1");e.setLargo(2);e.setAncho(2);e.setAltura(.5);
-        e=servicio.guardar(e);assertEquals(2.0,e.volumen(),0.000001);assertEquals(1,servicio.elementos(p.getId()).size());
+        e=servicio.yefriLermaGuardar(e);assertEquals(2.0,e.volumen(),0.000001);assertEquals(1,servicio.elementos(p.getId()).size());
         Elemento invalido=new Elemento();invalido.setProyectoId(p.getId());invalido.setTipo("VIGA");invalido.setNombre("V1");invalido.setLargo(-1);invalido.setAncho(1);invalido.setAltura(1);
-        assertThrows(IllegalArgumentException.class,()->servicio.guardar(invalido));assertEquals(1,servicio.elementos(p.getId()).size());
-        servicio.eliminar(e.getId());assertTrue(servicio.elementos(p.getId()).isEmpty());
+        assertThrows(IllegalArgumentException.class,()->servicio.yefriLermaGuardar(invalido));assertEquals(1,servicio.elementos(p.getId()).size());
+        servicio.yefriLermaEliminar(e.getId());assertTrue(servicio.elementos(p.getId()).isEmpty());
     }
     @Test void plantillaGeneraElementosYRechazaMedidasIncompatibles(){
-        Proyecto p=servicio.crearProyecto("Plantilla","Lima");
-        servicio.crearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5));
+        Proyecto p=servicio.yefriLermaCrearProyecto("Plantilla","Lima");
+        servicio.yefriLermaCrearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(5,4,1.5,1.5,.5,.4,3,.3,.5));
         var lista=servicio.elementos(p.getId());assertEquals(12,lista.size());
         assertEquals(4,lista.stream().filter(e->"ZAPATA".equals(e.getTipo())).count());
         assertEquals(4,lista.stream().filter(e->"COLUMNA".equals(e.getTipo())).count());
         assertEquals(4,lista.stream().filter(e->"VIGA".equals(e.getTipo())).count());
-        assertThrows(IllegalArgumentException.class,()->servicio.crearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(.2,4,1.5,1.5,.5,.4,3,.3,.5)));
+        assertThrows(IllegalArgumentException.class,()->servicio.yefriLermaCrearPlantilla(p.getId(),new YefriLermaProyectoService.Plantilla(.2,4,1.5,1.5,.5,.4,3,.3,.5)));
         assertEquals(12,servicio.elementos(p.getId()).size());
     }
     @Test void guardaExpedienteYValidaFecha(){
-        Proyecto p=servicio.crearProyecto("Expediente","Lima");ExpedienteEstructural e=new ExpedienteEstructural();e.setProyectoId(p.getId());e.setNorma("E.030 - versión indicada por profesional");e.setFechaProyecto("2026-11-16");expedientes.guardar(e);
-        assertEquals("2026-11-16",expedientes.obtener(p.getId()).orElseThrow().getFechaProyecto());
-        e.setFechaProyecto("fecha inválida");assertThrows(IllegalArgumentException.class,()->expedientes.guardar(e));
+        Proyecto p=servicio.yefriLermaCrearProyecto("Expediente","Lima");ExpedienteEstructural e=new ExpedienteEstructural();e.setProyectoId(p.getId());e.setNorma("E.030 - versión indicada por profesional");e.setFechaProyecto("2026-11-16");expedientes.yefriLermaGuardar(e);
+        assertEquals("2026-11-16",expedientes.yefriLermaObtener(p.getId()).orElseThrow().getFechaProyecto());
+        e.setFechaProyecto("fecha inválida");assertThrows(IllegalArgumentException.class,()->expedientes.yefriLermaGuardar(e));
     }
     @Test void escenariosPersistidosRespondenAlMismoPulso(){
-        servicio.prepararEscenarios();
-        servicio.prepararEscenarios();
+        servicio.yefriLermaPrepararEscenarios();
+        servicio.yefriLermaPrepararEscenarios();
         double[] pulso=new double[2501];
         for(int i=0;i<=500;i++)pulso[i]=0.980665*Math.sin(2*Math.PI*i*0.002);
-        var demos=servicio.proyectos().stream().filter(p->YefriLermaProyectoService.ESCENARIOS.contains(p.getNombre())).toList();
+        var demos=servicio.proyectos().stream().filter(p->YefriLermaProyectoService.YEFRI_LERMA_ESCENARIOS.contains(p.getNombre())).toList();
         assertEquals(3,demos.size());
         double regular=0, flexible=0;
         for(var p:demos){
-            int caso=YefriLermaProyectoService.ESCENARIOS.indexOf(p.getNombre());
+            int caso=YefriLermaProyectoService.YEFRI_LERMA_ESCENARIOS.indexOf(p.getNombre());
             var elementos=servicio.elementos(p.getId());
-            var r=com.concretolab.service.EdificioCortante.simular(elementos,25000,true,80,0.05,0.002,pulso);
+            var r=com.concretolab.service.EdificioCortante.yefriLermaSimular(elementos,25000,true,80,0.05,0.002,pulso);
             int n=caso==0?4:3;
             assertEquals(n,r.niveles().size());assertTrue(r.maximo()>0);
             if(caso!=1){

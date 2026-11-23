@@ -27,174 +27,174 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 public class EditorMovimiento {
-    private final MovimientoElementoService servicio;
-    private final MiajeldDelgadoVisor3D visor;
-    private final VBox panel;
-    private final Consumer<Operacion> alGuardar;
-    private final Runnable alCerrar;
-    private Estado original;
-    private Posicion posicion;
+    private final MovimientoElementoService walterQuispesayhuaServicio;
+    private final ErickDelgadoVisor3D walterQuispesayhuaVisor;
+    private final VBox walterQuispesayhuaPanel;
+    private final Consumer<Operacion> walterQuispesayhuaAlGuardar;
+    private final Runnable walterQuispesayhuaAlCerrar;
+    private Estado walterQuispesayhuaOriginal;
+    private Posicion walterQuispesayhuaPosicion;
     private TextField x;
     private TextField y;
-    private TextField z;
-    private ComboBox<String> eje;
-    private Label estado;
-    private VBox sugerencias;
-    private boolean actualizando;
-    private List<Candidato> candidatos;
+    private TextField walterQuispesayhuaZ;
+    private ComboBox<String> walterQuispesayhuaEje;
+    private Label walterQuispesayhuaEstado;
+    private VBox walterQuispesayhuaSugerencias;
+    private boolean walterQuispesayhuaActualizando;
+    private List<Candidato> walterQuispesayhuaCandidatos;
     private final Map<Long, CheckBox> vinculos = new LinkedHashMap<>();
 
-    public EditorMovimiento(MovimientoElementoService servicio, MiajeldDelgadoVisor3D visor, VBox panel,
+    public EditorMovimiento(MovimientoElementoService servicio, ErickDelgadoVisor3D visor, VBox panel,
                             Consumer<Operacion> alGuardar, Runnable alCerrar) {
-        this.servicio = servicio;
-        this.visor = visor;
-        this.panel = panel;
-        this.alGuardar = alGuardar;
-        this.alCerrar = alCerrar;
+        this.walterQuispesayhuaServicio = servicio;
+        this.walterQuispesayhuaVisor = visor;
+        this.walterQuispesayhuaPanel = panel;
+        this.walterQuispesayhuaAlGuardar = alGuardar;
+        this.walterQuispesayhuaAlCerrar = alCerrar;
     }
 
-    public void iniciar(Elemento elemento) {
-        original = servicio.estado(elemento);
-        posicion = original.posicion();
-        x = campo(posicion.x()); y = campo(posicion.y()); z = campo(posicion.z());
-        eje = new ComboBox<>();
-        eje.getItems().setAll("X", "Y", "Z"); eje.setValue("X");
-        estado = new Label(); estado.setWrapText(true);
-        sugerencias = new VBox(4);
-        candidatos = servicio.candidatos(original);
+    public void walterQuispesayhuaIniciar(Elemento elemento) {
+        walterQuispesayhuaOriginal = walterQuispesayhuaServicio.walterQuispesayhuaEstado(elemento);
+        walterQuispesayhuaPosicion = walterQuispesayhuaOriginal.posicion();
+        x = campo(walterQuispesayhuaPosicion.x()); y = campo(walterQuispesayhuaPosicion.y()); walterQuispesayhuaZ = campo(walterQuispesayhuaPosicion.z());
+        walterQuispesayhuaEje = new ComboBox<>();
+        walterQuispesayhuaEje.getItems().setAll("X", "Y", "Z"); walterQuispesayhuaEje.setValue("X");
+        walterQuispesayhuaEstado = new Label(); walterQuispesayhuaEstado.setWrapText(true);
+        walterQuispesayhuaSugerencias = new VBox(4);
+        walterQuispesayhuaCandidatos = walterQuispesayhuaServicio.walterQuispesayhuaCandidatos(walterQuispesayhuaOriginal);
         vinculos.clear();
         VBox panelVinculos = new VBox(4);
-        if (!candidatos.isEmpty()) {
+        if (!walterQuispesayhuaCandidatos.isEmpty()) {
             Label explicacion = new Label("Vigas en contacto: marca solo las conexiones que deseas guardar y reajustar al mover la columna sobre el eje de cada viga.");
             explicacion.setWrapText(true);
             panelVinculos.getChildren().add(explicacion);
-            for (Candidato candidato : candidatos) {
+            for (Candidato candidato : walterQuispesayhuaCandidatos) {
                 CheckBox casilla = new CheckBox(candidato.viga().nombre() + (candidato.vinculado() ? " (vínculo guardado)" : " (posible conexión)"));
                 casilla.setSelected(candidato.vinculado());
-                casilla.selectedProperty().addListener((o, a, b) -> actualizar());
+                casilla.selectedProperty().addListener((o, a, b) -> walterQuispesayhuaActualizar());
                 vinculos.put(candidato.viga().id(), casilla);
                 panelVinculos.getChildren().add(casilla);
             }
         }
-        Label titulo = new Label("Mover " + original.tipo() + " " + original.nombre());
+        Label titulo = new Label("Mover " + walterQuispesayhuaOriginal.tipo() + " " + walterQuispesayhuaOriginal.nombre());
         titulo.getStyleClass().add("grafico-titulo");
         Label instruccion = new Label("Elige un eje y arrastra horizontalmente el elemento naranja, o escribe la posición exacta del centro en metros.");
         instruccion.setWrapText(true);
-        HBox coordenadas = new HBox(6, new Label("X"), x, new Label("Y"), y, new Label("Z"), z, new Label("Eje"), eje);
+        HBox coordenadas = new HBox(6, new Label("X"), x, new Label("Y"), y, new Label("Z"), walterQuispesayhuaZ, new Label("Eje"), walterQuispesayhuaEje);
         Button cancelar = new Button("Cancelar");
         Button guardar = new Button("Revisar y guardar");
         guardar.getStyleClass().add("accent");
-        cancelar.setOnAction(e -> cerrar());
-        guardar.setOnAction(e -> guardar());
-        panel.getChildren().setAll(titulo, instruccion, coordenadas, panelVinculos, sugerencias, estado, new HBox(8, cancelar, guardar));
-        panel.setSpacing(6); panel.setPadding(new Insets(8)); panel.setManaged(true); panel.setVisible(true);
-        x.textProperty().addListener((o, a, b) -> actualizarDesdeCampos());
-        y.textProperty().addListener((o, a, b) -> actualizarDesdeCampos());
-        z.textProperty().addListener((o, a, b) -> actualizarDesdeCampos());
-        visor.iniciarMovimiento(original.id(), this::arrastrar);
-        visor.mostrarReferencias(servicio.referencias(original.proyectoId()));
-        actualizar();
+        cancelar.setOnAction(e -> walterQuispesayhuaCerrar());
+        guardar.setOnAction(e -> walterQuispesayhuaGuardar());
+        walterQuispesayhuaPanel.getChildren().setAll(titulo, instruccion, coordenadas, panelVinculos, walterQuispesayhuaSugerencias, walterQuispesayhuaEstado, new HBox(8, cancelar, guardar));
+        walterQuispesayhuaPanel.setSpacing(6); walterQuispesayhuaPanel.setPadding(new Insets(8)); walterQuispesayhuaPanel.setManaged(true); walterQuispesayhuaPanel.setVisible(true);
+        x.textProperty().addListener((o, a, b) -> walterQuispesayhuaActualizarDesdeCampos());
+        y.textProperty().addListener((o, a, b) -> walterQuispesayhuaActualizarDesdeCampos());
+        walterQuispesayhuaZ.textProperty().addListener((o, a, b) -> walterQuispesayhuaActualizarDesdeCampos());
+        walterQuispesayhuaVisor.erickDelgadoIniciarMovimiento(walterQuispesayhuaOriginal.id(), this::walterQuispesayhuaArrastrar);
+        walterQuispesayhuaVisor.erickDelgadoMostrarReferencias(walterQuispesayhuaServicio.walterQuispesayhuaReferencias(walterQuispesayhuaOriginal.proyectoId()));
+        walterQuispesayhuaActualizar();
     }
 
-    private void arrastrar(double delta) {
+    private void walterQuispesayhuaArrastrar(double delta) {
         if (!Double.isFinite(delta)) return;
-        Posicion nueva = switch (eje.getValue()) {
-            case "Y" -> new Posicion(posicion.x(), posicion.y() + delta, posicion.z());
-            case "Z" -> new Posicion(posicion.x(), posicion.y(), posicion.z() + delta);
-            default -> new Posicion(posicion.x() + delta, posicion.y(), posicion.z());
+        Posicion nueva = switch (walterQuispesayhuaEje.getValue()) {
+            case "Y" -> new Posicion(walterQuispesayhuaPosicion.x(), walterQuispesayhuaPosicion.y() + delta, walterQuispesayhuaPosicion.z());
+            case "Z" -> new Posicion(walterQuispesayhuaPosicion.x(), walterQuispesayhuaPosicion.y(), walterQuispesayhuaPosicion.z() + delta);
+            default -> new Posicion(walterQuispesayhuaPosicion.x() + delta, walterQuispesayhuaPosicion.y(), walterQuispesayhuaPosicion.z());
         };
-        establecer(nueva);
+        walterQuispesayhuaEstablecer(nueva);
     }
 
-    private void establecer(Posicion nueva) {
-        actualizando = true;
+    private void walterQuispesayhuaEstablecer(Posicion nueva) {
+        walterQuispesayhuaActualizando = true;
         try {
-            x.setText(formato(nueva.x())); y.setText(formato(nueva.y())); z.setText(formato(nueva.z()));
-            posicion = nueva;
-        } finally { actualizando = false; }
-        actualizar();
+            x.setText(walterQuispesayhuaFormato(nueva.x())); y.setText(walterQuispesayhuaFormato(nueva.y())); walterQuispesayhuaZ.setText(walterQuispesayhuaFormato(nueva.z()));
+            walterQuispesayhuaPosicion = nueva;
+        } finally { walterQuispesayhuaActualizando = false; }
+        walterQuispesayhuaActualizar();
     }
 
-    private void actualizarDesdeCampos() {
-        if (actualizando) return;
+    private void walterQuispesayhuaActualizarDesdeCampos() {
+        if (walterQuispesayhuaActualizando) return;
         try {
-            Posicion nueva = new Posicion(numero(x), numero(y), numero(z));
+            Posicion nueva = new Posicion(walterQuispesayhuaNumero(x), walterQuispesayhuaNumero(y), walterQuispesayhuaNumero(walterQuispesayhuaZ));
             if (!Double.isFinite(nueva.x()) || !Double.isFinite(nueva.y()) || !Double.isFinite(nueva.z()))
                 throw new IllegalArgumentException("Ingrese posiciones finitas.");
-            posicion = nueva;
-            actualizar();
+            walterQuispesayhuaPosicion = nueva;
+            walterQuispesayhuaActualizar();
         } catch (IllegalArgumentException ex) {
-            sugerencias.getChildren().clear();
-            estado.setText(ex.getMessage());
+            walterQuispesayhuaSugerencias.getChildren().clear();
+            walterQuispesayhuaEstado.setText(ex.getMessage());
         }
     }
 
-    private void actualizar() {
+    private void walterQuispesayhuaActualizar() {
         try {
-            for (Candidato candidato : candidatos) visor.previsualizar(candidato.viga());
-            visor.previsualizar(original.id(), posicion);
-            Operacion operacion = servicio.preparar(original, posicion, seleccionados());
-            for (Estado propuesto : operacion.propuestos()) visor.previsualizar(propuesto);
+            for (Candidato candidato : walterQuispesayhuaCandidatos) walterQuispesayhuaVisor.erickDelgadoPrevisualizar(candidato.viga());
+            walterQuispesayhuaVisor.erickDelgadoPrevisualizar(walterQuispesayhuaOriginal.id(), walterQuispesayhuaPosicion);
+            Operacion operacion = walterQuispesayhuaServicio.walterQuispesayhuaPreparar(walterQuispesayhuaOriginal, walterQuispesayhuaPosicion, walterQuispesayhuaSeleccionados());
+            for (Estado propuesto : operacion.propuestos()) walterQuispesayhuaVisor.erickDelgadoPrevisualizar(propuesto);
             VistaPrevia vista = operacion.vista();
-            sugerencias.getChildren().clear();
+            walterQuispesayhuaSugerencias.getChildren().clear();
             if (!vista.sugerencias().isEmpty()) {
                 FlowPane botones = new FlowPane(6, 6);
                 for (Sugerencia sugerencia : vista.sugerencias()) {
                     Button aceptar = new Button(sugerencia.descripcion());
-                    aceptar.setOnAction(e -> establecer(sugerencia.posicion()));
+                    aceptar.setOnAction(e -> walterQuispesayhuaEstablecer(sugerencia.posicion()));
                     botones.getChildren().add(aceptar);
                 }
-                sugerencias.getChildren().addAll(new Label("Sugerencias opcionales:"), botones);
+                walterQuispesayhuaSugerencias.getChildren().addAll(new Label("Sugerencias opcionales:"), botones);
             }
-            estado.setText(vista.advertencias().isEmpty() ? "Sin superposiciones o separaciones detectadas."
+            walterQuispesayhuaEstado.setText(vista.advertencias().isEmpty() ? "Sin superposiciones o separaciones detectadas."
                     : String.join("\n", vista.advertencias()));
         } catch (RuntimeException ex) {
-            sugerencias.getChildren().clear();
-            estado.setText(mensaje(ex));
+            walterQuispesayhuaSugerencias.getChildren().clear();
+            walterQuispesayhuaEstado.setText(walterQuispesayhuaMensaje(ex));
         }
     }
 
-    private void guardar() {
+    private void walterQuispesayhuaGuardar() {
         try {
-            Posicion introducida = new Posicion(numero(x), numero(y), numero(z));
-            Operacion operacion = servicio.preparar(original, introducida, seleccionados());
+            Posicion introducida = new Posicion(walterQuispesayhuaNumero(x), walterQuispesayhuaNumero(y), walterQuispesayhuaNumero(walterQuispesayhuaZ));
+            Operacion operacion = walterQuispesayhuaServicio.walterQuispesayhuaPreparar(walterQuispesayhuaOriginal, introducida, walterQuispesayhuaSeleccionados());
             VistaPrevia vista = operacion.vista();
-            if (introducida.equals(original.posicion())) { estado.setText("La posición no ha cambiado."); return; }
-            String detalle = "Centro anterior: " + mostrar(original.posicion()) + " m\nCentro propuesto: " + mostrar(introducida)
-                    + " m\nVolumen: " + formato(original.largo() * original.ancho() * original.altura()) + " m³";
+            if (introducida.equals(walterQuispesayhuaOriginal.posicion())) { walterQuispesayhuaEstado.setText("La posición no ha cambiado."); return; }
+            String detalle = "Centro anterior: " + walterQuispesayhuaMostrar(walterQuispesayhuaOriginal.posicion()) + " m\nCentro propuesto: " + walterQuispesayhuaMostrar(introducida)
+                    + " m\nVolumen: " + walterQuispesayhuaFormato(walterQuispesayhuaOriginal.largo() * walterQuispesayhuaOriginal.ancho() * walterQuispesayhuaOriginal.altura()) + " m³";
             if (!vista.advertencias().isEmpty()) detalle += "\n\n" + String.join("\n", vista.advertencias());
             for (int i = 1; i < operacion.propuestos().size(); i++) {
                 Estado antes = operacion.anteriores().get(i), despues = operacion.propuestos().get(i);
-                detalle += "\n" + antes.nombre() + ": centro " + mostrar(antes.posicion()) + " → " + mostrar(despues.posicion())
-                        + "; dimensiones " + formato(antes.largo()) + " × " + formato(antes.ancho()) + " → "
-                        + formato(despues.largo()) + " × " + formato(despues.ancho()) + " m";
+                detalle += "\n" + antes.nombre() + ": centro " + walterQuispesayhuaMostrar(antes.posicion()) + " → " + walterQuispesayhuaMostrar(despues.posicion())
+                        + "; dimensiones " + walterQuispesayhuaFormato(antes.largo()) + " × " + walterQuispesayhuaFormato(antes.ancho()) + " → "
+                        + walterQuispesayhuaFormato(despues.largo()) + " × " + walterQuispesayhuaFormato(despues.ancho()) + " m";
             }
             detalle += "\n\nSe guardarán los vínculos seleccionados. Los demás elementos no se moverán.";
             Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION, detalle, ButtonType.CANCEL, ButtonType.OK);
             confirmacion.setTitle("Confirmar movimiento"); confirmacion.setHeaderText("Revisar cambio geométrico");
             if (confirmacion.showAndWait().filter(ButtonType.OK::equals).isPresent()) {
-                Operacion guardada = servicio.guardar(operacion);
-                cerrar();
-                alGuardar.accept(guardada);
+                Operacion guardada = walterQuispesayhuaServicio.walterQuispesayhuaGuardar(operacion);
+                walterQuispesayhuaCerrar();
+                walterQuispesayhuaAlGuardar.accept(guardada);
             }
-        } catch (RuntimeException ex) { estado.setText(mensaje(ex)); }
+        } catch (RuntimeException ex) { walterQuispesayhuaEstado.setText(walterQuispesayhuaMensaje(ex)); }
     }
 
-    public void cerrar() {
-        visor.terminarMovimiento();
-        panel.getChildren().clear(); panel.setManaged(false); panel.setVisible(false);
-        alCerrar.run();
+    public void walterQuispesayhuaCerrar() {
+        walterQuispesayhuaVisor.erickDelgadoTerminarMovimiento();
+        walterQuispesayhuaPanel.getChildren().clear(); walterQuispesayhuaPanel.setManaged(false); walterQuispesayhuaPanel.setVisible(false);
+        walterQuispesayhuaAlCerrar.run();
     }
 
-    private TextField campo(double valor) { TextField campo = new TextField(formato(valor)); campo.setPrefColumnCount(7); return campo; }
-    private Set<Long> seleccionados() {
+    private TextField campo(double valor) { TextField campo = new TextField(walterQuispesayhuaFormato(valor)); campo.setPrefColumnCount(7); return campo; }
+    private Set<Long> walterQuispesayhuaSeleccionados() {
         return vinculos.entrySet().stream().filter(e -> e.getValue().isSelected()).map(Map.Entry::getKey).collect(Collectors.toUnmodifiableSet());
     }
-    private double numero(TextField campo) {
+    private double walterQuispesayhuaNumero(TextField campo) {
         try { return Double.parseDouble(campo.getText().trim().replace(',', '.')); }
         catch (NumberFormatException e) { throw new IllegalArgumentException("Ingrese posiciones válidas en metros."); }
     }
-    private String formato(double valor) { return java.math.BigDecimal.valueOf(valor).stripTrailingZeros().toPlainString(); }
-    private String mostrar(Posicion p) { return "(" + formato(p.x()) + ", " + formato(p.y()) + ", " + formato(p.z()) + ")"; }
-    private String mensaje(Exception ex) { return ex.getMessage() == null ? "No se pudo completar el movimiento." : ex.getMessage(); }
+    private String walterQuispesayhuaFormato(double valor) { return java.math.BigDecimal.valueOf(valor).stripTrailingZeros().toPlainString(); }
+    private String walterQuispesayhuaMostrar(Posicion p) { return "(" + walterQuispesayhuaFormato(p.x()) + ", " + walterQuispesayhuaFormato(p.y()) + ", " + walterQuispesayhuaFormato(p.z()) + ")"; }
+    private String walterQuispesayhuaMensaje(Exception ex) { return ex.getMessage() == null ? "No se pudo completar el movimiento." : ex.getMessage(); }
 }

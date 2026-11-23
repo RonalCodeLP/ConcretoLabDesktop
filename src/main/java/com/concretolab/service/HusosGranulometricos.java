@@ -38,13 +38,13 @@ public final class HusosGranulometricos {
 
     public record Resultado(Huso huso, List<Chequeo> chequeos, boolean cumple, Double moduloFinura, String mensaje) { }
 
-    private static final double[] SERIE_MF = {0.15, 0.30, 0.60, 1.18, 2.36, 4.75, 9.5, 19.0, 37.5, 75.0, 150.0};
+    private static final double[] YEFRI_LERMA_SERIE_MF = {0.15, 0.30, 0.60, 1.18, 2.36, 4.75, 9.5, 19.0, 37.5, 75.0, 150.0};
 
     /** Módulo de finura: suma de % retenido acumulado en la serie estándar dividido entre 100. */
-    public static Double moduloFinura(List<GranulometriaService.Fila> filas) {
+    public static Double yefriLermaModuloFinura(List<GranulometriaService.Fila> filas) {
         double suma = 0;
         int encontrados = 0;
-        for (double a : SERIE_MF) {
+        for (double a : YEFRI_LERMA_SERIE_MF) {
             for (var f : filas) {
                 if (Math.abs(f.aberturaMm() - a) <= 0.02 * a + 0.005) {
                     suma += f.retenidoAcumulado();
@@ -57,7 +57,7 @@ public final class HusosGranulometricos {
         return encontrados >= 6 ? suma / 100.0 : null;
     }
 
-    public static Resultado verificar(Huso huso, List<GranulometriaService.Fila> filas) {
+    public static Resultado yefriLermaVerificar(Huso huso, List<GranulometriaService.Fila> filas) {
         List<Chequeo> cs = new ArrayList<>();
         boolean cumple = true;
         int faltantes = 0;
@@ -77,7 +77,7 @@ public final class HusosGranulometricos {
             cumple &= dentro;
             cs.add(new Chequeo(l[0], pasa, l[1], l[2], dentro));
         }
-        Double mf = huso == Huso.FINO ? moduloFinura(filas) : null;
+        Double mf = huso == Huso.FINO ? yefriLermaModuloFinura(filas) : null;
         StringBuilder sb = new StringBuilder();
         if (cs.isEmpty()) {
             return new Resultado(huso, cs, false, mf, "Los tamices ingresados no coinciden con la serie del huso elegido.");

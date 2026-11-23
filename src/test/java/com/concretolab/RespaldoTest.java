@@ -43,14 +43,14 @@ class RespaldoTest {
 
     @BeforeEach
     void aislarCarpetaDatos() {
-        propiedadAnterior = System.getProperty(RespaldoDatos.PROPIEDAD_DATOS);
-        System.setProperty(RespaldoDatos.PROPIEDAD_DATOS, temporal.toString());
+        propiedadAnterior = System.getProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS);
+        System.setProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS, temporal.toString());
     }
 
     @AfterEach
     void restaurarPropiedad() {
-        if (propiedadAnterior == null) System.clearProperty(RespaldoDatos.PROPIEDAD_DATOS);
-        else System.setProperty(RespaldoDatos.PROPIEDAD_DATOS, propiedadAnterior);
+        if (propiedadAnterior == null) System.clearProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS);
+        else System.setProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS, propiedadAnterior);
     }
 
     // ---------------------------------------------------------------- Ayudas
@@ -85,14 +85,14 @@ class RespaldoTest {
 
     @Test
     void rotacionConservaLasUltimasDiezPorMotivo() throws Exception {
-        crearBase(RespaldoDatos.archivoBaseDatos(), 1);
+        crearBase(RespaldoDatos.erickDelgadoArchivoBaseDatos(), 1);
         for (int i = 0; i < 12; i++) {
-            assertTrue(RespaldoDatos.respaldarArchivo("inicio", LocalDateTime.of(2026, 1, 1, 10, 0, i)).isPresent());
+            assertTrue(RespaldoDatos.erickDelgadoRespaldarArchivo("inicio", LocalDateTime.of(2026, 1, 1, 10, 0, i)).isPresent());
         }
         // Una de otro motivo no debe verse afectada por la rotación de «inicio».
-        RespaldoDatos.respaldarArchivo("cierre", LocalDateTime.of(2026, 1, 1, 10, 0, 0));
+        RespaldoDatos.erickDelgadoRespaldarArchivo("cierre", LocalDateTime.of(2026, 1, 1, 10, 0, 0));
 
-        Path carpeta = RespaldoDatos.carpetaCopias();
+        Path carpeta = RespaldoDatos.erickDelgadoCarpetaCopias();
         assertEquals(10, contarArchivos(carpeta, "-inicio.db"));
         assertEquals(1, contarArchivos(carpeta, "-cierre.db"));
         // Se borraron las dos más antiguas (segundos 0 y 1).
@@ -103,36 +103,36 @@ class RespaldoTest {
 
     @Test
     void copiasManualesNuncaSeBorran() throws Exception {
-        crearBase(RespaldoDatos.archivoBaseDatos(), 1);
+        crearBase(RespaldoDatos.erickDelgadoArchivoBaseDatos(), 1);
         for (int i = 0; i < 15; i++) {
-            RespaldoDatos.respaldarArchivo("manual", LocalDateTime.of(2026, 1, 1, 10, 0, i));
+            RespaldoDatos.erickDelgadoRespaldarArchivo("manual", LocalDateTime.of(2026, 1, 1, 10, 0, i));
         }
-        assertEquals(15, contarArchivos(RespaldoDatos.carpetaCopias(), "-manual.db"));
+        assertEquals(15, contarArchivos(RespaldoDatos.erickDelgadoCarpetaCopias(), "-manual.db"));
     }
 
     @Test
     void respaldarSinBaseNoHaceNada() {
-        assertTrue(RespaldoDatos.respaldarArchivo("inicio").isEmpty());
+        assertTrue(RespaldoDatos.erickDelgadoRespaldarArchivo("inicio").isEmpty());
     }
 
     @Test
     void restauracionPendienteValidaReemplazaYCreaPrevia() throws Exception {
-        Path base = RespaldoDatos.archivoBaseDatos();
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
         crearBase(base, 1);
         Path copia = temporal.resolve("externa").resolve("copia.db");
         crearBase(copia, 3);
 
-        RespaldoDatos.programarRestauracion(copia);
-        assertTrue(RespaldoDatos.restauracionPendiente().isPresent());
+        RespaldoDatos.erickDelgadoProgramarRestauracion(copia);
+        assertTrue(RespaldoDatos.erickDelgadoRestauracionPendiente().isPresent());
 
-        assertTrue(RespaldoDatos.aplicarRestauracionPendiente());
+        assertTrue(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
         assertEquals(3, contarFilas(base));
-        assertEquals(1, contarArchivos(RespaldoDatos.carpetaCopias(), "-previa-restauracion.db"));
-        assertTrue(RespaldoDatos.restauracionPendiente().isEmpty());
+        assertEquals(1, contarArchivos(RespaldoDatos.erickDelgadoCarpetaCopias(), "-previa-restauracion.db"));
+        assertTrue(RespaldoDatos.erickDelgadoRestauracionPendiente().isEmpty());
         assertFalse(Files.exists(temporal.resolve("restaurar.pendiente")));
 
         // La previa conserva el contenido anterior (1 fila).
-        try (Stream<Path> s = Files.list(RespaldoDatos.carpetaCopias())) {
+        try (Stream<Path> s = Files.list(RespaldoDatos.erickDelgadoCarpetaCopias())) {
             Path previa = s.filter(p -> p.getFileName().toString().endsWith("-previa-restauracion.db"))
                     .findFirst().orElseThrow();
             assertEquals(1, contarFilas(previa));
@@ -141,49 +141,49 @@ class RespaldoTest {
 
     @Test
     void copiaCorruptaNoReemplazaLaBaseNiLanzaExcepcion() throws Exception {
-        Path base = RespaldoDatos.archivoBaseDatos();
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
         crearBase(base, 2);
         Path corrupta = temporal.resolve("corrupta.db");
         Files.writeString(corrupta, "esto no es sqlite", StandardCharsets.UTF_8);
 
         // programarRestauracion valida la copia y la rechaza.
-        assertThrows(IllegalArgumentException.class, () -> RespaldoDatos.programarRestauracion(corrupta));
+        assertThrows(IllegalArgumentException.class, () -> RespaldoDatos.erickDelgadoProgramarRestauracion(corrupta));
 
         // Aun con un marcador escrito a mano, la restauración se descarta sin tocar la base.
         Files.writeString(temporal.resolve("restaurar.pendiente"), corrupta.toString(), StandardCharsets.UTF_8);
-        assertFalse(RespaldoDatos.aplicarRestauracionPendiente());
+        assertFalse(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
         assertEquals(2, contarFilas(base));
         assertFalse(Files.exists(temporal.resolve("restaurar.pendiente")));
-        assertEquals(0, contarArchivos(RespaldoDatos.carpetaCopias(), "-previa-restauracion.db"));
+        assertEquals(0, contarArchivos(RespaldoDatos.erickDelgadoCarpetaCopias(), "-previa-restauracion.db"));
     }
 
     @Test
     void copiaVaciaSeRechaza() throws Exception {
-        Path base = RespaldoDatos.archivoBaseDatos();
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
         crearBase(base, 2);
         Path vacia = temporal.resolve("vacia.db");
         Files.createFile(vacia);
         Files.writeString(temporal.resolve("restaurar.pendiente"), vacia.toString(), StandardCharsets.UTF_8);
 
-        assertFalse(RespaldoDatos.aplicarRestauracionPendiente());
+        assertFalse(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
         assertEquals(2, contarFilas(base));
     }
 
     @Test
     void marcadorConRutaInexistenteSeDescarta() throws Exception {
-        Path base = RespaldoDatos.archivoBaseDatos();
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
         crearBase(base, 2);
         Files.writeString(temporal.resolve("restaurar.pendiente"),
                 temporal.resolve("no-existe.db").toString(), StandardCharsets.UTF_8);
 
-        assertFalse(RespaldoDatos.aplicarRestauracionPendiente());
+        assertFalse(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
         assertEquals(2, contarFilas(base));
         assertFalse(Files.exists(temporal.resolve("restaurar.pendiente")));
     }
 
     @Test
     void sinMarcadorNoHaceNada() {
-        assertFalse(RespaldoDatos.aplicarRestauracionPendiente());
+        assertFalse(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
     }
 
     @Test
@@ -191,11 +191,11 @@ class RespaldoTest {
         RespaldoService servicio = new RespaldoService(new SQLiteDataSource(), mock(BitacoraService.class));
         Path ajeno = temporal.resolve("ajeno.db");
         Files.writeString(ajeno, "x");
-        assertThrows(IllegalArgumentException.class, () -> servicio.eliminarCopia(ajeno));
+        assertThrows(IllegalArgumentException.class, () -> servicio.erickDelgadoEliminarCopia(ajeno));
         // Intento de escape con «..» desde la carpeta de copias.
-        Files.createDirectories(servicio.carpetaCopias());
-        Path escape = servicio.carpetaCopias().resolve("..").resolve("ajeno.db");
-        assertThrows(IllegalArgumentException.class, () -> servicio.eliminarCopia(escape));
+        Files.createDirectories(servicio.erickDelgadoCarpetaCopias());
+        Path escape = servicio.erickDelgadoCarpetaCopias().resolve("..").resolve("ajeno.db");
+        assertThrows(IllegalArgumentException.class, () -> servicio.erickDelgadoEliminarCopia(escape));
         assertTrue(Files.exists(ajeno));
     }
 
@@ -203,8 +203,8 @@ class RespaldoTest {
     void crearCopiaConVacuumIntoContieneLasFilas() throws Exception {
         // Carpeta con una comilla simple para comprobar el escape de la ruta en VACUUM INTO.
         Path datos = temporal.resolve("dato's");
-        System.setProperty(RespaldoDatos.PROPIEDAD_DATOS, datos.toString());
-        Path base = RespaldoDatos.archivoBaseDatos();
+        System.setProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS, datos.toString());
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
         crearBase(base, 5);
 
         SQLiteDataSource origen = new SQLiteDataSource();
@@ -212,28 +212,28 @@ class RespaldoTest {
         BitacoraService bitacora = mock(BitacoraService.class);
         RespaldoService servicio = new RespaldoService(origen, bitacora);
 
-        RespaldoService.Copia copia = servicio.crearCopia("manual");
+        RespaldoService.Copia copia = servicio.erickDelgadoCrearCopia("manual");
 
         assertTrue(Files.isRegularFile(copia.archivo()));
         assertEquals("manual", copia.tipo());
         assertTrue(copia.bytes() > 0);
-        assertTrue(RespaldoDatos.esSqliteValido(copia.archivo()));
+        assertTrue(RespaldoDatos.erickDelgadoEsSqliteValido(copia.archivo()));
         assertEquals(5, contarFilas(copia.archivo()));
-        verify(bitacora).registrar(eq("COPIA_CREADA"), anyString());
+        verify(bitacora).erickDelgadoRegistrar(eq("COPIA_CREADA"), anyString());
 
         // Una segunda copia en el mismo segundo no choca con la primera.
-        RespaldoService.Copia otra = servicio.crearCopia(null);
+        RespaldoService.Copia otra = servicio.erickDelgadoCrearCopia(null);
         assertFalse(copia.archivo().equals(otra.archivo()));
 
-        List<RespaldoService.Copia> lista = servicio.listar();
+        List<RespaldoService.Copia> lista = servicio.erickDelgadoListar();
         assertEquals(2, lista.size());
         assertTrue(lista.get(0).fecha().compareTo(lista.get(1).fecha()) >= 0);
 
         // Los archivos ajenos al patrón se ignoran al listar.
-        Files.writeString(servicio.carpetaCopias().resolve("notas.txt"), "x");
-        assertEquals(2, servicio.listar().size());
+        Files.writeString(servicio.erickDelgadoCarpetaCopias().resolve("notas.txt"), "x");
+        assertEquals(2, servicio.erickDelgadoListar().size());
 
-        servicio.eliminarCopia(copia.archivo());
-        assertEquals(1, servicio.listar().size());
+        servicio.erickDelgadoEliminarCopia(copia.archivo());
+        assertEquals(1, servicio.erickDelgadoListar().size());
     }
 }

@@ -97,22 +97,33 @@
                     <tabs>
                         <Tab text="Animación">
                             <VBox spacing="8.0" styleClass="th-pestana">
-                                <FlowPane hgap="10.0" vgap="8.0" alignment="CENTER_LEFT">
-                                    <Label text="Dirección"/>
-                                    <ToggleButton fx:id="tbX" text="X" toggleGroup="$grupoDireccion" selected="true"/>
-                                    <ToggleButton fx:id="tbY" text="Y" toggleGroup="$grupoDireccion"/>
-                                    <Label text="Registro"/>
-                                    <ComboBox fx:id="cmbRegistro" prefWidth="260.0"/>
-                                    <Button fx:id="btnPlay" text="Reproducir" onAction="#onPlay" styleClass="accent">
-                                        <graphic><FontIcon fx:id="iconoPlay" iconLiteral="fth-play"/></graphic>
-                                    </Button>
-                                    <Button fx:id="btnReiniciar" text="Reiniciar" onAction="#onReiniciar" styleClass="button-outlined">
-                                        <graphic><FontIcon iconLiteral="fth-rotate-ccw"/></graphic>
-                                    </Button>
-                                    <Label text="Velocidad"/>
-                                    <ComboBox fx:id="cmbVelocidad" prefWidth="90.0"/>
-                                    <Label text="Escala visual"/>
-                                    <Slider fx:id="sldEscala" min="0.25" max="4.0" value="1.0" prefWidth="140.0"/>
+                                <!-- Cada etiqueta va con su control: al estrecharse la ventana, saltan juntos de línea -->
+                                <FlowPane hgap="18.0" vgap="8.0" alignment="CENTER_LEFT">
+                                    <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                        <Button fx:id="btnPlay" text="Reproducir" onAction="#onPlay" styleClass="accent">
+                                            <graphic><FontIcon fx:id="iconoPlay" iconLiteral="fth-play"/></graphic>
+                                        </Button>
+                                        <Button fx:id="btnReiniciar" text="Reiniciar" onAction="#onReiniciar" styleClass="button-outlined">
+                                            <graphic><FontIcon iconLiteral="fth-rotate-ccw"/></graphic>
+                                        </Button>
+                                    </HBox>
+                                    <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                        <Label text="Dirección"/>
+                                        <ToggleButton fx:id="tbX" text="X" toggleGroup="$grupoDireccion" selected="true"/>
+                                        <ToggleButton fx:id="tbY" text="Y" toggleGroup="$grupoDireccion"/>
+                                    </HBox>
+                                    <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                        <Label text="Registro"/>
+                                        <ComboBox fx:id="cmbRegistro" prefWidth="260.0"/>
+                                    </HBox>
+                                    <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                        <Label text="Velocidad"/>
+                                        <ComboBox fx:id="cmbVelocidad" prefWidth="90.0"/>
+                                    </HBox>
+                                    <HBox spacing="6.0" alignment="CENTER_LEFT">
+                                        <Label text="Escala visual"/>
+                                        <Slider fx:id="sldEscala" min="0.25" max="4.0" value="1.0" prefWidth="140.0"/>
+                                    </HBox>
                                 </FlowPane>
                                 <Slider fx:id="sldTiempo" min="0.0" max="1.0" value="0.0"/>
                                 <HBox spacing="18.0" styleClass="th-lectura">

@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 /**
  * Copias de seguridad de la base abierta. Las copias manuales se hacen con {@code VACUUM INTO}, que produce un
  * archivo coherente aunque la base esté en uso. La restauración no se hace en caliente: se programa y se aplica
- * en el próximo arranque (ver {@link RespaldoDatos#aplicarRestauracionPendiente()}).
+ * en el próximo arranque (ver {@link RespaldoDatos#erickDelgadoAplicarRestauracionPendiente()}).
  */
 @Service
 @RequiredArgsConstructor
@@ -31,7 +31,7 @@ public class RespaldoService {
     public record Copia(Path archivo, String nombre, LocalDateTime fecha, long bytes, String tipo) {
     }
 
-    private final DataSource dataSource;
+    private final DataSource erickDelgadoDataSource;
     private final BitacoraService bitacora;
 
     /**
@@ -40,25 +40,25 @@ public class RespaldoService {
      *
      * @param motivo motivo para el nombre; nulo o vacío = «manual»
      */
-    public Copia crearCopia(String motivo) {
-        String tipo = RespaldoDatos.normalizarMotivo(motivo);
-        Path carpeta = carpetaCopias();
+    public Copia erickDelgadoCrearCopia(String motivo) {
+        String tipo = RespaldoDatos.erickDelgadoNormalizarMotivo(motivo);
+        Path carpeta = erickDelgadoCarpetaCopias();
         Path destino;
         try {
             Files.createDirectories(carpeta);
             LocalDateTime marca = LocalDateTime.now().withNano(0);
-            destino = carpeta.resolve(RespaldoDatos.nombreCopia(marca, tipo));
+            destino = carpeta.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, tipo));
             // VACUUM INTO exige que el destino no exista: se avanza un segundo hasta hallar un nombre libre.
             while (Files.exists(destino)) {
                 marca = marca.plusSeconds(1);
-                destino = carpeta.resolve(RespaldoDatos.nombreCopia(marca, tipo));
+                destino = carpeta.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, tipo));
             }
         } catch (IOException e) {
             throw new UncheckedIOException("No se pudo preparar la carpeta de copias", e);
         }
 
         String ruta = destino.toAbsolutePath().toString().replace("'", "''");
-        try (Connection conexion = dataSource.getConnection(); Statement sentencia = conexion.createStatement()) {
+        try (Connection conexion = erickDelgadoDataSource.getConnection(); Statement sentencia = conexion.createStatement()) {
             sentencia.execute("VACUUM INTO '" + ruta + "'");
         } catch (SQLException e) {
             try {
@@ -70,19 +70,19 @@ public class RespaldoService {
         }
 
         Path creada = destino;
-        Copia copia = aCopia(creada).orElseThrow(
+        Copia copia = erickDelgadoACopia(creada).orElseThrow(
                 () -> new IllegalStateException("No se pudo leer la copia creada: " + creada.getFileName()));
-        bitacora.registrar("COPIA_CREADA", copia.nombre() + " (" + copia.bytes() + " bytes)");
+        bitacora.erickDelgadoRegistrar("COPIA_CREADA", copia.nombre() + " (" + copia.bytes() + " bytes)");
         return copia;
     }
 
     /** Copias existentes, de la más reciente a la más antigua. Ignora archivos que no cumplan el patrón de nombre. */
-    public List<Copia> listar() {
-        Path carpeta = carpetaCopias();
+    public List<Copia> erickDelgadoListar() {
+        Path carpeta = erickDelgadoCarpetaCopias();
         if (!Files.isDirectory(carpeta)) return List.of();
         List<Copia> copias = new ArrayList<>();
         try (Stream<Path> archivos = Files.list(carpeta)) {
-            archivos.filter(Files::isRegularFile).forEach(p -> aCopia(p).ifPresent(copias::add));
+            archivos.filter(Files::isRegularFile).forEach(p -> erickDelgadoACopia(p).ifPresent(copias::add));
         } catch (IOException e) {
             throw new UncheckedIOException("No se pudo leer la carpeta de copias", e);
         }
@@ -91,14 +91,14 @@ public class RespaldoService {
     }
 
     /** Programa restaurar la copia en el próximo arranque de la aplicación. */
-    public void programarRestauracion(Path copia) {
-        RespaldoDatos.programarRestauracion(copia);
-        bitacora.registrar("RESTAURACION_PROGRAMADA", copia.getFileName().toString());
+    public void erickDelgadoProgramarRestauracion(Path copia) {
+        RespaldoDatos.erickDelgadoProgramarRestauracion(copia);
+        bitacora.erickDelgadoRegistrar("RESTAURACION_PROGRAMADA", copia.getFileName().toString());
     }
 
     /** Copia pendiente de restaurar en el próximo arranque, si la hay. */
-    public Optional<Path> restauracionPendiente() {
-        return RespaldoDatos.restauracionPendiente();
+    public Optional<Path> erickDelgadoRestauracionPendiente() {
+        return RespaldoDatos.erickDelgadoRestauracionPendiente();
     }
 
     /**
@@ -106,9 +106,9 @@ public class RespaldoService {
      *
      * @throws IllegalArgumentException si la ruta está fuera de la carpeta de copias
      */
-    public void eliminarCopia(Path copia) {
+    public void erickDelgadoEliminarCopia(Path copia) {
         if (copia == null) throw new IllegalArgumentException("Debe indicar la copia a eliminar");
-        Path carpeta = carpetaCopias().toAbsolutePath().normalize();
+        Path carpeta = erickDelgadoCarpetaCopias().toAbsolutePath().normalize();
         Path objetivo = copia.toAbsolutePath().normalize();
         if (!carpeta.equals(objetivo.getParent())) {
             throw new IllegalArgumentException("La copia está fuera de la carpeta de copias: " + copia);
@@ -120,22 +120,22 @@ public class RespaldoService {
         }
     }
 
-    public Path carpetaCopias() {
-        return RespaldoDatos.carpetaCopias();
+    public Path erickDelgadoCarpetaCopias() {
+        return RespaldoDatos.erickDelgadoCarpetaCopias();
     }
 
-    public Path carpetaRegistros() {
-        return RespaldoDatos.carpetaRegistros();
+    public Path erickDelgadoCarpetaRegistros() {
+        return RespaldoDatos.erickDelgadoCarpetaRegistros();
     }
 
-    public Path archivoBaseDatos() {
-        return RespaldoDatos.archivoBaseDatos();
+    public Path erickDelgadoArchivoBaseDatos() {
+        return RespaldoDatos.erickDelgadoArchivoBaseDatos();
     }
 
     /** Tamaño en bytes del archivo de la base (0 si no existe). */
-    public long tamanoBaseDatos() {
+    public long erickDelgadoTamanoBaseDatos() {
         try {
-            Path base = archivoBaseDatos();
+            Path base = erickDelgadoArchivoBaseDatos();
             return Files.isRegularFile(base) ? Files.size(base) : 0L;
         } catch (IOException e) {
             return 0L;
@@ -143,11 +143,11 @@ public class RespaldoService {
     }
 
     /** Convierte un archivo en {@link Copia}; vacío si el nombre no cumple el patrón. */
-    private static Optional<Copia> aCopia(Path archivo) {
-        var m = RespaldoDatos.PATRON_NOMBRE.matcher(archivo.getFileName().toString());
+    private static Optional<Copia> erickDelgadoACopia(Path archivo) {
+        var m = RespaldoDatos.ERICK_DELGADO_PATRON_NOMBRE.matcher(archivo.getFileName().toString());
         if (!m.matches()) return Optional.empty();
         try {
-            LocalDateTime fecha = LocalDateTime.parse(m.group(1), RespaldoDatos.FORMATO_MARCA);
+            LocalDateTime fecha = LocalDateTime.parse(m.group(1), RespaldoDatos.ERICK_DELGADO_FORMATO_MARCA);
             return Optional.of(new Copia(archivo, archivo.getFileName().toString(), fecha, Files.size(archivo), m.group(2)));
         } catch (DateTimeParseException | IOException e) {
             return Optional.empty();

@@ -20,10 +20,10 @@ public final class MetradoNeto {
 
     private MetradoNeto() { }
 
-    private static final List<String> PRIORIDAD = List.of("ZAPATA", "COLUMNA", "VIGA", "MURO", "LOSA");
+    private static final List<String> YEFRI_LERMA_PRIORIDAD = List.of("ZAPATA", "COLUMNA", "VIGA", "MURO", "LOSA");
 
     /** Cuantías referenciales de acero en kg por m³ de concreto, por tipo. */
-    public static Map<String, Double> cuantiasReferenciales() {
+    public static Map<String, Double> yefriLermaCuantiasReferenciales() {
         var m = new LinkedHashMap<String, Double>();
         m.put("ZAPATA", 60.0);
         m.put("COLUMNA", 150.0);
@@ -57,15 +57,15 @@ public final class MetradoNeto {
         }
     }
 
-    public static Resultado calcular(List<Elemento> elementos) {
-        return calcular(elementos, cuantiasReferenciales());
+    public static Resultado yefriLermaCalcular(List<Elemento> elementos) {
+        return yefriLermaCalcular(elementos, yefriLermaCuantiasReferenciales());
     }
 
-    public static Resultado calcular(List<Elemento> elementos, Map<String, Double> cuantias) {
+    public static Resultado yefriLermaCalcular(List<Elemento> elementos, Map<String, Double> cuantias) {
         var orden = new ArrayList<Elemento>(elementos);
         orden.sort(Comparator.comparingInt((Elemento e) -> {
-            int i = PRIORIDAD.indexOf(e.getTipo());
-            return i < 0 ? PRIORIDAD.size() : i;
+            int i = YEFRI_LERMA_PRIORIDAD.indexOf(e.getTipo());
+            return i < 0 ? YEFRI_LERMA_PRIORIDAD.size() : i;
         }));
         var previas = new ArrayList<Caja>();
         var neto = new LinkedHashMap<Long, Double>();
@@ -81,19 +81,19 @@ public final class MetradoNeto {
                 Caja i = c.interseccion(p);
                 if (i != null) solapes.add(i);
             }
-            double propio = Math.max(0, c.volumen() - volumenUnion(solapes));
+            double propio = Math.max(0, c.volumen() - yefriLermaVolumenUnion(solapes));
             previas.add(c);
             neto.put(e.getId() != null ? e.getId() : (long) (-(++indice)), propio);
             bruto.merge(e.getTipo(), c.volumen(), Double::sum);
             netos.merge(e.getTipo(), propio, Double::sum);
             cantidad.merge(e.getTipo(), 1, Integer::sum);
-            encofrado.merge(e.getTipo(), superficieEncofrado(e), Double::sum);
+            encofrado.merge(e.getTipo(), yefriLermaSuperficieEncofrado(e), Double::sum);
         }
         var filas = new ArrayList<Fila>();
         double vb = 0, vn = 0, enc = 0, ac = 0;
         for (String tipo : bruto.keySet().stream().sorted(Comparator.comparingInt((String t) -> {
-            int i = PRIORIDAD.indexOf(t);
-            return i < 0 ? PRIORIDAD.size() : i;
+            int i = YEFRI_LERMA_PRIORIDAD.indexOf(t);
+            return i < 0 ? YEFRI_LERMA_PRIORIDAD.size() : i;
         })).toList()) {
             double acero = netos.get(tipo) * cuantias.getOrDefault(tipo, 0.0);
             filas.add(new Fila(tipo, cantidad.get(tipo), bruto.get(tipo), netos.get(tipo), encofrado.get(tipo), acero));
@@ -106,7 +106,7 @@ public final class MetradoNeto {
     }
 
     /** Superficie de molde: columnas y zapatas, perímetro por altura; vigas, fondo y dos caras; muros, dos caras; losas, el fondo. */
-    static double superficieEncofrado(Elemento e) {
+    static double yefriLermaSuperficieEncofrado(Elemento e) {
         double l = e.getLargo(), a = e.getAncho(), h = e.getAltura();
         return switch (e.getTipo()) {
             case "COLUMNA", "ZAPATA" -> 2 * (l + a) * h;
@@ -118,7 +118,7 @@ public final class MetradoNeto {
     }
 
     /** Volumen de la unión de cajas por compresión de coordenadas (exacto). */
-    static double volumenUnion(List<Caja> cajas) {
+    static double yefriLermaVolumenUnion(List<Caja> cajas) {
         if (cajas.isEmpty()) return 0;
         if (cajas.size() == 1) return cajas.get(0).volumen();
         var xs = new TreeSet<Double>();

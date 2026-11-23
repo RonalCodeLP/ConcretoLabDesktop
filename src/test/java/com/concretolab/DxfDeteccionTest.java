@@ -80,33 +80,33 @@ class DxfDeteccionTest {
     @Test
     void sugiereCapasPorNombreYEstimaLaUnidad(@TempDir Path dir) throws Exception {
         var plano = new FernandoHuancaPlanoDxf().fernandoHuancaLeer(plano(dir, 0));
-        var mapeo = DeteccionCapasDxf.sugerir(plano);
+        var mapeo = DeteccionCapasDxf.erickDelgadoSugerir(plano);
         assertThat(mapeo.de(Rol.COLUMNAS)).isEqualTo("S-COLUMNAS");
         assertThat(mapeo.de(Rol.VIGAS)).isEqualTo("VIGAS 1");
         assertThat(mapeo.de(Rol.ZAPATAS)).isNull();
-        var unidad = DeteccionCapasDxf.unidad(plano);
+        var unidad = DeteccionCapasDxf.erickDelgadoUnidad(plano);
         assertThat(unidad.declarada()).isFalse();
         assertThat(unidad.metrosPorUnidad()).isEqualTo(0.001);
-        var diag = DeteccionCapasDxf.diagnosticar(plano).texto();
+        var diag = DeteccionCapasDxf.erickDelgadoDiagnosticar(plano).texto();
         assertThat(diag).contains("S-COLUMNAS").contains("→ columnas").contains("→ vigas")
                 .contains("TEXT").contains("no declara unidades").contains("círculos").contains("bloques");
     }
 
     @Test
     void reconoceNombresPeruanosConTildesYAbreviaturas() {
-        assertThat(DeteccionCapasDxf.puntaje("COLUMNAS_ÁREA", Rol.COLUMNAS)).isGreaterThanOrEqualTo(2);
-        assertThat(DeteccionCapasDxf.puntaje("A-Cimentación", Rol.ZAPATAS)).isGreaterThanOrEqualTo(2);
-        assertThat(DeteccionCapasDxf.puntaje("Placas", Rol.MUROS)).isEqualTo(3);
-        assertThat(DeteccionCapasDxf.puntaje("S-BEAM", Rol.VIGAS)).isEqualTo(3);
-        assertThat(DeteccionCapasDxf.puntaje("TEXTOS", Rol.COLUMNAS)).isZero();
-        assertThat(DeteccionCapasDxf.puntaje("COLINA", Rol.COLUMNAS)).isZero();
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("COLUMNAS_ÁREA", Rol.COLUMNAS)).isGreaterThanOrEqualTo(2);
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("A-Cimentación", Rol.ZAPATAS)).isGreaterThanOrEqualTo(2);
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("Placas", Rol.MUROS)).isEqualTo(3);
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("S-BEAM", Rol.VIGAS)).isEqualTo(3);
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("TEXTOS", Rol.COLUMNAS)).isZero();
+        assertThat(DeteccionCapasDxf.erickDelgadoPuntaje("COLINA", Rol.COLUMNAS)).isZero();
     }
 
     @Test
     void importaLosasYMurosPorPisoYElMetradoNetoNoDuplicaLosCruces(@TempDir Path dir) throws Exception {
         var lector = new FernandoHuancaPlanoDxf();
         var plano = lector.fernandoHuancaLeer(plano(dir, 0, true));
-        var mapeo = DeteccionCapasDxf.sugerir(plano);
+        var mapeo = DeteccionCapasDxf.erickDelgadoSugerir(plano);
         assertThat(mapeo.de(Rol.LOSAS)).isEqualTo("LOSAS");
         assertThat(mapeo.de(Rol.MUROS)).isEqualTo("MUROS");
         var modelo = lector.fernandoHuancaConvertir(plano, datos(),
@@ -120,7 +120,7 @@ class DxfDeteccionTest {
         var muro = modelo.stream().filter(e -> e.getTipo().equals("MURO")).findFirst().orElseThrow();
         assertThat(muro.getAncho()).isEqualTo(4.0).isNotEqualTo(0.15); // línea paralela a Y: largo en Y
         assertThat(muro.getLargo()).isEqualTo(0.15);
-        var neto = com.concretolab.service.MetradoNeto.calcular(modelo);
+        var neto = com.concretolab.service.MetradoNeto.yefriLermaCalcular(modelo);
         assertThat(neto.volumenNeto()).isLessThan(neto.volumenBruto());
         assertThat(neto.filas()).extracting(f -> f.tipo()).contains("COLUMNA", "VIGA", "MURO", "LOSA");
         // sin capa de losas ni muros el resultado es el de siempre

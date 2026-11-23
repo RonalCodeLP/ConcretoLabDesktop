@@ -26,10 +26,10 @@ class ZonificacionServiceTest {
 
     @Test
     void conteosTotalesCoincidenConElAnexo() {
-        assertThat(servicio.departamentos()).hasSize(25);
-        int provincias = servicio.departamentos().stream().mapToInt(d -> servicio.provincias(d).size()).sum();
+        assertThat(servicio.fernandoHuancaDepartamentos()).hasSize(25);
+        int provincias = servicio.fernandoHuancaDepartamentos().stream().mapToInt(d -> servicio.fernandoHuancaProvincias(d).size()).sum();
         assertThat(provincias).isEqualTo(196);
-        assertThat(servicio.totalDistritos()).isEqualTo(1892);
+        assertThat(servicio.fernandoHuancaTotalDistritos()).isEqualTo(1892);
     }
 
     @Test
@@ -41,13 +41,13 @@ class ZonificacionServiceTest {
         assertThat(contarDistritos("LIMA")).isEqualTo(171);
         assertThat(contarDistritos("MADRE DE DIOS")).isEqualTo(11);
         assertThat(contarDistritos("TUMBES")).isEqualTo(13);
-        assertThat(servicio.provincias("LIMA")).hasSize(10);
-        assertThat(servicio.provincias("CALLAO")).containsExactly("CALLAO");
+        assertThat(servicio.fernandoHuancaProvincias("LIMA")).hasSize(10);
+        assertThat(servicio.fernandoHuancaProvincias("CALLAO")).containsExactly("CALLAO");
     }
 
     @Test
     void fuenteIndicaLaNorma() {
-        assertThat(servicio.fuente()).isEqualTo("E.030 2026 (R.M. 183-2026-VIVIENDA), Anexo II");
+        assertThat(servicio.fernandoHuancaFuente()).isEqualTo("E.030 2026 (R.M. 183-2026-VIVIENDA), Anexo II");
     }
 
     // ------------------------------------------------------------------ zonas conocidas
@@ -115,13 +115,13 @@ class ZonificacionServiceTest {
 
     @Test
     void consultaIgnoraTildesMayusculasYEspacios() {
-        assertThat(servicio.zona("lima", "lima", "miraflores")).hasValue(4);
-        assertThat(servicio.zona("ancash", "santa", "chimbote")).hasValue(4);
-        assertThat(servicio.zona("San Martin", "Moyobamba", "  Moyobamba ")).hasValue(3);
-        assertThat(servicio.zona("Lima", "Cañete", "San Vicente de Cañete")).hasValue(4);
-        assertThat(servicio.zona("lima", "canete", "san vicente de canete")).hasValue(4);
-        assertThat(servicio.provincias("junin")).contains("HUANCAYO");
-        assertThat(servicio.distritos("cusco", "cusco")).contains("SAN SEBASTIÁN", "WANCHAQ");
+        assertThat(servicio.fernandoHuancaZona("lima", "lima", "miraflores")).hasValue(4);
+        assertThat(servicio.fernandoHuancaZona("ancash", "santa", "chimbote")).hasValue(4);
+        assertThat(servicio.fernandoHuancaZona("San Martin", "Moyobamba", "  Moyobamba ")).hasValue(3);
+        assertThat(servicio.fernandoHuancaZona("Lima", "Cañete", "San Vicente de Cañete")).hasValue(4);
+        assertThat(servicio.fernandoHuancaZona("lima", "canete", "san vicente de canete")).hasValue(4);
+        assertThat(servicio.fernandoHuancaProvincias("junin")).contains("HUANCAYO");
+        assertThat(servicio.fernandoHuancaDistritos("cusco", "cusco")).contains("SAN SEBASTIÁN", "WANCHAQ");
     }
 
     @Test
@@ -136,23 +136,23 @@ class ZonificacionServiceTest {
 
     @Test
     void entradasInexistentesDevuelvenVacio() {
-        assertThat(servicio.provincias("ATLANTIDA")).isEmpty();
-        assertThat(servicio.provincias(null)).isEmpty();
-        assertThat(servicio.distritos("LIMA", "NO EXISTE")).isEmpty();
-        assertThat(servicio.distritos("ATLANTIDA", "LIMA")).isEmpty();
-        assertThat(servicio.zona("ATLANTIDA", "LIMA", "MIRAFLORES")).isEqualTo(OptionalInt.empty());
-        assertThat(servicio.zona("LIMA", "NO EXISTE", "MIRAFLORES")).isEqualTo(OptionalInt.empty());
-        assertThat(servicio.zona("LIMA", "LIMA", "NO EXISTE")).isEqualTo(OptionalInt.empty());
-        assertThat(servicio.zona("LIMA", "LIMA", null)).isEqualTo(OptionalInt.empty());
+        assertThat(servicio.fernandoHuancaProvincias("ATLANTIDA")).isEmpty();
+        assertThat(servicio.fernandoHuancaProvincias(null)).isEmpty();
+        assertThat(servicio.fernandoHuancaDistritos("LIMA", "NO EXISTE")).isEmpty();
+        assertThat(servicio.fernandoHuancaDistritos("ATLANTIDA", "LIMA")).isEmpty();
+        assertThat(servicio.fernandoHuancaZona("ATLANTIDA", "LIMA", "MIRAFLORES")).isEqualTo(OptionalInt.empty());
+        assertThat(servicio.fernandoHuancaZona("LIMA", "NO EXISTE", "MIRAFLORES")).isEqualTo(OptionalInt.empty());
+        assertThat(servicio.fernandoHuancaZona("LIMA", "LIMA", "NO EXISTE")).isEqualTo(OptionalInt.empty());
+        assertThat(servicio.fernandoHuancaZona("LIMA", "LIMA", null)).isEqualTo(OptionalInt.empty());
         // Un distrito de otra provincia no debe resolverse bajo esta
-        assertThat(servicio.zona("LIMA", "LIMA", "CHIMBOTE")).isEqualTo(OptionalInt.empty());
+        assertThat(servicio.fernandoHuancaZona("LIMA", "LIMA", "CHIMBOTE")).isEqualTo(OptionalInt.empty());
     }
 
     // ------------------------------------------------------------------ busqueda
 
     @Test
     void buscarSinTildesEncuentraCanete() {
-        List<Ubicacion> r = servicio.buscar("canete", 20);
+        List<Ubicacion> r = servicio.fernandoHuancaBuscar("canete", 20);
         assertThat(r).isNotEmpty();
         assertThat(r).anyMatch(u -> u.provincia().equals("CAÑETE"));
         assertThat(r).anyMatch(u -> u.distrito().equals("SAN VICENTE DE CAÑETE"));
@@ -160,7 +160,7 @@ class ZonificacionServiceTest {
 
     @Test
     void buscarOrdenaPrimeroLosQueEmpiezanPorElTexto() {
-        List<Ubicacion> r = servicio.buscar("mira", 50);
+        List<Ubicacion> r = servicio.fernandoHuancaBuscar("mira", 50);
         assertThat(r).isNotEmpty();
         // Los distritos que empiezan por "mira" van antes que los que solo lo contienen
         int ultimoQueEmpieza = -1;
@@ -180,18 +180,18 @@ class ZonificacionServiceTest {
 
     @Test
     void buscarRespetaElLimiteYTextosInvalidos() {
-        assertThat(servicio.buscar("san", 5)).hasSize(5);
-        assertThat(servicio.buscar("san", 0)).isEmpty();
-        assertThat(servicio.buscar("san", -1)).isEmpty();
-        assertThat(servicio.buscar("", 10)).isEmpty();
-        assertThat(servicio.buscar("   ", 10)).isEmpty();
-        assertThat(servicio.buscar(null, 10)).isEmpty();
-        assertThat(servicio.buscar("zzzzzzzz", 10)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar("san", 5)).hasSize(5);
+        assertThat(servicio.fernandoHuancaBuscar("san", 0)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar("san", -1)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar("", 10)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar("   ", 10)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar(null, 10)).isEmpty();
+        assertThat(servicio.fernandoHuancaBuscar("zzzzzzzz", 10)).isEmpty();
     }
 
     @Test
     void buscarDevuelveUbicacionesCompletas() {
-        List<Ubicacion> r = servicio.buscar("iquitos", 3);
+        List<Ubicacion> r = servicio.fernandoHuancaBuscar("iquitos", 3);
         assertThat(r).first().isEqualTo(new Ubicacion("LORETO", "MAYNAS", "IQUITOS", 1));
     }
 
@@ -199,9 +199,9 @@ class ZonificacionServiceTest {
 
     @Test
     void noHayDistritosDuplicadosDentroDeLaMismaProvincia() {
-        for (String dep : servicio.departamentos()) {
-            for (String prov : servicio.provincias(dep)) {
-                List<String> distritos = servicio.distritos(dep, prov);
+        for (String dep : servicio.fernandoHuancaDepartamentos()) {
+            for (String prov : servicio.fernandoHuancaProvincias(dep)) {
+                List<String> distritos = servicio.fernandoHuancaDistritos(dep, prov);
                 Set<String> unicos = new HashSet<>(distritos);
                 assertThat(unicos).as("%s / %s", dep, prov).hasSameSizeAs(distritos);
             }
@@ -211,29 +211,29 @@ class ZonificacionServiceTest {
     @Test
     void todasLasZonasEstanEntre1Y4() {
         int total = 0;
-        for (String dep : servicio.departamentos()) {
-            for (String prov : servicio.provincias(dep)) {
-                for (String dist : servicio.distritos(dep, prov)) {
-                    OptionalInt z = servicio.zona(dep, prov, dist);
+        for (String dep : servicio.fernandoHuancaDepartamentos()) {
+            for (String prov : servicio.fernandoHuancaProvincias(dep)) {
+                for (String dist : servicio.fernandoHuancaDistritos(dep, prov)) {
+                    OptionalInt z = servicio.fernandoHuancaZona(dep, prov, dist);
                     assertThat(z).as("%s / %s / %s", dep, prov, dist).isPresent();
                     assertThat(z.getAsInt()).isBetween(1, 4);
                     total++;
                 }
             }
         }
-        assertThat(total).isEqualTo(servicio.totalDistritos());
+        assertThat(total).isEqualTo(servicio.fernandoHuancaTotalDistritos());
     }
 
     // ------------------------------------------------------------------ utilidades
 
     private int contarDistritos(String departamento) {
-        return servicio.provincias(departamento).stream()
-                .mapToInt(p -> servicio.distritos(departamento, p).size())
+        return servicio.fernandoHuancaProvincias(departamento).stream()
+                .mapToInt(p -> servicio.fernandoHuancaDistritos(departamento, p).size())
                 .sum();
     }
 
     private void assertZona(String dep, String prov, String dist, int esperada) {
-        assertThat(servicio.zona(dep, prov, dist))
+        assertThat(servicio.fernandoHuancaZona(dep, prov, dist))
                 .as("%s / %s / %s", dep, prov, dist)
                 .hasValue(esperada);
     }

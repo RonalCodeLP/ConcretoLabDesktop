@@ -32,7 +32,7 @@ class SismoE030Test {
     static Parametros norma(double ia, double ip) { return new Parametros(Zona.Z4, Categoria.C, Suelo.S2, 8, ia, ip, 35); }
 
     static FernandoHuancaAnalisisSismico.Entrada entrada(List<Elemento> el, int pisos, Parametros p) {
-        var base = FernandoHuancaAnalisisSismico.pisos(el); assertEquals(pisos, base.size());
+        var base = FernandoHuancaAnalisisSismico.fernandoHuancaPisos(el); assertEquals(pisos, base.size());
         List<CargaPiso> cargas = new ArrayList<>(); for (var b : base) cargas.add(new CargaPiso(b.areaPorDefecto(), 1.0, 2.0));
         return new FernandoHuancaAnalisisSismico.Entrada(el, 21, 0.2, 1.0, 0.20, cargas, p);
     }
@@ -60,22 +60,22 @@ class SismoE030Test {
 
     @Test void unPisoConVigasMuyRigidasTieneRigidezDeCuatroColumnasEmpotradas() {
         double h = 3.0, lc = 0.5; var el = porticos(1, 5, 5, h, lc, 1.0, 3.0); // vigas enormes, casi rígidas
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(el, 1, norma(1, 1)));
-        double E = FernandoHuancaAnalisisSismico.modulo(21) * 1000, I = Math.pow(lc, 4) / 12, k = 4 * 12 * E * I / Math.pow(h, 3);
-        double m = r.pisos().get(0).peso() / FernandoHuancaAnalisisSismico.G, tEsperado = 2 * Math.PI * Math.sqrt(m / k);
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 1, norma(1, 1)));
+        double E = FernandoHuancaAnalisisSismico.fernandoHuancaModulo(21) * 1000, I = Math.pow(lc, 4) / 12, k = 4 * 12 * E * I / Math.pow(h, 3);
+        double m = r.pisos().get(0).peso() / FernandoHuancaAnalisisSismico.FERNANDO_HUANCA_G, tEsperado = 2 * Math.PI * Math.sqrt(m / k);
         // Con vigas casi rígidas la altura efectiva de columna es la libre; el periodo debe estar cerca del de columnas biempotradas.
         assertEquals(tEsperado, r.modos().get(0).periodo(), 0.12 * tEsperado);
     }
 
     @Test void masasEfectivasSumanCienPorCientoYModosEstanOrdenados() {
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, norma(1, 1)));
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, norma(1, 1)));
         assertEquals(1.0, r.masaAcumuladaX(), 1e-6); assertEquals(1.0, r.masaAcumuladaY(), 1e-6);
         for (int i = 1; i < r.modos().size(); i++) assertTrue(r.modos().get(i).periodo() < r.modos().get(i - 1).periodo());
         assertEquals(9, r.modos().size());
     }
 
     @Test void fuerzasEstaticasSumanElCortanteBaseYSeAcumulanPorPiso() {
-        var p = norma(1, 1); var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, p));
+        var p = norma(1, 1); var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, p));
         var e = r.estaticoX(); double suma = 0; for (double f : e.fuerzas()) suma += f;
         assertEquals(e.cortanteBase(), suma, 1e-6);
         assertEquals(p.coeficienteCortante(e.periodo()) * r.pesoTotal(), e.cortanteBase(), 1e-6);
@@ -85,7 +85,7 @@ class SismoE030Test {
     }
 
     @Test void espectralRespetaCortanteMinimoYEsSimetricoEnPlantaSimetrica() {
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(2, 5, 5, 3, 0.4, 0.3, 0.5), 2, norma(1, 1)));
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(porticos(2, 5, 5, 3, 0.4, 0.3, 0.5), 2, norma(1, 1)));
         assertTrue(r.espectralX().cortanteBase() >= 0.8 * r.estaticoX().cortanteBase() - 1e-6);
         assertEquals(r.espectralX().cortanteBase(), r.espectralY().cortanteBase(), 1e-6 * r.espectralX().cortanteBase());
         assertEquals(r.espectralX().derivasMaximas()[0], r.espectralY().derivasMaximas()[0], 1e-9);
@@ -99,19 +99,19 @@ class SismoE030Test {
     }
 
     @Test void validaDatosYDetectaModelosIncompletos() {
-        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.pisos(List.of(el("ZAPATA", "Z", 1, 1, 1, 0, 0, 0.5))));
+        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.fernandoHuancaPisos(List.of(el("ZAPATA", "Z", 1, 1, 1, 0, 0, 0.5))));
         var el = porticos(1, 5, 5, 3, 0.4, 0.3, 0.5);
         var in = entrada(el, 1, norma(1, 1));
-        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.analizar(new FernandoHuancaAnalisisSismico.Entrada(el, 5, 0.2, 1, 0.2, in.cargas(), norma(1, 1))));
+        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(new FernandoHuancaAnalisisSismico.Entrada(el, 5, 0.2, 1, 0.2, in.cargas(), norma(1, 1))));
         assertThrows(IllegalArgumentException.class, () -> new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 8, 1.2, 1, 35));
-        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.analizar(new FernandoHuancaAnalisisSismico.Entrada(el, 21, 0.2, 1, 0.2, List.of(), norma(1, 1))));
+        assertThrows(IllegalArgumentException.class, () -> FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(new FernandoHuancaAnalisisSismico.Entrada(el, 21, 0.2, 1, 0.2, List.of(), norma(1, 1))));
     }
 
     @Test void desplazamientosNoUsanElMinimoCSobreR() {
         // CT = 2 da T = hn/2 = 3 s para 2 pisos de 3 m: C/R < 0,11, así que el cortante de fuerzas queda en el mínimo (art. 4.5.2).
         var el = porticos(2, 5, 4, 3, 0.4, 0.3, 0.5);
-        var a = FernandoHuancaAnalisisSismico.analizar(entrada(el, 2, new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 8, 1, 1, 2)));
-        var b = FernandoHuancaAnalisisSismico.analizar(entrada(el, 2, new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 10, 1, 1, 2)));
+        var a = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 2, new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 8, 1, 1, 2)));
+        var b = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 2, new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 10, 1, 1, 2)));
         assertTrue(new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 10, 1, 1, 2).c(3.0) / 10 < 0.11);
         assertEquals(a.estaticoX().cortanteBase(), b.estaticoX().cortanteBase(), 1e-9); // fuerzas: mínimo independiente de R
         // Art. 5.1: con el elástico sin mínimo, V ∝ 1/R y el desplazamiento inelástico (0,75R) no depende de R.
@@ -119,7 +119,7 @@ class SismoE030Test {
     }
 
     @Test void espectralIncluyeExcentricidadAccidentalYLaDerivaMaximaSuperaLaDelCentroDeMasas() {
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma(1, 1)));
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma(1, 1)));
         assertTrue(r.espectralX().derivasMaximas()[0] > r.espectralX().derivasCm()[0] * 1.0001);
         assertTrue(r.espectralX().razonTorsion()[0] >= 1.0);
     }
@@ -157,7 +157,7 @@ class SismoE030Test {
 
     @Test void edificioAsimetricoEnPlantaProduceAccionCruzadaYResultadosFinitos() {
         var el = porticos(2, 5, 4, 3, 0.4, 0.3, 0.5); el.get(0).setLargo(0.9); el.get(0).setAncho(0.9); // una columna mucho más rígida
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(el, 2, norma(1, 1)));
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 2, norma(1, 1)));
         for (var d : List.of(r.estaticoX(), r.estaticoY(), r.espectralX(), r.espectralY()))
             for (double v : d.derivasMaximas()) { assertTrue(Double.isFinite(v) && v > 0); }
         assertTrue(r.espectralX().razonTorsion()[0] > 1.0);
@@ -182,7 +182,7 @@ class SismoE030Test {
         // Mismos S, Tp y TL en ambas: 2026 S2 sin Vs30 (1,10; 0,6; 2,0) frente a 2018 S2 con 1,05; se compara con S1, idéntico en las dos.
         var n26 = new Parametros(Zona.Z4, Categoria.C, Suelo.S1, 8, 1, 1, 35);
         var n18 = Parametros.v2018(Zona.Z4, Categoria.C, Suelo.S1_2018, 8, 1, 1, 35);
-        var r26 = FernandoHuancaAnalisisSismico.analizar(entrada(el, 2, n26)); var r18 = FernandoHuancaAnalisisSismico.analizar(entrada(el, 2, n18));
+        var r26 = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 2, n26)); var r18 = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(el, 2, n18));
         assertEquals(r18.estaticoX().cortanteBase(), r26.estaticoX().cortanteBase(), 1e-9);   // fuerzas iguales
         assertEquals(r18.modos().get(0).periodo(), r26.modos().get(0).periodo(), 1e-12);
         for (int i = 0; i < 2; i++) {
@@ -195,10 +195,10 @@ class SismoE030Test {
     @Test void generaReportePdfConEncabezadoValido() {
         var in = entrada(porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma(1, 1));
         var p = new com.concretolab.model.Proyecto(); p.setNombre("Prueba");
-        byte[] pdf = com.concretolab.service.ReporteSismo.generar(p, in, FernandoHuancaAnalisisSismico.analizar(in));
+        byte[] pdf = com.concretolab.service.ReporteSismo.fernandoHuancaGenerar(p, in, FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(in));
         assertTrue(pdf.length > 1000); assertEquals("%PDF", new String(pdf, 0, 4, java.nio.charset.StandardCharsets.US_ASCII));
         var in18 = entrada(porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, Parametros.v2018(Zona.Z4, Categoria.C, Suelo.S2_2018, 8, 1, 1, 35));
-        assertTrue(com.concretolab.service.ReporteSismo.generar(p, in18, FernandoHuancaAnalisisSismico.analizar(in18)).length > 1000);
+        assertTrue(com.concretolab.service.ReporteSismo.fernandoHuancaGenerar(p, in18, FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(in18)).length > 1000);
     }
 
     @Test void juntaSismicaSigueLaFormulaDeCadaVersionConMinimoDeTresCentimetros() {
@@ -208,7 +208,7 @@ class SismoE030Test {
         var p18 = Parametros.v2018(Zona.Z4, Categoria.C, Suelo.S2_2018, 8, 1, 1, 35);
         assertEquals(0.006 * 9.0, p18.juntaMinima(9.0), 1e-12);                      // art. 5.3: s = 0,006·h
         assertEquals(0.03, p18.juntaMinima(3.0), 1e-12);
-        var r = FernandoHuancaAnalisisSismico.analizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, p26));
+        var r = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(entrada(porticos(3, 5, 4, 3, 0.4, 0.3, 0.5), 3, p26));
         assertEquals(9.0, r.junta().alturaM(), 1e-9);
         assertEquals(p26.juntaMinima(9.0), r.junta().minimoNormaM(), 1e-12);
         assertTrue(r.junta().dosTerciosPropioM() > 0);
@@ -219,11 +219,11 @@ class SismoE030Test {
         var el = porticos(2, 5, 4, 3, 0.4, 0.3, 0.5);
         var base = entrada(el, 2, norma(1, 1));
         var agrietada = new FernandoHuancaAnalisisSismico.Entrada(el, 21, 0.2, 0.5, 0.20, base.cargas(), norma(1, 1));
-        assertTrue(FernandoHuancaAnalisisSismico.analizar(agrietada).advertencias().stream().anyMatch(a -> a.contains("secciones brutas")));
-        assertTrue(FernandoHuancaAnalisisSismico.analizar(base).advertencias().stream().noneMatch(a -> a.contains("secciones brutas")));
+        assertTrue(FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(agrietada).advertencias().stream().anyMatch(a -> a.contains("secciones brutas")));
+        assertTrue(FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(base).advertencias().stream().noneMatch(a -> a.contains("secciones brutas")));
     }
 
     @Test void moduloElasticoSigueLaE060() {
-        assertEquals(21538, FernandoHuancaAnalisisSismico.modulo(21), 60); // ≈ 4700·√f'c
+        assertEquals(21538, FernandoHuancaAnalisisSismico.fernandoHuancaModulo(21), 60); // ≈ 4700·√f'c
     }
 }

@@ -59,7 +59,7 @@ la cara superior de la losa queda a nivel del piso y los muros van de piso a pis
 en «Modelo 3D y metrado» y se exportan/importan con el proyecto.
 
 El resumen de metrado calcula el concreto **neto**: donde se cruzan elementos (columna con viga, viga con losa…) el volumen común se cuenta
-una sola vez, con prioridad zapata › columna › viga › muro › losa. Incluye encofrado y acero referenciales (anteproyecto, no metrado de obra).
+una sola vez, con prioridad zapata › columna › viga › muro › losa. Incluye encofrado y acero referenciales (anteproyecto, no metrado de obra); las cuantías de acero por tipo se cambian con «Cuantías de acero…» y se guardan en `cuantias-acero.properties` dentro de la carpeta de datos.
 El análisis sísmico sigue siendo de pórticos: los muros avisan que no entran en la rigidez y las losas solo se usan para el metrado.
 
 ### Exportar a IFC y ETABS
@@ -88,6 +88,8 @@ Límites: peso normal, f’cr ≤ 45 MPa (35 con aire incorporado), sin aditivos
 Los límites de durabilidad (a/c máxima y f’c mínima por exposición) se tomaron de ACI 318 / E.060 cap. 4: verifíquelos contra su edición.
 Además, cada mezcla evalúa sus ensayos de 28 días con el criterio de aceptación de la E.060, y la pantalla de granulometría
 calcula el módulo de finura y verifica el huso NTP 400.037 / ASTM C33 (fino y gruesos Nº 57, 67 y 7).
+
+La biblioteca de materiales admite cementos por tipo (Portland I, II y V según NTP 334.009; adicionados IP e ICo según NTP 334.090; MS y HS por desempeño según NTP 334.082), el «CEMENTO» genérico de versiones anteriores y aditivos (dosis en observaciones; el diseño ACI no los considera). En «Diseñar mezcla» se puede elegir el cemento: copia su densidad y avisa si su tipo no corresponde a la exposición a sulfatos (moderada → II o MS; severa → V o HS; muy severa → V o HS más puzolana). En «Balance de volúmenes», «Usar en una mezcla» abre «Registrar mezcla» con el cemento, el agua y los agregados SSS por m³ ya escritos.
 
 ## Datos de demostración
 
@@ -139,4 +141,4 @@ El arranque tarda varios segundos la primera vez (migraciones y carga de Spring/
 
 ## Acerca de
 
-El botón «Acerca de» del menú lateral muestra la versión, la autoría del equipo (Yefri Lerma, Fernando Huanca, Miajeld Delgado, Walter Quispe Sayhuan), las normas aplicadas, la carpeta de datos y si la base está cifrada, los componentes de terceros con su licencia y el aviso de que los resultados no sustituyen la revisión de un profesional colegiado.
+El botón «Acerca de» del menú lateral muestra la versión, la autoría del equipo (Yefri Ronaldiño Lerma Pacompia, Erick Mijael Delgado Lima, Fernando André Huanca Huallpa, Walter David Quispesayhua Quispe), las normas aplicadas, la carpeta de datos y si la base está cifrada, los componentes de terceros con su licencia y el aviso de que los resultados no sustituyen la revisión de un profesional colegiado.

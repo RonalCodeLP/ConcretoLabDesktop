@@ -55,20 +55,20 @@ class PlanoDxfRobustezTest {
     }
 
     @Test void convierteUnidadesDeAutocadAMetros() {
-        assertEquals(1.0, FernandoHuancaPlanoDxf.metrosPorUnidad("6"));
-        assertEquals(0.001, FernandoHuancaPlanoDxf.metrosPorUnidad("4"));
-        assertEquals(0.01, FernandoHuancaPlanoDxf.metrosPorUnidad("5"));
-        assertEquals(0.0254, FernandoHuancaPlanoDxf.metrosPorUnidad("1"), 1e-12);
-        assertEquals(0.3048, FernandoHuancaPlanoDxf.metrosPorUnidad("2"), 1e-12);
-        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.metrosPorUnidad("0")));   // sin unidad declarada
-        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.metrosPorUnidad("")));
-        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.metrosPorUnidad(null)));
-        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.metrosPorUnidad("99")));
+        assertEquals(1.0, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("6"));
+        assertEquals(0.001, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("4"));
+        assertEquals(0.01, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("5"));
+        assertEquals(0.0254, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("1"), 1e-12);
+        assertEquals(0.3048, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("2"), 1e-12);
+        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("0")));   // sin unidad declarada
+        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("")));
+        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad(null)));
+        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("99")));
     }
 
     @Test void unModeloEnMilimetrosSeEscalaAMetrosEnVezDeQuedarMilVecesMayor() {
         var enMm = List.of(el("COLUMNA", 400, 400, 3000, 5000, 4000, 1500));
-        var enM = FernandoHuancaPlanoDxf.escalar(enMm, FernandoHuancaPlanoDxf.metrosPorUnidad("4"));
+        var enM = FernandoHuancaPlanoDxf.fernandoHuancaEscalar(enMm, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("4"));
         assertEquals(0.4, enM.get(0).getLargo(), 1e-12);
         assertEquals(3.0, enM.get(0).getAltura(), 1e-12);
         assertEquals(5.0, enM.get(0).getX(), 1e-12);
@@ -98,7 +98,7 @@ class PlanoDxfRobustezTest {
         String anterior = System.getProperty("concretolab.tools");
         System.setProperty("concretolab.tools", dir.toString());
         try {
-            assertEquals(falso, FernandoHuancaPlanoDxf.localizarDwgread().orElseThrow());
+            assertEquals(falso, FernandoHuancaPlanoDxf.fernandoHuancaLocalizarDwgread().orElseThrow());
         } finally {
             if (anterior == null) System.clearProperty("concretolab.tools"); else System.setProperty("concretolab.tools", anterior);
         }

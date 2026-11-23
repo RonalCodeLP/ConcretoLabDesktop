@@ -22,17 +22,17 @@ public final class ExportadorEtabs {
 
     public record Resultado(String texto, List<String> avisos) { }
 
-    private static final double TOL = 0.005;
+    private static final double ERICK_DELGADO_TOL = 0.005;
 
     private static String f(double v) {
         return String.format(Locale.ROOT, "%.4f", v).replaceAll("0+$", "").replaceAll("\\.$", "");
     }
 
-    private static long mm(double v) {
+    private static long erickDelgadoMm(double v) {
         return Math.round(v * 1000);
     }
 
-    public static Resultado generar(String nombreProyecto, double fcMpa, List<Elemento> elementos) {
+    public static Resultado erickDelgadoGenerar(String nombreProyecto, double fcMpa, List<Elemento> elementos) {
         if (elementos == null || elementos.isEmpty()) throw new IllegalArgumentException("El proyecto no tiene elementos para exportar.");
         if (!Double.isFinite(fcMpa) || fcMpa <= 0) throw new IllegalArgumentException("Ingrese una f'c positiva para el material.");
         var avisos = new ArrayList<String>();
@@ -56,17 +56,17 @@ public final class ExportadorEtabs {
 
         // pisos: cotas superiores de vigas y losas; si no hay, de columnas y muros
         var cotas = new TreeSet<Long>();
-        vigas.forEach(e -> cotas.add(mm(e.getZ() + e.getAltura() / 2)));
-        losas.forEach(e -> cotas.add(mm(e.getZ() + e.getAltura() / 2)));
+        vigas.forEach(e -> cotas.add(erickDelgadoMm(e.getZ() + e.getAltura() / 2)));
+        losas.forEach(e -> cotas.add(erickDelgadoMm(e.getZ() + e.getAltura() / 2)));
         if (cotas.isEmpty()) {
-            columnas.forEach(e -> cotas.add(mm(e.getZ() + e.getAltura() / 2)));
+            columnas.forEach(e -> cotas.add(erickDelgadoMm(e.getZ() + e.getAltura() / 2)));
         }
         double base = Math.min(columnas.stream().mapToDouble(e -> e.getZ() - e.getAltura() / 2).min().orElse(Double.MAX_VALUE),
                 muros.stream().mapToDouble(e -> e.getZ() - e.getAltura() / 2).min().orElse(Double.MAX_VALUE));
         if (base == Double.MAX_VALUE) base = cotas.first() / 1000.0 - 3.0;
         var niveles = new ArrayList<Double>();
         for (long c : cotas) {
-            if (c / 1000.0 > base + TOL) niveles.add(c / 1000.0);
+            if (c / 1000.0 > base + ERICK_DELGADO_TOL) niveles.add(c / 1000.0);
         }
         if (niveles.isEmpty()) throw new IllegalArgumentException("No se pudo determinar ningún piso sobre la base.");
         var nombrePiso = new ArrayList<String>();
@@ -76,7 +76,7 @@ public final class ExportadorEtabs {
         var puntos = new LinkedHashMap<String, double[]>();
         var nombrePunto = new LinkedHashMap<String, String>();
         java.util.function.BiFunction<Double, Double, String> punto = (x, y) -> {
-            String clave = mm(x) + "," + mm(y);
+            String clave = erickDelgadoMm(x) + "," + erickDelgadoMm(y);
             return nombrePunto.computeIfAbsent(clave, k -> {
                 String n = String.valueOf(nombrePunto.size() + 1);
                 puntos.put(n, new double[] {x, y});
@@ -93,7 +93,7 @@ public final class ExportadorEtabs {
         int c = 0;
         var centros = new ArrayList<double[]>();
         for (Elemento e : columnas) {
-            int idx = indicePiso(niveles, e.getZ() + e.getAltura() / 2);
+            int idx = erickDelgadoIndicePiso(niveles, e.getZ() + e.getAltura() / 2);
             if (idx < 0) { avisos.add("La columna " + e.getNombre() + " no termina en un piso reconocido y se omitió."); continue; }
             String sec = "COL" + Math.round(e.getLargo() * 100) + "X" + Math.round(e.getAncho() * 100);
             secciones.putIfAbsent(sec, "  FRAMESECTION  \"" + sec + "\"  MATERIAL \"CONCRETO\"  SHAPE \"Rectangular\"  D " + f(e.getAncho()) + "  B " + f(e.getLargo()));
@@ -103,17 +103,17 @@ public final class ExportadorEtabs {
             asignaciones.add("  LINEASSIGN  \"" + nombre + "\"  \"" + nombrePiso.get(idx) + "\"  SECTION \"" + sec + "\"");
             centros.add(new double[] {e.getX(), e.getY(), e.getLargo() / 2, e.getAncho() / 2});
             String apoyo = "  POINTASSIGN  \"" + p + "\"  \"BASE\"  RESTRAINT \"UX UY UZ RX RY RZ\"";
-            if (Math.abs((e.getZ() - e.getAltura() / 2) - base) <= TOL && !puntosAsig.contains(apoyo)) puntosAsig.add(apoyo);
+            if (Math.abs((e.getZ() - e.getAltura() / 2) - base) <= ERICK_DELGADO_TOL && !puntosAsig.contains(apoyo)) puntosAsig.add(apoyo);
         }
         int b = 0;
         for (Elemento e : vigas) {
-            int idx = indicePiso(niveles, e.getZ() + e.getAltura() / 2);
+            int idx = erickDelgadoIndicePiso(niveles, e.getZ() + e.getAltura() / 2);
             if (idx < 0) { avisos.add("La viga " + e.getNombre() + " no está en un piso reconocido y se omitió."); continue; }
             boolean ejeX = e.getLargo() >= e.getAncho();
             double largo = ejeX ? e.getLargo() : e.getAncho(), ancho = ejeX ? e.getAncho() : e.getLargo();
             double x1 = ejeX ? e.getX() - largo / 2 : e.getX(), y1 = ejeX ? e.getY() : e.getY() - largo / 2;
             double x2 = ejeX ? e.getX() + largo / 2 : e.getX(), y2 = ejeX ? e.getY() : e.getY() + largo / 2;
-            double[] a = anclar(centros, x1, y1), z = anclar(centros, x2, y2);
+            double[] a = erickDelgadoAnclar(centros, x1, y1), z = erickDelgadoAnclar(centros, x2, y2);
             if (a == null || z == null) avisos.add("La viga " + e.getNombre() + " no termina sobre una columna: se usó el extremo de la viga.");
             String pa = punto.apply(a == null ? x1 : a[0], a == null ? y1 : a[1]);
             String pb = punto.apply(z == null ? x2 : z[0], z == null ? y2 : z[1]);
@@ -127,7 +127,7 @@ public final class ExportadorEtabs {
         var propsAreas = new LinkedHashMap<String, String>();
         int a = 0;
         for (Elemento e : losas) {
-            int idx = indicePiso(niveles, e.getZ() + e.getAltura() / 2);
+            int idx = erickDelgadoIndicePiso(niveles, e.getZ() + e.getAltura() / 2);
             if (idx < 0) { avisos.add("La losa " + e.getNombre() + " no está en un piso reconocido y se omitió."); continue; }
             String prop = "LOSA" + Math.round(e.getAltura() * 100);
             propsAreas.putIfAbsent(prop, "  SHELLPROP  \"" + prop + "\"  PROPTYPE \"Slab\"  MATERIAL \"CONCRETO\"  MODELINGTYPE \"Membrane\"  SLABTYPE \"Slab\"  SLABTHICKNESS " + f(e.getAltura()));
@@ -138,7 +138,7 @@ public final class ExportadorEtabs {
         }
         int w = 0;
         for (Elemento e : muros) {
-            int idx = indicePiso(niveles, e.getZ() + e.getAltura() / 2);
+            int idx = erickDelgadoIndicePiso(niveles, e.getZ() + e.getAltura() / 2);
             if (idx < 0) { avisos.add("El muro " + e.getNombre() + " no termina en un piso reconocido y se omitió."); continue; }
             boolean ejeX = e.getLargo() >= e.getAncho();
             double largo = ejeX ? e.getLargo() : e.getAncho(), esp = ejeX ? e.getAncho() : e.getLargo();
@@ -190,15 +190,15 @@ public final class ExportadorEtabs {
         return new Resultado(sb.toString(), List.copyOf(avisos));
     }
 
-    private static int indicePiso(List<Double> niveles, double cota) {
+    private static int erickDelgadoIndicePiso(List<Double> niveles, double cota) {
         for (int i = 0; i < niveles.size(); i++) {
-            if (Math.abs(niveles.get(i) - cota) <= TOL) return i;
+            if (Math.abs(niveles.get(i) - cota) <= ERICK_DELGADO_TOL) return i;
         }
         return -1;
     }
 
     /** Centro de la columna cuya huella (con 5 cm de holgura) contiene el punto, o null. */
-    private static double[] anclar(List<double[]> centros, double x, double y) {
+    private static double[] erickDelgadoAnclar(List<double[]> centros, double x, double y) {
         double[] mejor = null;
         double dmin = Double.MAX_VALUE;
         for (double[] c : centros) {

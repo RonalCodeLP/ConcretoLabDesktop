@@ -29,16 +29,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class Notificador {
 
-    private static final Duration DURACION_TOAST = Duration.seconds(3.5);
+    private static final Duration FERNANDO_HUANCA_DURACION_TOAST = Duration.seconds(3.5);
 
     private ModalPane modalPanel;
     private ModalPane modalDialogo;
-    private VBox zonaToasts;
+    private VBox fernandoHuancaZonaToasts;
 
-    public void registrar(ModalPane modalPanel, ModalPane modalDialogo, VBox zonaToasts) {
+    public void fernandoHuancaRegistrar(ModalPane modalPanel, ModalPane modalDialogo, VBox zonaToasts) {
         this.modalPanel = modalPanel;
         this.modalDialogo = modalDialogo;
-        this.zonaToasts = zonaToasts;
+        this.fernandoHuancaZonaToasts = zonaToasts;
     }
 
     // ---------------------------------------------------------------- toasts
@@ -47,15 +47,15 @@ public class Notificador {
         toast(mensaje, Feather.CHECK_CIRCLE, Styles.SUCCESS);
     }
 
-    public void advertencia(String mensaje) {
+    public void fernandoHuancaAdvertencia(String mensaje) {
         toast(mensaje, Feather.ALERT_TRIANGLE, Styles.WARNING);
     }
 
-    public void error(String mensaje) {
+    public void fernandoHuancaError(String mensaje) {
         toast(mensaje, Feather.X_CIRCLE, Styles.DANGER);
     }
 
-    public void info(String mensaje) {
+    public void fernandoHuancaInfo(String mensaje) {
         toast(mensaje, Feather.INFO, Styles.ACCENT);
     }
 
@@ -64,30 +64,30 @@ public class Notificador {
         n.getStyleClass().addAll(estilo, Styles.ELEVATED_2, "toast");
         n.setPrefWidth(360);
         n.setMaxWidth(360);
-        n.setOnClose(e -> cerrarToast(n));
+        n.setOnClose(e -> fernandoHuancaCerrarToast(n));
 
-        zonaToasts.getChildren().add(n);
+        fernandoHuancaZonaToasts.getChildren().add(n);
         Animations.fadeInUp(n, Duration.millis(280)).play();
 
-        PauseTransition espera = new PauseTransition(DURACION_TOAST);
-        espera.setOnFinished(e -> cerrarToast(n));
+        PauseTransition espera = new PauseTransition(FERNANDO_HUANCA_DURACION_TOAST);
+        espera.setOnFinished(e -> fernandoHuancaCerrarToast(n));
         espera.play();
     }
 
-    private void cerrarToast(Notification n) {
-        if (!zonaToasts.getChildren().contains(n) || n.getProperties().containsKey("cerrando")) {
+    private void fernandoHuancaCerrarToast(Notification n) {
+        if (!fernandoHuancaZonaToasts.getChildren().contains(n) || n.getProperties().containsKey("cerrando")) {
             return;
         }
         n.getProperties().put("cerrando", true);
         Timeline salida = Animations.fadeOutRight(n, Duration.millis(250));
-        salida.setOnFinished(e -> zonaToasts.getChildren().remove(n));
+        salida.setOnFinished(e -> fernandoHuancaZonaToasts.getChildren().remove(n));
         salida.play();
     }
 
     // ---------------------------------------------------- dialogo confirmacion
 
     /** Muestra un dialogo modal centrado; ejecuta {@code alConfirmar} solo si se acepta. */
-    public void confirmar(String titulo, String mensaje, String textoAccion, Runnable alConfirmar) {
+    public void fernandoHuancaConfirmar(String titulo, String mensaje, String textoAccion, Runnable alConfirmar) {
         dialogo(Feather.TRASH_2, "peligro", titulo, mensaje,
                 "Cancelar", null, textoAccion, Styles.DANGER, alConfirmar);
     }
@@ -96,7 +96,7 @@ public class Notificador {
      * Dialogo de resultado exitoso con dos acciones (p. ej. "Nueva venta" e "Imprimir").
      * Cualquiera de las dos cierra el dialogo antes de ejecutarse.
      */
-    public void exitoConAcciones(String titulo, String mensaje,
+    public void fernandoHuancaExitoConAcciones(String titulo, String mensaje,
                                  String textoSecundario, Runnable secundaria,
                                  String textoPrincipal, Runnable principal) {
         dialogo(Feather.CHECK_CIRCLE, "exito", titulo, mensaje,
@@ -151,14 +151,14 @@ public class Notificador {
     // ------------------------------------------------------------ panel lateral
 
     /** Desliza un formulario desde la derecha. */
-    public void abrirPanel(Node contenido) {
+    public void fernandoHuancaAbrirPanel(Node contenido) {
         // Se renuevan las transiciones: el ModalPane las cachea para el primer nodo mostrado.
         modalPanel.usePredefinedTransitionFactories(Side.RIGHT,
                 Duration.millis(320), Duration.millis(220));
         modalPanel.show(contenido);
     }
 
-    public void cerrarPanel() {
+    public void fernandoHuancaCerrarPanel() {
         modalPanel.hide();
     }
 }

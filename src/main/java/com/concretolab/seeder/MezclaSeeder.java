@@ -17,35 +17,35 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MezclaSeeder {
 
-    public static final String NOMBRE = "DEMO - Mezcla de práctica";
-    public static final String PROBETA = "DEMO - Probeta 28 días";
+    public static final String YEFRI_LERMA_NOMBRE = "DEMO - Mezcla de práctica";
+    public static final String YEFRI_LERMA_PROBETA = "DEMO - Probeta 28 días";
 
     private final YefriLermaProyectoService proyectos;
     private final MezclaService mezclas;
 
     @Transactional
-    public int sembrar() {
-        Proyecto p = ProyectoSeeder.buscar(proyectos);
+    public int yefriLermaSembrar() {
+        Proyecto p = ProyectoSeeder.yefriLermaBuscar(proyectos);
         if (p == null) {
             return 0;
         }
         int nuevos = 0;
-        Mezcla mezcla = mezclas.listar(p.getId()).stream().filter(x -> NOMBRE.equals(x.getNombre())).findFirst().orElse(null);
+        Mezcla mezcla = mezclas.yefriLermaListar(p.getId()).stream().filter(x -> YEFRI_LERMA_NOMBRE.equals(x.getNombre())).findFirst().orElse(null);
         if (mezcla == null) {
-            mezcla = mezclas.guardar(nuevaMezcla(p.getId()));
+            mezcla = mezclas.yefriLermaGuardar(yefriLermaNuevaMezcla(p.getId()));
             nuevos++;
         }
-        if (mezclas.ensayos(mezcla.getId()).stream().noneMatch(e -> PROBETA.equals(e.getIdentificacion()))) {
-            mezclas.guardarEnsayo(nuevoEnsayo(mezcla.getId()));
+        if (mezclas.ensayos(mezcla.getId()).stream().noneMatch(e -> YEFRI_LERMA_PROBETA.equals(e.getIdentificacion()))) {
+            mezclas.yefriLermaGuardarEnsayo(yefriLermaNuevoEnsayo(mezcla.getId()));
             nuevos++;
         }
         return nuevos;
     }
 
-    private static Mezcla nuevaMezcla(Long proyectoId) {
+    private static Mezcla yefriLermaNuevaMezcla(Long proyectoId) {
         Mezcla m = new Mezcla();
         m.setProyectoId(proyectoId);
-        m.setNombre(NOMBRE);
+        m.setNombre(YEFRI_LERMA_NOMBRE);
         m.setReferencia("Datos ficticios; no utilizar en obra");
         m.setResistencia(21);
         m.setCemento(350);
@@ -56,15 +56,15 @@ public class MezclaSeeder {
         m.setHumedadFino(3);
         m.setAbsorcionGrueso(1);
         m.setHumedadGrueso(0.5);
-        m.setMaterialFino(MaterialSeeder.ARENA + " | informe DEMO-LAB-01");
-        m.setMaterialGrueso(MaterialSeeder.PIEDRA + " | informe DEMO-LAB-02");
+        m.setMaterialFino(MaterialSeeder.YEFRI_LERMA_ARENA + " | informe DEMO-LAB-01");
+        m.setMaterialGrueso(MaterialSeeder.YEFRI_LERMA_PIEDRA + " | informe DEMO-LAB-02");
         return m;
     }
 
-    private static Ensayo nuevoEnsayo(Long mezclaId) {
+    private static Ensayo yefriLermaNuevoEnsayo(Long mezclaId) {
         Ensayo e = new Ensayo();
         e.setMezclaId(mezclaId);
-        e.setIdentificacion(PROBETA);
+        e.setIdentificacion(YEFRI_LERMA_PROBETA);
         e.setFecha("2026-11-15");
         e.setEdadDias(28);
         e.setResistenciaMpa(24);

@@ -13,15 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CuadriculaService {
-    private final CuadriculaProyectoRepository cuadriculas;
+    private final CuadriculaProyectoRepository walterQuispesayhuaCuadriculas;
     private final ProyectoRepository proyectos;
-    private final YefriLermaProyectoService modelos;
+    private final YefriLermaProyectoService walterQuispesayhuaModelos;
 
     public CuadriculaService(CuadriculaProyectoRepository cuadriculas, ProyectoRepository proyectos,
                              YefriLermaProyectoService modelos) {
-        this.cuadriculas = cuadriculas;
+        this.walterQuispesayhuaCuadriculas = cuadriculas;
         this.proyectos = proyectos;
-        this.modelos = modelos;
+        this.walterQuispesayhuaModelos = modelos;
     }
 
     public record Punto(int x, int y) { }
@@ -35,40 +35,40 @@ public class CuadriculaService {
     public record VistaPrevia(List<Elemento> elementos, List<String> superposiciones) { }
 
     @Transactional(readOnly = true)
-    public Optional<CuadriculaProyecto> obtener(Long proyectoId) {
-        return cuadriculas.findById(proyectoId);
+    public Optional<CuadriculaProyecto> walterQuispesayhuaObtener(Long proyectoId) {
+        return walterQuispesayhuaCuadriculas.findById(proyectoId);
     }
 
     @Transactional
-    public void guardarCuadricula(Long proyectoId, Definicion definicion) {
-        validarProyecto(proyectoId);
-        validarDefinicion(definicion);
+    public void walterQuispesayhuaGuardarCuadricula(Long proyectoId, Definicion definicion) {
+        walterQuispesayhuaValidarProyecto(proyectoId);
+        walterQuispesayhuaValidarDefinicion(definicion);
         CuadriculaProyecto cuadricula = new CuadriculaProyecto();
         cuadricula.setProyectoId(proyectoId);
         cuadricula.setOrigenX(definicion.origenX());
         cuadricula.setOrigenY(definicion.origenY());
-        cuadricula.setSeparacionesX(unir(definicion.separacionesX()));
-        cuadricula.setSeparacionesY(unir(definicion.separacionesY()));
-        cuadricula.setNiveles(unir(definicion.niveles()));
-        cuadriculas.save(cuadricula);
+        cuadricula.setSeparacionesX(walterQuispesayhuaUnir(definicion.separacionesX()));
+        cuadricula.setSeparacionesY(walterQuispesayhuaUnir(definicion.separacionesY()));
+        cuadricula.setNiveles(walterQuispesayhuaUnir(definicion.niveles()));
+        walterQuispesayhuaCuadriculas.save(cuadricula);
     }
 
     @Transactional(readOnly = true)
-    public VistaPrevia previsualizar(Long proyectoId, Solicitud solicitud) {
-        validarProyecto(proyectoId);
-        List<Elemento> nuevos = generar(proyectoId, solicitud);
+    public VistaPrevia walterQuispesayhuaPrevisualizar(Long proyectoId, Solicitud solicitud) {
+        walterQuispesayhuaValidarProyecto(proyectoId);
+        List<Elemento> nuevos = walterQuispesayhuaGenerar(proyectoId, solicitud);
         List<String> conflictos = new ArrayList<>();
-        List<Elemento> existentes = modelos.elementos(proyectoId);
+        List<Elemento> existentes = walterQuispesayhuaModelos.elementos(proyectoId);
         for (Elemento nuevo : nuevos) {
             for (Elemento existente : existentes) {
-                if (superpuestos(nuevo, existente)) {
+                if (walterQuispesayhuaSuperpuestos(nuevo, existente)) {
                     conflictos.add(nuevo.getNombre() + " con " + existente.getNombre());
                 }
             }
         }
         for (int i = 0; i < nuevos.size(); i++) {
             for (int j = i + 1; j < nuevos.size(); j++) {
-                if (superpuestos(nuevos.get(i), nuevos.get(j))) {
+                if (walterQuispesayhuaSuperpuestos(nuevos.get(i), nuevos.get(j))) {
                     conflictos.add(nuevos.get(i).getNombre() + " con " + nuevos.get(j).getNombre());
                 }
             }
@@ -77,14 +77,14 @@ public class CuadriculaService {
     }
 
     @Transactional
-    public void crear(Long proyectoId, Solicitud solicitud) {
-        VistaPrevia vista = previsualizar(proyectoId, solicitud);
+    public void walterQuispesayhuaCrear(Long proyectoId, Solicitud solicitud) {
+        VistaPrevia vista = walterQuispesayhuaPrevisualizar(proyectoId, solicitud);
         if (vista.elementos().isEmpty()) throw new IllegalArgumentException("Seleccione elementos para generar.");
-        guardarCuadricula(proyectoId, solicitud.definicion());
-        vista.elementos().forEach(modelos::guardar);
+        walterQuispesayhuaGuardarCuadricula(proyectoId, solicitud.definicion());
+        vista.elementos().forEach(walterQuispesayhuaModelos::yefriLermaGuardar);
     }
 
-    public List<Double> coordenadas(double origen, List<Double> separaciones) {
+    public List<Double> walterQuispesayhuaCoordenadas(double origen, List<Double> separaciones) {
         List<Double> resultado = new ArrayList<>();
         resultado.add(origen);
         for (double separacion : separaciones) {
@@ -95,7 +95,7 @@ public class CuadriculaService {
         return List.copyOf(resultado);
     }
 
-    public void validarDefinicion(Definicion d) {
+    public void walterQuispesayhuaValidarDefinicion(Definicion d) {
         if (d == null || !Double.isFinite(d.origenX()) || !Double.isFinite(d.origenY()))
             throw new IllegalArgumentException("Los orígenes deben ser números finitos.");
         if (d.separacionesX() == null || d.separacionesY() == null || d.niveles() == null
@@ -103,28 +103,28 @@ public class CuadriculaService {
                 || d.separacionesX().size() > 19 || d.separacionesY().size() > 19
                 || d.niveles().size() < 2 || d.niveles().size() > 20)
             throw new IllegalArgumentException("Ingrese entre 2 y 20 ejes por dirección y entre 2 y 20 niveles.");
-        if (d.separacionesX().stream().anyMatch(n -> n == null || !positivo(n))
-                || d.separacionesY().stream().anyMatch(n -> n == null || !positivo(n)))
+        if (d.separacionesX().stream().anyMatch(n -> n == null || !walterQuispesayhuaPositivo(n))
+                || d.separacionesY().stream().anyMatch(n -> n == null || !walterQuispesayhuaPositivo(n)))
             throw new IllegalArgumentException("Las separaciones deben ser positivas y finitas.");
         for (int i = 0; i < d.niveles().size(); i++) {
             Double nivel = d.niveles().get(i);
             if (nivel == null || !Double.isFinite(nivel) || (i > 0 && nivel <= d.niveles().get(i - 1)))
                 throw new IllegalArgumentException("Los niveles deben ser finitos y estar en orden ascendente.");
         }
-        coordenadas(d.origenX(), d.separacionesX());
-        coordenadas(d.origenY(), d.separacionesY());
+        walterQuispesayhuaCoordenadas(d.origenX(), d.separacionesX());
+        walterQuispesayhuaCoordenadas(d.origenY(), d.separacionesY());
     }
 
-    private List<Elemento> generar(Long proyectoId, Solicitud s) {
+    private List<Elemento> walterQuispesayhuaGenerar(Long proyectoId, Solicitud s) {
         if (s == null) throw new IllegalArgumentException("Complete la solicitud.");
-        validarDefinicion(s.definicion());
+        walterQuispesayhuaValidarDefinicion(s.definicion());
         Dimensiones d = s.dimensiones();
-        if (d == null || !positivo(d.largoZapata()) || !positivo(d.anchoZapata()) || !positivo(d.alturaZapata())
-                || !positivo(d.ladoColumna()) || !positivo(d.anchoViga()) || !positivo(d.alturaViga()))
+        if (d == null || !walterQuispesayhuaPositivo(d.largoZapata()) || !walterQuispesayhuaPositivo(d.anchoZapata()) || !walterQuispesayhuaPositivo(d.alturaZapata())
+                || !walterQuispesayhuaPositivo(d.ladoColumna()) || !walterQuispesayhuaPositivo(d.anchoViga()) || !walterQuispesayhuaPositivo(d.alturaViga()))
             throw new IllegalArgumentException("Todas las dimensiones deben ser positivas y finitas.");
         if (s.puntos() == null || s.puntos().isEmpty() || s.tramos() == null) throw new IllegalArgumentException("Seleccione al menos una intersección.");
-        List<Double> xs = coordenadas(s.definicion().origenX(), s.definicion().separacionesX());
-        List<Double> ys = coordenadas(s.definicion().origenY(), s.definicion().separacionesY());
+        List<Double> xs = walterQuispesayhuaCoordenadas(s.definicion().origenX(), s.definicion().separacionesX());
+        List<Double> ys = walterQuispesayhuaCoordenadas(s.definicion().origenY(), s.definicion().separacionesY());
         List<Double> niveles = s.definicion().niveles();
         for (Punto punto : s.puntos()) {
             if (punto == null || punto.x() < 0 || punto.x() >= xs.size() || punto.y() < 0 || punto.y() >= ys.size())
@@ -140,27 +140,27 @@ public class CuadriculaService {
             if (!s.puntos().contains(new Punto(x, y))) continue;
             String marca = (x + 1) + "-" + (y + 1);
             double cx = xs.get(x), cy = ys.get(y);
-            if (s.zapatas()) agregar(resultado, proyectoId, "ZAPATA", "Z-" + marca,
+            if (s.zapatas()) walterQuispesayhuaAgregar(resultado, proyectoId, "ZAPATA", "Z-" + marca,
                     d.largoZapata(), d.anchoZapata(), d.alturaZapata(), cx, cy, niveles.get(0) - d.alturaZapata() / 2);
             for (int piso = 1; piso < niveles.size(); piso++) {
                 double inferior = niveles.get(piso - 1), superior = niveles.get(piso), altura = superior - inferior;
                 if (!Double.isFinite(altura)) throw new IllegalArgumentException("La altura entre niveles debe ser finita.");
                 if ((s.vigasX() || s.vigasY()) && d.alturaViga() > altura)
                     throw new IllegalArgumentException("La altura de viga no puede superar la altura entre niveles.");
-                if (s.columnas()) agregar(resultado, proyectoId, "COLUMNA", "C-" + piso + "-" + marca,
+                if (s.columnas()) walterQuispesayhuaAgregar(resultado, proyectoId, "COLUMNA", "C-" + piso + "-" + marca,
                         d.ladoColumna(), d.ladoColumna(), altura, cx, cy, inferior + altura / 2);
                 if (s.vigasX() && x + 1 < xs.size() && s.puntos().contains(new Punto(x + 1, y))
                         && s.tramos().contains(new Tramo(new Punto(x, y), new Punto(x + 1, y)))) {
                     double longitud = xs.get(x + 1) - cx - d.ladoColumna();
-                    if (!positivo(longitud)) throw new IllegalArgumentException("La separación X debe superar el lado de columna.");
-                    agregar(resultado, proyectoId, "VIGA", "VX-" + piso + "-" + marca, longitud, d.anchoViga(), d.alturaViga(),
+                    if (!walterQuispesayhuaPositivo(longitud)) throw new IllegalArgumentException("La separación X debe superar el lado de columna.");
+                    walterQuispesayhuaAgregar(resultado, proyectoId, "VIGA", "VX-" + piso + "-" + marca, longitud, d.anchoViga(), d.alturaViga(),
                             cx + (xs.get(x + 1) - cx) / 2, cy, superior - d.alturaViga() / 2);
                 }
                 if (s.vigasY() && y + 1 < ys.size() && s.puntos().contains(new Punto(x, y + 1))
                         && s.tramos().contains(new Tramo(new Punto(x, y), new Punto(x, y + 1)))) {
                     double longitud = ys.get(y + 1) - cy - d.ladoColumna();
-                    if (!positivo(longitud)) throw new IllegalArgumentException("La separación Y debe superar el lado de columna.");
-                    agregar(resultado, proyectoId, "VIGA", "VY-" + piso + "-" + marca, d.anchoViga(), longitud, d.alturaViga(),
+                    if (!walterQuispesayhuaPositivo(longitud)) throw new IllegalArgumentException("La separación Y debe superar el lado de columna.");
+                    walterQuispesayhuaAgregar(resultado, proyectoId, "VIGA", "VY-" + piso + "-" + marca, d.anchoViga(), longitud, d.alturaViga(),
                             cx, cy + (ys.get(y + 1) - cy) / 2, superior - d.alturaViga() / 2);
                 }
             }
@@ -168,9 +168,9 @@ public class CuadriculaService {
         return resultado;
     }
 
-    private void agregar(List<Elemento> lista, Long id, String tipo, String nombre, double largo, double ancho,
+    private void walterQuispesayhuaAgregar(List<Elemento> lista, Long id, String tipo, String nombre, double largo, double ancho,
                          double altura, double x, double y, double z) {
-        if (!positivo(largo) || !positivo(ancho) || !positivo(altura) || !Double.isFinite(largo * ancho * altura)
+        if (!walterQuispesayhuaPositivo(largo) || !walterQuispesayhuaPositivo(ancho) || !walterQuispesayhuaPositivo(altura) || !Double.isFinite(largo * ancho * altura)
                 || !Double.isFinite(x) || !Double.isFinite(y) || !Double.isFinite(z))
             throw new IllegalArgumentException("La geometría calculada debe ser finita y positiva.");
         Elemento e = new Elemento();
@@ -179,17 +179,17 @@ public class CuadriculaService {
         lista.add(e);
     }
 
-    private boolean superpuestos(Elemento a, Elemento b) {
+    private boolean walterQuispesayhuaSuperpuestos(Elemento a, Elemento b) {
         double tolerancia = 1e-9;
         return Math.abs(a.getX() - b.getX()) < (a.getLargo() + b.getLargo()) / 2 - tolerancia
                 && Math.abs(a.getY() - b.getY()) < (a.getAncho() + b.getAncho()) / 2 - tolerancia
                 && Math.abs(a.getZ() - b.getZ()) < (a.getAltura() + b.getAltura()) / 2 - tolerancia;
     }
 
-    private void validarProyecto(Long id) {
+    private void walterQuispesayhuaValidarProyecto(Long id) {
         if (id == null || !proyectos.existsById(id)) throw new IllegalArgumentException("Seleccione un proyecto existente.");
     }
 
-    private boolean positivo(double valor) { return Double.isFinite(valor) && valor > 0; }
-    private String unir(List<Double> valores) { return String.join("; ", valores.stream().map(String::valueOf).toList()); }
+    private boolean walterQuispesayhuaPositivo(double valor) { return Double.isFinite(valor) && valor > 0; }
+    private String walterQuispesayhuaUnir(List<Double> valores) { return String.join("; ", valores.stream().map(String::valueOf).toList()); }
 }

@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class InicioController implements Refrescable {
 
-    private final MainController principal;
+    private final MainController fernandoHuancaPrincipal;
 
     public InicioController(@Lazy MainController principal) {
-        this.principal = principal;
+        this.fernandoHuancaPrincipal = principal;
     }
 
     @Override
@@ -20,8 +20,8 @@ public class InicioController implements Refrescable {
         // Sin datos que recargar.
     }
 
-    @FXML private void onAbrirModelo() { principal.irA("modelo-view"); }
-    @FXML private void onAbrirMateriales() { principal.irA("materiales-view"); }
-    @FXML private void onAbrirMezclas() { principal.irA("mezclas-view"); }
-    @FXML private void onAbrirSismo() { principal.irA("sismo-view"); }
+    @FXML private void onAbrirModelo() { fernandoHuancaPrincipal.fernandoHuancaIrA("modelo-view"); }
+    @FXML private void onAbrirMateriales() { fernandoHuancaPrincipal.fernandoHuancaIrA("materiales-view"); }
+    @FXML private void onAbrirMezclas() { fernandoHuancaPrincipal.fernandoHuancaIrA("mezclas-view"); }
+    @FXML private void onAbrirSismo() { fernandoHuancaPrincipal.fernandoHuancaIrA("sismo-view"); }
 }

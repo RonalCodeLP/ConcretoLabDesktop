@@ -19,15 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class BitacoraService {
 
-    private final BitacoraRepository repositorio;
+    private final BitacoraRepository erickDelgadoRepositorio;
 
     @Transactional
-    public void registrar(String accion, String detalle) {
+    public void erickDelgadoRegistrar(String accion, String detalle) {
         try {
-            repositorio.save(RegistroBitacora.builder()
+            erickDelgadoRepositorio.save(RegistroBitacora.builder()
                     .fecha(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS).toString())
-                    .accion(recortar(accion, 40))
-                    .detalle(recortar(detalle, 400))
+                    .accion(erickDelgadoRecortar(accion, 40))
+                    .detalle(erickDelgadoRecortar(detalle, 400))
                     .build());
         } catch (RuntimeException e) {
             log.warn("No se pudo registrar en la bitácora «{}»: {}", accion, e.toString());
@@ -35,11 +35,11 @@ public class BitacoraService {
     }
 
     @Transactional(readOnly = true)
-    public List<RegistroBitacora> recientes() {
-        return repositorio.findTop200ByOrderByIdDesc();
+    public List<RegistroBitacora> erickDelgadoRecientes() {
+        return erickDelgadoRepositorio.findTop200ByOrderByIdDesc();
     }
 
-    private static String recortar(String texto, int maximo) {
+    private static String erickDelgadoRecortar(String texto, int maximo) {
         if (texto == null) return null;
         return texto.length() <= maximo ? texto : texto.substring(0, maximo - 1) + "…";
     }

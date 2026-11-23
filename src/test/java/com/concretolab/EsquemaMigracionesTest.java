@@ -67,7 +67,7 @@ class EsquemaMigracionesTest {
             assertThat(consultarCadaEntidad(contexto)).isEmpty();
             var proyectos = contexto.getBean(com.concretolab.service.YefriLermaProyectoService.class).proyectos();
             assertThat(proyectos).extracting("nombre").contains("Proyecto anterior");
-            assertThat(contexto.getBean(com.concretolab.service.BitacoraService.class).recientes()).isEmpty();
+            assertThat(contexto.getBean(com.concretolab.service.BitacoraService.class).erickDelgadoRecientes()).isEmpty();
         }
     }
 }
