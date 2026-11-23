@@ -112,6 +112,22 @@ public final class BaseCifrada {
         if (!erickDelgadoClaveCorrecta(base, nueva)) throw new SQLException("No se pudo verificar la nueva contraseña.");
     }
 
+    /** Conserva una copia cifrada antes de retirar la clave de una base existente. */
+    public static void erickDelgadoQuitarClave(Path base, char[] clave) throws SQLException, IOException {
+        if (!erickDelgadoClaveCorrecta(base, clave))
+            throw new IllegalArgumentException("La contraseña actual no es correcta.");
+        Path copia = Files.createTempFile(base.toAbsolutePath().getParent(), "concretolab-cifrada-", ".bak");
+        Files.copy(base, copia, StandardCopyOption.REPLACE_EXISTING);
+        try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(clave));
+             Statement s = c.createStatement()) {
+            s.execute("PRAGMA rekey=''");
+        } catch (SQLException e) {
+            throw new SQLException("No se pudo quitar la contraseña. Se conservó la copia " + copia, e);
+        }
+        if (erickDelgadoInspeccionar(base) != Estado.SIN_CIFRAR || !erickDelgadoClaveCorrecta(base, null))
+            throw new SQLException("No se pudo verificar la base. Se conservó la copia " + copia);
+    }
+
     private static String erickDelgadoEscapar(char[] clave) {
         return new String(clave).replace("'", "''");
     }

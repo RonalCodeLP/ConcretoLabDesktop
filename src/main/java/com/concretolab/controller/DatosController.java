@@ -140,7 +140,8 @@ public class DatosController implements Refrescable {
         boolean cifrada = erickDelgadoClaveBase.erickDelgadoEstaCifrada();
         lblCifrado.setText(cifrada ? "Cifrado: SÍ (AES-256). La contraseña se pide al abrir la aplicación."
                 : "Cifrado: NO. Esta base no está cifrada (modo de pruebas o abierta con otro método).");
-        btnCambiarClave.setDisable(!cifrada);
+        btnCambiarClave.setVisible(false);
+        btnCambiarClave.setManaged(false);
         lblRutaBase.setText("Base de datos: " + erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos() + "\nRegistros: " + erickDelgadoRespaldos.erickDelgadoCarpetaRegistros());
         lblTamanoBase.setText("Tamaño de la base: " + erickDelgadoTamano(erickDelgadoRespaldos.erickDelgadoTamanoBaseDatos()) + " · Copias en: " + erickDelgadoRespaldos.erickDelgadoCarpetaCopias());
         tablaCopias.getItems().setAll(erickDelgadoRespaldos.erickDelgadoListar());

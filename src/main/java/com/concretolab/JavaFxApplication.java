@@ -39,9 +39,22 @@ public class JavaFxApplication extends Application {
         Files.createDirectories(RespaldoDatos.erickDelgadoCarpetaDatos());
         // Antes de que Spring y Flyway toquen la base: aplicar una restauración pedida por el usuario.
         RespaldoDatos.erickDelgadoAplicarRestauracionPendiente();
-        char[] clave = fernandoHuancaPrepararClave();
-        if (fernandoHuancaCancelado) {
-            return;
+        char[] clave = null;
+        Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
+        if (BaseCifrada.erickDelgadoInspeccionar(base) == BaseCifrada.Estado.CIFRADA) {
+            var respuesta = DialogoClaveBase.erickDelgadoPedirActual(
+                    "Ingresa tu contraseña actual una última vez para abrir sin contraseña en adelante.");
+            if (respuesta.isEmpty()) { fernandoHuancaCancelado = true; return; }
+            char[] actual = respuesta.get();
+            try {
+                BaseCifrada.erickDelgadoQuitarClave(base, actual);
+            } catch (Exception e) {
+                DialogoClaveBase.erickDelgadoMostrar(Alert.AlertType.ERROR, "No se pudo abrir la base", e.getMessage());
+                fernandoHuancaCancelado = true;
+                return;
+            } finally {
+                Arrays.fill(actual, '\0');
+            }
         }
         // Copia de seguridad del estado actual (así una migración fallida nunca deja al usuario sin sus datos).
         RespaldoDatos.erickDelgadoRespaldarArchivo("inicio");

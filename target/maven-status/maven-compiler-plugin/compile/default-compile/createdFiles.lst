@@ -208,7 +208,6 @@ com\concretolab\ui\Tablas$3.class
 com\concretolab\seeder\EdificioPracticaSeeder.class
 com\concretolab\service\MovimientoElementoService.class
 com\concretolab\ui\VistaModal$1.class
-com\concretolab\service\DisenoMezclaACI$1.class
 com\concretolab\service\MetradoNeto.class
 com\concretolab\service\DeteccionCapasDxf$Diagnostico.class
 com\concretolab\controller\GuiaSismica$Verificacion.class
@@ -227,7 +226,6 @@ com\concretolab\service\FernandoHuancaPlanoDxf$Entidad.class
 com\concretolab\service\AnalisisPortico$Barra.class
 com\concretolab\ui\EditorCuadricula.class
 com\concretolab\controller\WalterQuispesayhuaSismoController.class
-com\concretolab\service\DeteccionCapasDxf$1.class
 com\concretolab\service\FernandoHuancaAnalisisSismico$Direccion.class
 com\concretolab\service\IntercambioProyectoService$MezclaDto.class
 com\concretolab\service\EvaluacionResistencia.class
