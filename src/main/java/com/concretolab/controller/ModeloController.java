@@ -30,9 +30,26 @@ import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import atlantafx.base.controls.Popover;
+import javafx.collections.ListChangeListener;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
+import javafx.scene.control.SelectionMode;
+import javafx.scene.control.Tooltip;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Pantalla «Modelo 3D y metrado». Es la duena del selector de proyecto: lo mantiene sincronizado
@@ -164,9 +181,51 @@ public class ModeloController implements Refrescable {
     @FXML private Button btnMover;
     @FXML private Button btnDeshacerMovimiento;
     @FXML private VBox panelMovimiento;
-    @FXML private Label lblResumen;
+    /** Texto completo del metrado: se muestra en un globo al pulsar «Metrado» para no tapar la tabla. */
+    private Label lblResumen; // se crea en initialize(): un Label no puede crearse antes de iniciar JavaFX
+    @FXML private Button btnMetrado;
     @FXML private StackPane contenedorVisor;
     @FXML private Button btnExportarDxf;
+
+    // ---- filtro y selección múltiple
+    @FXML private ComboBox<String> cmbFiltroTipo;
+    @FXML private Button btnSeleccionarTodo;
+    @FXML private Label lblSeleccion;
+    /** Todos los elementos del proyecto; la tabla muestra solo los del tipo filtrado, el visor 3D muestra todos. */
+    private final ObservableList<Elemento> yefriLermaTodos = FXCollections.observableArrayList();
+    private FilteredList<Elemento> yefriLermaFiltrados;
+    static final String YEFRI_LERMA_TODOS_LOS_TIPOS = "Todos los tipos";
+    /** Texto del filtro → tipo de elemento. */
+    static final Map<String, String> YEFRI_LERMA_FILTROS = filtros();
+
+    private static Map<String, String> filtros() {
+        var m = new LinkedHashMap<String, String>();
+        m.put(YEFRI_LERMA_TODOS_LOS_TIPOS, null);
+        m.put("Solo zapatas", "ZAPATA");
+        m.put("Solo columnas", "COLUMNA");
+        m.put("Solo vigas", "VIGA");
+        m.put("Solo losas", "LOSA");
+        m.put("Solo muros", "MURO");
+        return Collections.unmodifiableMap(m);
+    }
+
+    // ---- panel: varios elementos a la vez
+    @FXML private VBox panelLote;
+    @FXML private Label lblTituloLote;
+    @FXML private Label lblAvisoLote;
+    @FXML private Label lblDetalleLote;
+    @FXML private TextField txtLoteLargo;
+    @FXML private TextField txtLoteAncho;
+    @FXML private TextField txtLoteAltura;
+    @FXML private Button btnAplicarLote;
+    @FXML private Button btnMoverDesdeEditar;
+    /** Elementos que edita el panel de lote. */
+    private List<Elemento> yefriLermaLote = List.of();
+    private Popover yefriLermaGloboMetrado;
+    /** Selección que había al empezar el último clic en la tabla (para el doble clic sobre varias filas). */
+    private List<Elemento> yefriLermaSeleccionPrevia = List.of();
+    /** Clic simple en 3D sobre una selección múltiple: espera por si es el primer clic de un doble clic. */
+    private javafx.animation.PauseTransition yefriLermaClicPendiente;
 
     // ---- panel: proyecto
     @FXML private VBox panelProyecto;
@@ -212,13 +271,45 @@ public class ModeloController implements Refrescable {
         colTipo.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getTipo()));
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colVolumen.setCellValueFactory(c -> new SimpleStringProperty(yefriLermaVolumen(c.getValue().volumen())));
-        Tablas.fernandoHuancaConfigurar(tabla, "Agregue elementos al proyecto", this::yefriLermaEditar);
-        tabla.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> yefriLermaDibujar(false));
+        Tablas.fernandoHuancaConfigurar(tabla, "Agregue elementos al proyecto", this::yefriLermaDobleClicFila);
+        // El primer clic de un doble clic deja seleccionada solo esa fila: se recuerda la selección de antes para
+        // que el doble clic sobre una fila de una selección múltiple edite todas (como en el explorador de archivos).
+        tabla.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, ev -> {
+            if (ev.getClickCount() == 1) yefriLermaSeleccionPrevia = List.copyOf(tabla.getSelectionModel().getSelectedItems());
+        });
 
-        var seleccion = tabla.getSelectionModel().selectedItemProperty();
-        btnEditar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
-        btnEliminar.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
-        btnMover.disableProperty().bind(seleccion.isNull().or(panelMovimiento.visibleProperty()));
+        // La tabla muestra los elementos filtrados por tipo; SortedList mantiene el orden por columnas.
+        yefriLermaFiltrados = new FilteredList<>(yefriLermaTodos, e -> true);
+        var ordenados = new SortedList<>(yefriLermaFiltrados);
+        ordenados.comparatorProperty().bind(tabla.comparatorProperty());
+        tabla.setItems(ordenados);
+        tabla.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        tabla.getSelectionModel().getSelectedItems().addListener((ListChangeListener<Elemento>) c -> {
+            yefriLermaActualizarSeleccion();
+            yefriLermaDibujar(false);
+        });
+        cmbFiltroTipo.setItems(FXCollections.observableArrayList(YEFRI_LERMA_FILTROS.keySet()));
+        cmbFiltroTipo.setValue(YEFRI_LERMA_TODOS_LOS_TIPOS);
+        cmbFiltroTipo.valueProperty().addListener((o, a, b) -> {
+            String tipo = b == null ? null : YEFRI_LERMA_FILTROS.get(b);
+            tabla.getSelectionModel().clearSelection();
+            yefriLermaFiltrados.setPredicate(e -> tipo == null || tipo.equals(e.getTipo()));
+            yefriLermaActualizarSeleccion();
+        });
+        lblResumen = new Label("Seleccione un proyecto");
+        lblResumen.setWrapText(true);
+        lblResumen.setMaxWidth(420);
+        lblResumen.getStyleClass().add("modelo-resumen");
+        btnMetrado.setTooltip(new Tooltip("Ver el metrado completo: concreto neto, encofrado y acero por tipo"));
+
+        var seleccionados = tabla.getSelectionModel().getSelectedItems();
+        var cuantos = Bindings.size(seleccionados);
+        btnEditar.disableProperty().bind(cuantos.isEqualTo(0).or(panelMovimiento.visibleProperty()));
+        btnEliminar.disableProperty().bind(cuantos.isEqualTo(0).or(panelMovimiento.visibleProperty()));
+        btnMover.disableProperty().bind(cuantos.isNotEqualTo(1).or(panelMovimiento.visibleProperty()));
+        btnSeleccionarTodo.disableProperty().bind(Bindings.isEmpty(tabla.getItems()).or(panelMovimiento.visibleProperty()));
+        btnMetrado.disableProperty().bind(Bindings.isEmpty(yefriLermaTodos));
+        Formularios.fernandoHuancaLimpiarAlEditar(txtLoteLargo, txtLoteAncho, txtLoteAltura);
         btnDeshacerMovimiento.setDisable(true);
         yefriLermaEditorMovimiento = new EditorMovimiento(yefriLermaMovimientos, yefriLermaVisor3d, panelMovimiento, guardado -> {
             yefriLermaUltimoMovimiento = guardado;
@@ -231,7 +322,7 @@ public class ModeloController implements Refrescable {
         });
         btnEliminarProyecto.disableProperty().bind(cmbProyecto.valueProperty().isNull().or(panelMovimiento.visibleProperty()));
         btnExportarDxf.disableProperty().bind(cmbProyecto.valueProperty().isNull()
-                .or(Bindings.isEmpty(tabla.getItems())).or(panelMovimiento.visibleProperty()));
+                .or(Bindings.isEmpty(yefriLermaTodos)).or(panelMovimiento.visibleProperty()));
 
         cmbProyecto.valueProperty().addListener((o, a, b) -> {
             if (yefriLermaSincronizando) {
@@ -314,7 +405,12 @@ public class ModeloController implements Refrescable {
 
     @FXML
     private void onEditarElemento() {
-        yefriLermaEditar(tabla.getSelectionModel().getSelectedItem());
+        var seleccion = List.copyOf(tabla.getSelectionModel().getSelectedItems());
+        if (seleccion.size() > 1) {
+            yefriLermaAbrirLote(seleccion, null, "", "", "");
+        } else if (seleccion.size() == 1) {
+            yefriLermaEditar(seleccion.get(0));
+        }
     }
 
     private void yefriLermaEditar(Elemento e) {
@@ -336,6 +432,8 @@ public class ModeloController implements Refrescable {
         txtX.setText(Double.toString(anterior == null ? 0 : anterior.getX()));
         txtY.setText(Double.toString(anterior == null ? 0 : anterior.getY()));
         txtZ.setText(Double.toString(anterior == null ? 0 : anterior.getZ()));
+        btnMoverDesdeEditar.setVisible(anterior != null);
+        btnMoverDesdeEditar.setManaged(anterior != null);
         yefriLermaNotificador.fernandoHuancaAbrirPanel(panelElemento);
         Platform.runLater(txtNombreElemento::requestFocus);
     }
@@ -390,19 +488,279 @@ public class ModeloController implements Refrescable {
 
     @FXML
     private void onEliminarElemento() {
-        Elemento seleccionado = tabla.getSelectionModel().getSelectedItem();
-        if (seleccionado == null) {
+        var seleccion = List.copyOf(tabla.getSelectionModel().getSelectedItems());
+        if (seleccion.isEmpty()) {
             return;
         }
-        yefriLermaNotificador.fernandoHuancaConfirmar("Eliminar elemento", "¿Eliminar el elemento seleccionado?", "Eliminar", () -> {
+        String pregunta = seleccion.size() == 1 ? "¿Eliminar el elemento seleccionado?"
+                : "¿Eliminar los " + seleccion.size() + " elementos seleccionados?";
+        yefriLermaNotificador.fernandoHuancaConfirmar("Eliminar elemento", pregunta, "Eliminar", () -> {
             try {
-                yefriLermaServicio.yefriLermaEliminar(seleccionado.getId());
-                yefriLermaNotificador.exito("Elemento eliminado.");
+                for (Elemento e : seleccion) {
+                    yefriLermaServicio.yefriLermaEliminar(e.getId());
+                }
+                yefriLermaNotificador.exito(seleccion.size() == 1 ? "Elemento eliminado." : seleccion.size() + " elementos eliminados.");
                 yefriLermaCargarElementos();
             } catch (Exception e) {
+                yefriLermaCargarElementos();
                 yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
             }
         });
+    }
+
+    /** Desde el panel «Editar elemento»: cierra el panel y empieza a mover ese elemento en el visor 3D. */
+    @FXML
+    private void onMoverDesdeEditar() {
+        Long id = yefriLermaIdEditando;
+        yefriLermaNotificador.fernandoHuancaCerrarPanel();
+        if (id == null) return;
+        yefriLermaTodos.stream().filter(e -> id.equals(e.getId())).findFirst().ifPresent(e -> {
+            yefriLermaSeleccionarSolo(e);
+            onMoverElemento();
+        });
+    }
+
+    @FXML
+    private void onSeleccionarTodo() {
+        tabla.getSelectionModel().selectAll();
+        tabla.requestFocus();
+    }
+
+    // ------------------------------------------------------ varios elementos a la vez
+
+    /**
+     * Abre el panel de lote para {@code lista}. Los textos iniciales pueden venir vacíos (sin cambio), con una medida
+     * (0,50) o con un incremento (+0,05). {@code aviso} se muestra arriba (por ejemplo, la recomendación sísmica).
+     */
+    private void yefriLermaAbrirLote(List<Elemento> lista, String aviso, String largo, String ancho, String altura) {
+        yefriLermaLote = List.copyOf(lista);
+        Formularios.fernandoHuancaLimpiarErrores(txtLoteLargo, txtLoteAncho, txtLoteAltura);
+        lblTituloLote.setText("Editar " + lista.size() + " elementos");
+        lblDetalleLote.setText(yefriLermaDescribirLote(lista));
+        lblAvisoLote.setText(aviso == null ? "" : aviso);
+        lblAvisoLote.setVisible(aviso != null);
+        lblAvisoLote.setManaged(aviso != null);
+        txtLoteLargo.setText(largo);
+        txtLoteAncho.setText(ancho);
+        txtLoteAltura.setText(altura);
+        btnAplicarLote.setText("Aplicar a " + lista.size());
+        yefriLermaNotificador.fernandoHuancaAbrirPanel(panelLote);
+        Platform.runLater(txtLoteLargo::requestFocus);
+    }
+
+    /** «24 columnas, 4 vigas · secciones 40×40, 30×50 cm». */
+    static String yefriLermaDescribirLote(List<Elemento> lista) {
+        var porTipo = lista.stream().collect(Collectors.groupingBy(Elemento::getTipo, LinkedHashMap::new, Collectors.counting()));
+        String tipos = porTipo.entrySet().stream().map(e -> e.getValue() + " " + e.getKey().toLowerCase(Locale.ROOT)
+                + (e.getValue() == 1 ? "" : (e.getKey().endsWith("A") || e.getKey().endsWith("O") ? "s" : "es"))).collect(Collectors.joining(", "));
+        var secciones = lista.stream().map(e -> yefriLermaCm(e.getLargo()) + "×" + yefriLermaCm(e.getAncho()) + "×" + yefriLermaCm(e.getAltura()))
+                .distinct().toList();
+        String texto = secciones.size() <= 4 ? String.join(", ", secciones) : String.join(", ", secciones.subList(0, 4)) + "…";
+        return "Seleccionados: " + tipos + ".\nMedidas actuales X×Y×Z (cm): " + texto + ".";
+    }
+
+    private static String yefriLermaCm(double metros) {
+        return BigDecimal.valueOf(metros * 100).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',');
+    }
+
+    /** Cambio pedido en un campo del lote: vacío = sin cambio; «0,5» fija; «+0,05» o «-0,05» suma o resta. */
+    record YefriLermaAjuste(boolean relativo, double valor) {
+        double aplicar(double actual) { return relativo ? actual + valor : valor; }
+    }
+
+    /** {@code null} si el campo está vacío; lanza NumberFormatException si no es un número. */
+    static YefriLermaAjuste yefriLermaLeerAjuste(String texto) {
+        String t = texto == null ? "" : texto.trim().replace(',', '.').replace(" ", "");
+        if (t.isEmpty()) return null;
+        boolean relativo = t.startsWith("+") || t.startsWith("-");
+        double v = Double.parseDouble(t);
+        if (!Double.isFinite(v)) throw new NumberFormatException(t);
+        return new YefriLermaAjuste(relativo, v);
+    }
+
+    /** Copias de {@code lista} con los ajustes aplicados; valida que las medidas queden positivas. */
+    static List<Elemento> yefriLermaAplicarAjustes(List<Elemento> lista, YefriLermaAjuste largo, YefriLermaAjuste ancho, YefriLermaAjuste altura) {
+        List<Elemento> r = new ArrayList<>();
+        for (Elemento o : lista) {
+            Elemento c = new Elemento();
+            c.setId(o.getId()); c.setProyectoId(o.getProyectoId()); c.setTipo(o.getTipo()); c.setNombre(o.getNombre());
+            c.setX(o.getX()); c.setY(o.getY()); c.setZ(o.getZ());
+            c.setLargo(yefriLermaRedondear(largo == null ? o.getLargo() : largo.aplicar(o.getLargo())));
+            c.setAncho(yefriLermaRedondear(ancho == null ? o.getAncho() : ancho.aplicar(o.getAncho())));
+            c.setAltura(yefriLermaRedondear(altura == null ? o.getAltura() : altura.aplicar(o.getAltura())));
+            if (!(c.getLargo() > 0 && c.getAncho() > 0 && c.getAltura() > 0)) {
+                throw new IllegalArgumentException("Con ese cambio «" + o.getNombre() + "» quedaría con una medida de cero o negativa.");
+            }
+            r.add(c);
+        }
+        return r;
+    }
+
+    private static double yefriLermaRedondear(double v) {
+        return Math.round(v * 10000) / 10000.0;
+    }
+
+    @FXML
+    private void onGuardarLote() {
+        Formularios.fernandoHuancaLimpiarErrores(txtLoteLargo, txtLoteAncho, txtLoteAltura);
+        YefriLermaAjuste[] ajustes = new YefriLermaAjuste[3];
+        TextField[] campos = {txtLoteLargo, txtLoteAncho, txtLoteAltura};
+        boolean valido = true;
+        for (int i = 0; i < 3; i++) {
+            try {
+                ajustes[i] = yefriLermaLeerAjuste(campos[i].getText());
+            } catch (NumberFormatException e) {
+                Formularios.fernandoHuancaMarcarError(campos[i], "Escriba un número (0,50) o un cambio (+0,05 / -0,05).");
+                valido = false;
+            }
+        }
+        if (!valido) return;
+        if (ajustes[0] == null && ajustes[1] == null && ajustes[2] == null) {
+            Formularios.fernandoHuancaMarcarError(txtLoteLargo, "Llene al menos una medida para cambiar.");
+            return;
+        }
+        try {
+            var nuevos = yefriLermaServicio.yefriLermaGuardarVarios(yefriLermaAplicarAjustes(yefriLermaLote, ajustes[0], ajustes[1], ajustes[2]));
+            Set<Long> ids = nuevos.stream().map(Elemento::getId).collect(Collectors.toSet());
+            yefriLermaNotificador.fernandoHuancaCerrarPanel();
+            yefriLermaCargarElementos();
+            yefriLermaSeleccionarIds(ids);
+            yefriLermaNotificador.exito(nuevos.size() + " elementos actualizados.");
+        } catch (Exception e) {
+            yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
+        }
+    }
+
+    /**
+     * Lo llama el análisis sísmico: muestra las columnas que conviene agrandar, ya seleccionadas, con el panel de lote
+     * precargado. No guarda nada: el usuario revisa y pulsa «Aplicar».
+     */
+    public void yefriLermaPrecargarCorreccion(List<com.concretolab.service.RecomendacionSismica.Cambio> cambios, String aviso) {
+        if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
+        var porId = yefriLermaTodos.stream().filter(e -> e.getId() != null).collect(Collectors.toMap(Elemento::getId, e -> e));
+        List<Elemento> actuales = new ArrayList<>();
+        for (var c : cambios) {
+            Elemento e = c.elemento().getId() == null ? null : porId.get(c.elemento().getId());
+            if (e != null) actuales.add(e);
+        }
+        if (actuales.isEmpty()) {
+            yefriLermaNotificador.fernandoHuancaAdvertencia("El modelo cambió desde el análisis: vuelva a calcular el análisis sísmico.");
+            return;
+        }
+        cmbFiltroTipo.setValue("Solo columnas");
+        yefriLermaSeleccionarIds(actuales.stream().map(Elemento::getId).collect(Collectors.toSet()));
+        yefriLermaAbrirLote(actuales, aviso,
+                yefriLermaTextoCambio(cambios, actuales, true),
+                yefriLermaTextoCambio(cambios, actuales, false), "");
+    }
+
+    /** Medida fija si todas las columnas quedan iguales; si no, el incremento común (+0,05). Vacío si no cambia. */
+    static String yefriLermaTextoCambio(List<com.concretolab.service.RecomendacionSismica.Cambio> cambios, List<Elemento> actuales, boolean enX) {
+        var porId = actuales.stream().collect(Collectors.toMap(Elemento::getId, e -> e));
+        Set<Double> nuevos = new HashSet<>(), deltas = new HashSet<>();
+        for (var c : cambios) {
+            Elemento e = porId.get(c.elemento().getId());
+            if (e == null) continue;
+            double nuevo = enX ? c.largoNuevo() : c.anchoNuevo();
+            double actual = enX ? e.getLargo() : e.getAncho();
+            nuevos.add(yefriLermaRedondear(nuevo));
+            deltas.add(yefriLermaRedondear(nuevo - actual));
+        }
+        if (deltas.isEmpty() || (deltas.size() == 1 && deltas.contains(0.0))) return "";
+        if (nuevos.size() == 1) return yefriLermaComa(nuevos.iterator().next());
+        double d = deltas.stream().mapToDouble(x -> x).max().orElse(0);
+        return (d >= 0 ? "+" : "") + yefriLermaComa(d);
+    }
+
+    private static String yefriLermaComa(double v) {
+        return BigDecimal.valueOf(v).setScale(3, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',');
+    }
+
+    // ------------------------------------------------------ selección
+
+    private void yefriLermaActualizarSeleccion() {
+        int n = tabla.getSelectionModel().getSelectedItems().size();
+        lblSeleccion.setText(n <= 1 ? tabla.getItems().size() + " en la lista" : n + " seleccionados");
+    }
+
+    /** Selecciona solo {@code e}; si el filtro lo oculta, vuelve a «Todos los tipos». */
+    private void yefriLermaSeleccionarSolo(Elemento e) {
+        if (!tabla.getItems().contains(e)) cmbFiltroTipo.setValue(YEFRI_LERMA_TODOS_LOS_TIPOS);
+        tabla.getSelectionModel().clearSelection();
+        tabla.getSelectionModel().select(e);
+        tabla.scrollTo(e);
+    }
+
+    private void yefriLermaSeleccionarIds(Set<Long> ids) {
+        tabla.getSelectionModel().clearSelection();
+        int[] indices = java.util.stream.IntStream.range(0, tabla.getItems().size())
+                .filter(i -> ids.contains(tabla.getItems().get(i).getId())).toArray();
+        if (indices.length > 0) {
+            // una sola llamada: así el visor 3D se redibuja una vez y no por cada fila
+            tabla.getSelectionModel().selectIndices(indices[0], java.util.Arrays.copyOfRange(indices, 1, indices.length));
+        }
+        var primero = tabla.getSelectionModel().getSelectedItems().stream().findFirst();
+        primero.ifPresent(tabla::scrollTo);
+    }
+
+    /**
+     * Clic en el visor 3D. Con Ctrl suma o quita el elemento de la selección (aunque sea de otro tipo: el filtro pasa a
+     * «Todos los tipos»). Sin Ctrl deja seleccionado solo ese; si ya era parte de una selección múltiple espera el tiempo
+     * de doble clic, porque un doble clic sobre la selección debe editar todos.
+     */
+    private void yefriLermaClicEn3d(Elemento e, boolean agregar) {
+        yefriLermaCancelarClicPendiente();
+        var seleccion = tabla.getSelectionModel().getSelectedItems();
+        if (agregar) {
+            Set<Long> ids = seleccion.stream().map(Elemento::getId).collect(Collectors.toCollection(java.util.LinkedHashSet::new));
+            if (!ids.remove(e.getId())) ids.add(e.getId());
+            if (!tabla.getItems().contains(e)) cmbFiltroTipo.setValue(YEFRI_LERMA_TODOS_LOS_TIPOS);
+            yefriLermaSeleccionarIds(ids);
+            return;
+        }
+        if (seleccion.size() > 1 && seleccion.contains(e)) {
+            yefriLermaClicPendiente = new javafx.animation.PauseTransition(
+                    javafx.util.Duration.millis(ErickDelgadoVisor3D.ERICK_DELGADO_DOBLE_CLIC_MS + 30));
+            yefriLermaClicPendiente.setOnFinished(ev -> yefriLermaSeleccionarSolo(e));
+            yefriLermaClicPendiente.play();
+            return;
+        }
+        if (seleccion.size() == 1 && seleccion.get(0) == e) return;
+        yefriLermaSeleccionarSolo(e);
+    }
+
+    private void yefriLermaCancelarClicPendiente() {
+        if (yefriLermaClicPendiente != null) {
+            yefriLermaClicPendiente.stop();
+            yefriLermaClicPendiente = null;
+        }
+    }
+
+    /**
+     * Doble clic en el visor 3D: si el elemento es parte de una selección múltiple abre «Editar N elementos» para todos;
+     * si no, «Editar elemento» (con el botón «Mover en 3D»).
+     */
+    private void yefriLermaEditarDesde3d(Elemento e) {
+        yefriLermaCancelarClicPendiente();
+        if (panelMovimiento.isVisible()) return;
+        var seleccion = List.copyOf(tabla.getSelectionModel().getSelectedItems());
+        if (seleccion.size() > 1 && seleccion.contains(e)) {
+            yefriLermaAbrirLote(seleccion, null, "", "", "");
+            return;
+        }
+        yefriLermaSeleccionarSolo(e);
+        yefriLermaEditar(e);
+    }
+
+    /** Doble clic en una fila de la tabla: igual que en 3D, sobre una selección múltiple edita todas. */
+    private void yefriLermaDobleClicFila(Elemento e) {
+        var previa = yefriLermaSeleccionPrevia;
+        if (previa.size() > 1 && previa.contains(e)) {
+            yefriLermaSeleccionarIds(previa.stream().map(Elemento::getId).collect(Collectors.toSet()));
+            yefriLermaAbrirLote(previa, null, "", "", "");
+            return;
+        }
+        yefriLermaEditar(e);
     }
 
     @FXML
@@ -444,7 +802,7 @@ public class ModeloController implements Refrescable {
             return;
         }
         try {
-            if (yefriLermaEditorCuadricula.walterQuispesayhuaAbrir(cmbProyecto.getValue().getId(), List.copyOf(tabla.getItems()))) {
+            if (yefriLermaEditorCuadricula.walterQuispesayhuaAbrir(cmbProyecto.getValue().getId(), List.copyOf(yefriLermaTodos))) {
                 yefriLermaCargarElementos();
                 yefriLermaNotificador.exito("Elementos generados.");
             }
@@ -489,6 +847,7 @@ public class ModeloController implements Refrescable {
         btnPlantilla.setDisable(!habilitada);
         btnCuadricula.setDisable(!habilitada);
         tabla.setDisable(!habilitada);
+        cmbFiltroTipo.setDisable(!habilitada);
         btnDeshacerMovimiento.setDisable(!habilitada || yefriLermaUltimoMovimiento == null);
     }
 
@@ -555,14 +914,17 @@ public class ModeloController implements Refrescable {
 
     private void yefriLermaCargarElementos() {
         Proyecto p = cmbProyecto.getValue();
-        tabla.getItems().clear();
+        tabla.getSelectionModel().clearSelection();
         if (p == null) {
-            lblResumen.setText("Seleccione un proyecto");
+            yefriLermaTodos.clear();
+            yefriLermaActualizarMetrado();
+            yefriLermaActualizarSeleccion();
             yefriLermaDibujar(true);
             return;
         }
-        tabla.getItems().setAll(yefriLermaServicio.elementos(p.getId()));
-        lblResumen.setText(yefriLermaResumenMetrado(tabla.getItems()));
+        yefriLermaTodos.setAll(yefriLermaServicio.elementos(p.getId()));
+        yefriLermaActualizarMetrado();
+        yefriLermaActualizarSeleccion();
         yefriLermaDibujar(true);
     }
 
@@ -635,14 +997,54 @@ public class ModeloController implements Refrescable {
         });
         dialogo.showAndWait();
         if (cmbProyecto.getValue() != null) {
-            lblResumen.setText(yefriLermaResumenMetrado(tabla.getItems()));
+            yefriLermaActualizarMetrado();
         }
+    }
+
+    /** Texto corto en el botón («Metrado · 57,86 m³») y texto completo para el globo. */
+    private void yefriLermaActualizarMetrado() {
+        if (cmbProyecto.getValue() == null) {
+            lblResumen.setText("Seleccione un proyecto");
+            btnMetrado.setText("Metrado");
+        } else {
+            lblResumen.setText(yefriLermaResumenMetrado(yefriLermaTodos));
+            btnMetrado.setText(yefriLermaTodos.isEmpty() ? "Metrado"
+                    : "Metrado · " + yefriLermaVolumenCorto(com.concretolab.service.MetradoNeto
+                            .yefriLermaCalcular(yefriLermaTodos, com.concretolab.service.CuantiasAcero.yefriLermaLeer()).volumenNeto()) + " m³");
+        }
+        if (yefriLermaGloboMetrado != null && yefriLermaGloboMetrado.isShowing()) yefriLermaGloboMetrado.hide();
+    }
+
+    /** Muestra u oculta el metrado completo en un globo junto al botón, sin ocupar espacio de la tabla. */
+    @FXML
+    private void onVerMetrado() {
+        if (yefriLermaGloboMetrado != null && yefriLermaGloboMetrado.isShowing()) {
+            yefriLermaGloboMetrado.hide();
+            return;
+        }
+        var texto = new Label(lblResumen.getText());
+        texto.setWrapText(true);
+        texto.setMaxWidth(420);
+        texto.setMinHeight(Label.USE_PREF_SIZE);
+        texto.getStyleClass().add("modelo-resumen");
+        yefriLermaGloboMetrado = new Popover(texto);
+        yefriLermaGloboMetrado.setTitle("Metrado del proyecto");
+        yefriLermaGloboMetrado.setHeaderAlwaysVisible(true);
+        yefriLermaGloboMetrado.setDetachable(false);
+        yefriLermaGloboMetrado.setArrowLocation(Popover.ArrowLocation.BOTTOM_LEFT);
+        yefriLermaGloboMetrado.show(btnMetrado);
+    }
+
+    private static String yefriLermaVolumenCorto(double v) {
+        return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
     }
 
     /** Reencuadra la camara al cargar datos, pero no al seleccionar una fila. */
     private void yefriLermaDibujar(boolean reencuadrar) {
-        yefriLermaVisor3d.erickDelgadoMostrar(tabla.getItems(), tabla.getSelectionModel().getSelectedItem(),
-                e -> tabla.getSelectionModel().select(e), reencuadrar);
+        Set<Elemento> marcados = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        marcados.addAll(tabla.getSelectionModel().getSelectedItems());
+        yefriLermaVisor3d.erickDelgadoMostrar(yefriLermaTodos, marcados::contains,
+                this::yefriLermaClicEn3d, this::yefriLermaEditarDesde3d, reencuadrar);
     }
 
     private boolean yefriLermaHayProyecto() {

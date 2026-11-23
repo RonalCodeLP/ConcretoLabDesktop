@@ -9,14 +9,14 @@
             styleClass="pagina-scroll" fitToWidth="true" hbarPolicy="NEVER">
 
     <fx:define>
-        <!-- ============ Panel: contraseña de exportación / importación ============ -->
+        <!-- ============ Panel: contraseña opcional del archivo exportado / importado ============ -->
         <VBox fx:id="panelContrasena" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
-                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-lock"/></StackPane>
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-file"/></StackPane>
                 <VBox spacing="2.0" HBox.hgrow="ALWAYS">
                     <Label fx:id="lblTituloContrasena" text="Exportar proyecto" styleClass="drawer-titulo"/>
-                    <Label fx:id="lblSubtituloContrasena" text="Puedes protegerlo con una contraseña" styleClass="drawer-subtitulo"/>
+                    <Label fx:id="lblSubtituloContrasena" text="Archivo .concretolab" styleClass="drawer-subtitulo"/>
                 </VBox>
                 <Button onAction="#onCancelarContrasena" styleClass="flat,button-circle">
                     <graphic><FontIcon iconLiteral="fth-x"/></graphic>
@@ -25,7 +25,7 @@
 
             <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
                 <VBox styleClass="drawer-body">
-                    <CheckBox fx:id="chkProteger" text="Proteger el archivo con contraseña (cifrado AES-256)"/>
+                    <CheckBox fx:id="chkProteger" text="Proteger este archivo con contraseña (opcional)"/>
                     <VBox styleClass="campo">
                         <Label fx:id="lblCampoContrasena" text="Contraseña" styleClass="campo-label"/>
                         <PasswordField fx:id="txtContrasena" promptText="Mínimo 8 caracteres"/>
@@ -37,7 +37,7 @@
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
                     <Label fx:id="lblAvisoContrasena" wrapText="true" minHeight="-Infinity" styleClass="campo-ayuda"
-                           text="Si olvidas la contraseña no se puede recuperar el archivo. Guárdala en un lugar seguro."/>
+                           text="Solo protege el archivo que exportas, no tus datos en esta computadora. Quien lo importe necesitará la contraseña; si se olvida, ese archivo no se puede abrir."/>
                 </VBox>
             </ScrollPane>
 
@@ -55,59 +55,32 @@
         <HBox styleClass="pagina-cabecera" alignment="CENTER_LEFT">
             <VBox spacing="3.0" HBox.hgrow="ALWAYS">
                 <Label text="Datos y copias de seguridad" styleClass="pagina-titulo"/>
-                <Label text="Protege tu trabajo: copias automáticas, proyectos que puedes llevar a otra computadora y un historial de cambios."
+                <Label text="Guarda copias de tu trabajo y lleva tus proyectos a otra computadora."
                        styleClass="pagina-subtitulo" wrapText="true"/>
             </VBox>
         </HBox>
-
-        <!-- ============ Dónde están mis datos ============ -->
-        <VBox styleClass="tarjeta" spacing="10.0">
-            <Label text="Mis datos" styleClass="seccion-form"/>
-            <Label fx:id="lblRutaBase" wrapText="true" minHeight="-Infinity"/>
-            <Label fx:id="lblTamanoBase" styleClass="pagina-subtitulo"/>
-            <HBox spacing="8.0">
-                <Button text="Abrir carpeta de datos" onAction="#onAbrirCarpetaDatos" styleClass="button-outlined">
-                    <graphic><FontIcon iconLiteral="fth-folder"/></graphic>
-                </Button>
-                <Button text="Abrir carpeta de registros" onAction="#onAbrirCarpetaRegistros" styleClass="button-outlined">
-                    <graphic><FontIcon iconLiteral="fth-file-text"/></graphic>
-                </Button>
-            </HBox>
-            <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
-                   text="La aplicación guarda una copia al abrirse y otra al cerrarse (se conservan las últimas 10 de cada una). Las copias manuales no se borran solas."/>
-        </VBox>
-
-        <!-- ============ Seguridad de la base ============ -->
-        <VBox styleClass="tarjeta" spacing="10.0">
-            <Label text="Seguridad de la base" styleClass="seccion-form"/>
-            <Label fx:id="lblCifrado" wrapText="true" minHeight="-Infinity"/>
-            <HBox spacing="8.0">
-                <Button fx:id="btnCambiarClave" text="Cambiar contraseña…" onAction="#onCambiarClaveBase" styleClass="button-outlined">
-                    <graphic><FontIcon iconLiteral="fth-lock"/></graphic>
-                </Button>
-            </HBox>
-            <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
-                   text="La base se cifra con AES-256 y la contraseña se pide al abrir la aplicación. No se guarda en ningún lado: si se olvida, los datos no se pueden recuperar."/>
-        </VBox>
 
         <!-- ============ Copias de seguridad ============ -->
         <VBox styleClass="tarjeta" spacing="10.0">
             <HBox alignment="CENTER_LEFT" spacing="8.0">
                 <Label text="Copias de seguridad" styleClass="seccion-form" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                <Button text="Crear copia ahora" onAction="#onCrearCopia" styleClass="accent">
+                <Button fx:id="btnCrearCopia" text="Crear copia ahora" onAction="#onCrearCopia" styleClass="accent">
                     <graphic><FontIcon iconLiteral="fth-save"/></graphic>
                 </Button>
             </HBox>
+            <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
+                   text="ConcretoLab guarda una copia automática al abrirse y otra al cerrarse. Crea una copia antes de un cambio importante; las que creas tú no se borran solas."/>
+            <Label fx:id="lblRestauracionPendiente" styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"
+                   visible="false" managed="false"/>
             <TableView fx:id="tablaCopias" prefHeight="230.0" minHeight="230.0">
                 <columns>
-                    <TableColumn fx:id="colFechaCopia" text="Fecha" prefWidth="170.0"/>
-                    <TableColumn fx:id="colTipoCopia" text="Tipo" prefWidth="150.0"/>
+                    <TableColumn fx:id="colFechaCopia" text="Fecha" prefWidth="180.0"/>
+                    <TableColumn fx:id="colTipoCopia" text="Tipo" prefWidth="240.0"/>
                     <TableColumn fx:id="colTamanoCopia" text="Tamaño" prefWidth="110.0"/>
-                    <TableColumn fx:id="colNombreCopia" text="Archivo" prefWidth="360.0"/>
                 </columns>
             </TableView>
             <HBox spacing="8.0">
-                <Button fx:id="btnRestaurar" text="Restaurar la seleccionada" onAction="#onRestaurar" styleClass="button-outlined">
+                <Button fx:id="btnRestaurar" text="Restaurar la seleccionada…" onAction="#onRestaurar" styleClass="button-outlined">
                     <graphic><FontIcon iconLiteral="fth-rotate-ccw"/></graphic>
                 </Button>
                 <Button fx:id="btnEliminarCopia" text="Eliminar copia" onAction="#onEliminarCopia" styleClass="button-outlined,danger">
@@ -120,7 +93,7 @@
         <VBox styleClass="tarjeta" spacing="10.0">
             <Label text="Llevar un proyecto a otra computadora" styleClass="seccion-form"/>
             <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
-                   text="Exporta un proyecto a un archivo .concretolab (con sus elementos, mezclas y ensayos) y, si quieres, protégelo con contraseña. Al importar siempre se crea un proyecto nuevo: nunca se sobrescribe nada."/>
+                   text="Exporta un proyecto a un archivo .concretolab (con sus elementos, mezclas y ensayos) y ábrelo en otra computadora con «Importar». Al importar se crea un proyecto nuevo: nunca se reemplaza ninguno."/>
             <HBox spacing="8.0" alignment="CENTER_LEFT">
                 <ComboBox fx:id="cmbProyecto" promptText="Elige el proyecto a exportar" prefWidth="320.0"/>
                 <Button text="Exportar…" onAction="#onExportar" styleClass="accent">
@@ -132,21 +105,34 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Bitácora ============ -->
-        <VBox styleClass="tarjeta" spacing="10.0">
-            <HBox alignment="CENTER_LEFT" spacing="8.0">
-                <Label text="Historial de cambios" styleClass="seccion-form" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
-                <Button text="Actualizar" onAction="#onActualizarBitacora" styleClass="button-outlined">
-                    <graphic><FontIcon iconLiteral="fth-refresh-cw"/></graphic>
-                </Button>
-            </HBox>
-            <TableView fx:id="tablaBitacora" prefHeight="260.0" minHeight="260.0">
-                <columns>
-                    <TableColumn fx:id="colFechaBitacora" text="Fecha" prefWidth="170.0"/>
-                    <TableColumn fx:id="colAccionBitacora" text="Acción" prefWidth="190.0"/>
-                    <TableColumn fx:id="colDetalleBitacora" text="Detalle" prefWidth="430.0"/>
-                </columns>
-            </TableView>
-        </VBox>
+        <!-- ============ Opciones avanzadas (rutas, registros e historial) ============ -->
+        <TitledPane fx:id="panelAvanzado" text="Opciones avanzadas" expanded="false" animated="false">
+            <VBox spacing="12.0">
+                <Label text="Ubicación de los datos" styleClass="seccion-form"/>
+                <Label fx:id="lblRutaBase" wrapText="true" minHeight="-Infinity"/>
+                <Label fx:id="lblTamanoBase" styleClass="pagina-subtitulo" wrapText="true" minHeight="-Infinity"/>
+                <HBox spacing="8.0">
+                    <Button text="Abrir carpeta de datos" onAction="#onAbrirCarpetaDatos" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-folder"/></graphic>
+                    </Button>
+                    <Button text="Abrir carpeta de registros" onAction="#onAbrirCarpetaRegistros" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-file-text"/></graphic>
+                    </Button>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <Label text="Historial de cambios" styleClass="seccion-form" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    <Button text="Actualizar" onAction="#onActualizarBitacora" styleClass="button-outlined">
+                        <graphic><FontIcon iconLiteral="fth-refresh-cw"/></graphic>
+                    </Button>
+                </HBox>
+                <TableView fx:id="tablaBitacora" prefHeight="240.0" minHeight="240.0">
+                    <columns>
+                        <TableColumn fx:id="colFechaBitacora" text="Fecha" prefWidth="170.0"/>
+                        <TableColumn fx:id="colAccionBitacora" text="Acción" prefWidth="190.0"/>
+                        <TableColumn fx:id="colDetalleBitacora" text="Detalle" prefWidth="430.0"/>
+                    </columns>
+                </TableView>
+            </VBox>
+        </TitledPane>
     </VBox>
 </ScrollPane>

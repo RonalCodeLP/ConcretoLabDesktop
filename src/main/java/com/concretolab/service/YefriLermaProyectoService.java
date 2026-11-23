@@ -43,6 +43,12 @@ public class YefriLermaProyectoService {
         if(!Double.isFinite(e.getX())||!Double.isFinite(e.getY())||!Double.isFinite(e.getZ())) throw new IllegalArgumentException("Las posiciones deben ser números finitos.");
         return elementos.save(e);
     }
+    /** Guarda varios elementos a la vez: si uno no es valido no se guarda ninguno (edicion en lote). */
+    @Transactional public List<Elemento> yefriLermaGuardarVarios(List<Elemento> lista){
+        List<Elemento> r=new java.util.ArrayList<>();
+        for(Elemento e:lista) r.add(yefriLermaGuardar(e));
+        return r;
+    }
     @Transactional public void yefriLermaEliminar(Long id){vinculos.deleteByColumnaIdOrVigaId(id,id);elementos.deleteById(id);}
     @Transactional
     public void yefriLermaEliminarProyecto(Long id) {

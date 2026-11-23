@@ -1,108 +1,108 @@
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ConcretoLabApplication.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\BalanceController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\DatosController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\GranulometriaController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\GuiaSismica.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\InicioController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MainController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MaterialesController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MezclasController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\ModeloController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\TiempoHistoriaController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\controller\WalterQuispesayhuaSismoController.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\exception\NegocioException.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\JavaFxApplication.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\Launcher.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\CuadriculaProyecto.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\Elemento.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\Ensayo.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\ExpedienteEstructural.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\Material.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\Mezcla.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\Proyecto.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\RegistroBitacora.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\RegistroGranulometria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\model\VinculoGeometrico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\BitacoraRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\CuadriculaProyectoRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ElementoRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\EnsayoRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ExpedienteRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\GranulometriaRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\MaterialRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\MezclaRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ProyectoRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\repository\VinculoGeometricoRepository.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\DatabaseSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\EdificioPracticaSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\EdificiosSismicosSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\GranulometriaSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\MaterialSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\MezclaSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\ProyectoSeeder.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\AnalisisPortico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\AnalisisTiempoHistoria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\BaseCifrada.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\BitacoraService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\CifradoArchivo.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ClaveBaseService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuadriculaService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuantiasAcero.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\DeteccionCapasDxf.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\DiagnosticoSismico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\DisenoMezclaACI.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\EdificioCortante.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\EscaladoRegistros.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\EspectroRespuesta.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\EvaluacionResistencia.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExpedienteService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExportadorEtabs.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExportadorIfc.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\FernandoHuancaAnalisisSismico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\FernandoHuancaPlanoDxf.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\GeneradorAcelerograma.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\GranulometriaService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\HistoriaPiso.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\HusosGranulometricos.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ImportadorRegistro.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\IntercambioProyectoService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\MaterialService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\MetradoNeto.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\MezclaService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\MovimientoElementoService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\NormaE030.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\OsciladorSismico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\RegistroGranulometriaService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\RegistroSismico.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ReporteMezcla.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ReporteSismo.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\RespaldoDatos.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\RespaldoService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ResultadoTiempoHistoria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ResumenTiempoHistoria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\SistemaEstructural.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\TipoSuelo.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\UsoEdificacion.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\VerificacionTiempoHistoria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\VolumenAbsolutoService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\YefriLermaProyectoService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\service\ZonificacionService.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\AcercaDe.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Autocompletar.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\DialogoClaveBase.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorCuadricula.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorMovimiento.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoImportacionDxf.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoVisor3D.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Exportador.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\FormatoNumeros.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Formularios.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Notificador.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Paginador.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Refrescable.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ResumenSimulacion.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\SesionProyecto.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Tablas.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\VistaModal.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\com\concretolab\ui\VistaTiempoHistoria.java
-C:\AJAVAFX MOVILES\ConcretoLabDesktop\src\main\java\db\migration\V3__Completar_columnas.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ConcretoLabApplication.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\BalanceController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\DatosController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\GranulometriaController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\GuiaSismica.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\InicioController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MainController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MaterialesController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\MezclasController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\ModeloController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\TiempoHistoriaController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\controller\WalterQuispesayhuaSismoController.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\exception\NegocioException.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\JavaFxApplication.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\Launcher.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\CuadriculaProyecto.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\Elemento.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\Ensayo.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\ExpedienteEstructural.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\Material.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\Mezcla.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\Proyecto.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\RegistroBitacora.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\RegistroGranulometria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\model\VinculoGeometrico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\BitacoraRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\CuadriculaProyectoRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ElementoRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\EnsayoRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ExpedienteRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\GranulometriaRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\MaterialRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\MezclaRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\ProyectoRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\repository\VinculoGeometricoRepository.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\DatabaseSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\EdificioPracticaSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\EdificiosSismicosSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\GranulometriaSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\MaterialSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\MezclaSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\seeder\ProyectoSeeder.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\AnalisisPortico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\AnalisisTiempoHistoria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\BaseCifrada.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\BitacoraService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CifradoArchivo.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuadriculaService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\CuantiasAcero.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DeteccionCapasDxf.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DiagnosticoSismico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\DisenoMezclaACI.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\EdificioCortante.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\EscaladoRegistros.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\EspectroRespuesta.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\EvaluacionResistencia.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExpedienteService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExportadorEtabs.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ExportadorIfc.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\FernandoHuancaAnalisisSismico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\FernandoHuancaPlanoDxf.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\GeneradorAcelerograma.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\GranulometriaService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\HistoriaPiso.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\HusosGranulometricos.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ImportadorRegistro.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\IntercambioProyectoService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\MaterialService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\MetradoNeto.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\MezclaService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\MovimientoElementoService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\NormaE030.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\OsciladorSismico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\RecomendacionSismica.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\RegistroGranulometriaService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\RegistroSismico.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ReporteMezcla.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ReporteSismo.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\RespaldoDatos.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\RespaldoService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ResultadoTiempoHistoria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ResumenTiempoHistoria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\SistemaEstructural.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\TipoSuelo.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\UsoEdificacion.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\VerificacionTiempoHistoria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\VolumenAbsolutoService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\YefriLermaProyectoService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\service\ZonificacionService.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\AcercaDe.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Autocompletar.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\DialogoClaveBase.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorCuadricula.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\EditorMovimiento.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoImportacionDxf.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ErickDelgadoVisor3D.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Exportador.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\FormatoNumeros.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Formularios.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Notificador.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Paginador.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Refrescable.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\ResumenSimulacion.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\SesionProyecto.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\Tablas.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\VistaModal.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\com\concretolab\ui\VistaTiempoHistoria.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\main\java\db\migration\V3__Completar_columnas.java

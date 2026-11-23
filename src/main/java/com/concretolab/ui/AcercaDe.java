@@ -30,32 +30,32 @@ public final class AcercaDe {
             "Apache Commons Math (Apache 2.0) · OpenPDF (LGPL 2.1 / MPL 2.0)");
 
     static final String FERNANDO_HUANCA_AVISO = "Los resultados son una ayuda de cálculo y de organización: no sustituyen la revisión y la firma de un "
-            + "profesional colegiado ni la verificación en laboratorio. Los valores de demostración son ficticios. "
+            + "profesional colegiado ni la verificación en laboratorio. El análisis sísmico es preliminar (anteproyecto y enseñanza): "
+            + "no está validado para diseñar ni construir obras. Los valores de demostración son ficticios. "
             + "Los límites y supuestos de cada módulo se indican en su pantalla y en el README.";
 
     /** Texto plano del diálogo (útil para pruebas y para copiar). */
-    public static String fernandoHuancaTexto(String version, boolean cifrada, String carpetaDatos) {
+    public static String fernandoHuancaTexto(String version, String carpetaDatos) {
         var sb = new StringBuilder();
         sb.append("ConcretoLab Desktop ").append(version).append('\n');
         sb.append("Equipo ConcretoLab: ").append(String.join(", ", FERNANDO_HUANCA_AUTORES)).append("\n\n");
         sb.append("Normas aplicadas\n");
         FERNANDO_HUANCA_NORMAS.forEach(n -> sb.append("• ").append(n).append('\n'));
-        sb.append("\nDatos\n• Carpeta: ").append(carpetaDatos).append('\n')
-                .append("• Base de datos cifrada: ").append(cifrada ? "sí (AES-256)" : "no").append("\n\n");
+        sb.append("\nDatos\n• Carpeta: ").append(carpetaDatos).append("\n\n");
         sb.append("Componentes de terceros\n");
         FERNANDO_HUANCA_TERCEROS.forEach(n -> sb.append("• ").append(n).append('\n'));
         sb.append('\n').append(FERNANDO_HUANCA_AVISO);
         return sb.toString();
     }
 
-    public static void fernandoHuancaMostrar(Window ventana, String version, boolean cifrada, String carpetaDatos) {
-        var dialogo = fernandoHuancaCrear(version, cifrada, carpetaDatos);
+    public static void fernandoHuancaMostrar(Window ventana, String version, String carpetaDatos) {
+        var dialogo = fernandoHuancaCrear(version, carpetaDatos);
         dialogo.initOwner(ventana);
         dialogo.showAndWait();
     }
 
     /** Arma el diálogo sin mostrarlo. */
-    public static Dialog<Void> fernandoHuancaCrear(String version, boolean cifrada, String carpetaDatos) {
+    public static Dialog<Void> fernandoHuancaCrear(String version, String carpetaDatos) {
         var dialogo = new Dialog<Void>();
         dialogo.setTitle("Acerca de ConcretoLab Desktop");
         dialogo.setHeaderText("ConcretoLab Desktop · versión " + version);
@@ -64,7 +64,7 @@ public final class AcercaDe {
         contenido.getChildren().addAll(
                 fernandoHuancaSeccion("Autoría", "Proyecto desarrollado por el equipo ConcretoLab:\n" + String.join("\n", FERNANDO_HUANCA_AUTORES.stream().map(a -> "• " + a).toList())),
                 fernandoHuancaSeccion("Normas aplicadas", String.join("\n", FERNANDO_HUANCA_NORMAS.stream().map(n -> "• " + n).toList())),
-                fernandoHuancaSeccion("Sus datos", "Carpeta: " + carpetaDatos + "\nBase de datos cifrada: " + (cifrada ? "sí (AES-256)" : "no")),
+                fernandoHuancaSeccion("Sus datos", "Carpeta: " + carpetaDatos),
                 fernandoHuancaSeccion("Componentes de terceros", String.join("\n", FERNANDO_HUANCA_TERCEROS.stream().map(n -> "• " + n).toList())),
                 fernandoHuancaSeccion("Aviso", FERNANDO_HUANCA_AVISO));
         var scroll = new ScrollPane(contenido);

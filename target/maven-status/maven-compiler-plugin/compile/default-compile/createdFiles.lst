@@ -12,7 +12,6 @@ com\concretolab\service\MovimientoElementoService$Posicion.class
 com\concretolab\service\IntercambioProyectoService$ElementoDto.class
 db\migration\V3__Completar_columnas.class
 com\concretolab\ConcretoLabApplication.class
-com\concretolab\service\ClaveBaseService.class
 com\concretolab\JavaFxApplication.class
 com\concretolab\ui\Exportador$Formato.class
 com\concretolab\service\OsciladorSismico$Resultado.class
@@ -21,6 +20,7 @@ com\concretolab\service\DisenoMezclaACI$SeveridadAire.class
 com\concretolab\controller\DatosController.class
 com\concretolab\service\MaterialService.class
 com\concretolab\service\EdificioCortante$Resultado.class
+com\concretolab\service\RecomendacionSismica$Recomendacion.class
 com\concretolab\service\AnalisisPortico$ResultadoNudo.class
 com\concretolab\service\HistoriaPiso$Respuesta.class
 com\concretolab\service\ExportadorEtabs$Resultado.class
@@ -30,7 +30,6 @@ com\concretolab\service\RegistroSismico.class
 com\concretolab\ui\VistaTiempoHistoria$1.class
 com\concretolab\controller\TiempoHistoriaController.class
 com\concretolab\ui\SesionProyecto.class
-com\concretolab\JavaFxApplication$1.class
 com\concretolab\controller\DatosController$Modo.class
 com\concretolab\repository\BitacoraRepository.class
 com\concretolab\service\DiagnosticoSismico$Informe.class
@@ -113,6 +112,7 @@ com\concretolab\ui\Autocompletar$1.class
 com\concretolab\service\ZonificacionService$Fila.class
 com\concretolab\service\RegistroGranulometriaService.class
 com\concretolab\controller\TiempoHistoriaController$3.class
+com\concretolab\ui\ErickDelgadoVisor3D$AlClic.class
 com\concretolab\service\FernandoHuancaAnalisisSismico$Barra.class
 com\concretolab\service\HusosGranulometricos$Chequeo.class
 com\concretolab\service\VolumenAbsolutoService.class
@@ -121,6 +121,8 @@ com\concretolab\service\DeteccionCapasDxf$Rol.class
 com\concretolab\service\IntercambioProyectoService$VinculoDto.class
 com\concretolab\service\VolumenAbsolutoService$Resultado.class
 com\concretolab\controller\DatosController$2.class
+com\concretolab\controller\ModeloController$YefriLermaAjuste.class
+com\concretolab\service\RecomendacionSismica$Cambio.class
 com\concretolab\ui\Tablas$2.class
 com\concretolab\service\MovimientoElementoService$Estado.class
 com\concretolab\seeder\MezclaSeeder.class
@@ -142,6 +144,7 @@ com\concretolab\service\RespaldoService.class
 com\concretolab\service\HistoriaPiso$Piso.class
 com\concretolab\service\ImportadorRegistro.class
 com\concretolab\service\HistoriaPiso.class
+com\concretolab\service\RecomendacionSismica.class
 com\concretolab\ui\EditorMovimiento.class
 com\concretolab\service\DisenoMezclaACI$Exposicion.class
 com\concretolab\controller\ModeloController.class
@@ -217,6 +220,7 @@ com\concretolab\Launcher.class
 com\concretolab\ui\VistaModal$Tramo.class
 com\concretolab\ui\Formularios.class
 com\concretolab\ui\ErickDelgadoImportacionDxf$1.class
+com\concretolab\controller\GuiaSismica$Correccion.class
 com\concretolab\model\RegistroBitacora.class
 com\concretolab\service\FernandoHuancaAnalisisSismico$PisoBase.class
 com\concretolab\ui\Tablas$1.class

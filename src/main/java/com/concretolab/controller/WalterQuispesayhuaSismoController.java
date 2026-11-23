@@ -17,6 +17,7 @@ import com.concretolab.service.SistemaEstructural;
 import com.concretolab.service.TipoSuelo;
 import com.concretolab.service.UsoEdificacion;
 import com.concretolab.service.YefriLermaProyectoService;
+import com.concretolab.service.RecomendacionSismica;
 import com.concretolab.service.ReporteSismo;
 import com.concretolab.service.ResumenTiempoHistoria;
 import com.concretolab.service.ZonificacionService;
@@ -55,6 +56,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import org.kordamp.ikonli.javafx.FontIcon;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
@@ -80,6 +82,9 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     private final Notificador walterQuispesayhuaNotificador;
     private final Exportador exportador;
     private final ZonificacionService walterQuispesayhuaZonificacion;
+    /** Para llevar la recomendación de mejora al modelo 3D (se piden tarde: evitan dependencias circulares). */
+    private final ObjectProvider<MainController> walterQuispesayhuaPrincipal;
+    private final ObjectProvider<ModeloController> walterQuispesayhuaModelo;
 
     @FXML private VBox panelVacio;
     @FXML private HBox panelContenido;
@@ -158,6 +163,8 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     /** El uso elegido al calcular era A1 (hospital): la Tabla 9 no permite pórticos en ninguna zona. */
     private boolean walterQuispesayhuaUltimoUsoA1;
     private UsoEdificacion walterQuispesayhuaUsoCalculado;
+    /** Recomendación ya calculada para el resultado actual (se calcula al pulsar «Cómo corregir»). */
+    private RecomendacionSismica.Recomendacion walterQuispesayhuaRecomendacion;
 
     /** Fila editable de la tabla de pisos. */
     public static final class FilaPiso {
@@ -594,6 +601,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             double espesor = walterQuispesayhuaLeer(txtEspesor);
             walterQuispesayhuaEntrada = new Entrada(el, fc, poisson, rigidez, espesor, cargas, norma);
             walterQuispesayhuaResultado = FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(walterQuispesayhuaEntrada);
+            walterQuispesayhuaRecomendacion = null;
             walterQuispesayhuaProyectoCalculado = p;
             walterQuispesayhuaUsoCalculado = uso;
             walterQuispesayhuaMostrar();
@@ -650,6 +658,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         }
         walterQuispesayhuaEntrada = null;
         walterQuispesayhuaResultado = null;
+        walterQuispesayhuaRecomendacion = null;
         walterQuispesayhuaProyectoCalculado = null;
         walterQuispesayhuaUsoCalculado = null;
         btnExportar.setDisable(true);
@@ -720,8 +729,8 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return b;
     }
 
-    /** Lista de verificaciones con icono verde, rojo, ambar o informativo. */
-    private static VBox walterQuispesayhuaListaVerificaciones(List<GuiaSismica.Verificacion> items) {
+    /** Lista de verificaciones con icono verde, rojo, ambar o informativo; las que no cumplen llevan un botón «Cómo corregir». */
+    private VBox walterQuispesayhuaListaVerificaciones(List<GuiaSismica.Verificacion> items) {
         VBox caja = new VBox(6);
         caja.getStyleClass().add("sismo-verificaciones");
         caja.setMinHeight(Region.USE_PREF_SIZE);
@@ -738,13 +747,75 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             FontIcon fi = new FontIcon(icono);
             Label texto = new Label(v.texto());
             texto.setWrapText(true);
+            texto.setMaxWidth(Double.MAX_VALUE);
             texto.setMinHeight(Region.USE_PREF_SIZE);
             HBox fila = new HBox(8, fi, texto);
             HBox.setHgrow(texto, Priority.ALWAYS);
+            if (v.correccion() != GuiaSismica.Correccion.NINGUNA) {
+                boolean enModelo = v.correccion() == GuiaSismica.Correccion.DERIVA;
+                FontIcon iconoBoton = new FontIcon("fth-zap");
+                if (enModelo) iconoBoton.setStyle("-fx-icon-color: white;"); // la fila en rojo no debe teñir el icono del botón
+                Button corregir = new Button("Cómo corregir", iconoBoton);
+                corregir.getStyleClass().addAll("button-small", enModelo ? "accent" : "button-outlined");
+                corregir.setTooltip(new javafx.scene.control.Tooltip(enModelo
+                        ? "Calcula cuánto agrandar las columnas y lo lleva al modelo 3D para que lo revise"
+                        : "Ver cómo mejorar esta verificación"));
+                corregir.setMinWidth(Region.USE_PREF_SIZE);
+                corregir.setOnAction(e -> walterQuispesayhuaCorregir(v));
+                fila.getChildren().add(corregir);
+                fila.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            }
             fila.getStyleClass().addAll("sismo-verif-fila", "sismo-verif-" + v.nivel().name().toLowerCase(Locale.ROOT));
             caja.getChildren().add(fila);
         }
         return caja;
+    }
+
+    /** Botón «Cómo corregir»: consejo en texto o, si falla la deriva, la medida calculada y el atajo al modelo 3D. */
+    private void walterQuispesayhuaCorregir(GuiaSismica.Verificacion v) {
+        var ventana = tabsResultados.getScene().getWindow();
+        if (v.correccion() != GuiaSismica.Correccion.DERIVA || walterQuispesayhuaEntrada == null || walterQuispesayhuaResultado == null) {
+            var a = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION, v.consejo());
+            a.initOwner(ventana);
+            a.setTitle("Cómo corregir");
+            a.setHeaderText(v.texto());
+            a.getDialogPane().setMinWidth(520);
+            a.setResizable(true);
+            a.showAndWait();
+            return;
+        }
+        RecomendacionSismica.Recomendacion rec;
+        var escena = tabsResultados.getScene();
+        escena.setCursor(javafx.scene.Cursor.WAIT);
+        try {
+            if (walterQuispesayhuaRecomendacion == null) {
+                walterQuispesayhuaRecomendacion = RecomendacionSismica.fernandoHuancaRecomendar(walterQuispesayhuaEntrada, walterQuispesayhuaResultado);
+            }
+            rec = walterQuispesayhuaRecomendacion;
+        } catch (IllegalArgumentException ex) {
+            walterQuispesayhuaError("No se pudo calcular la recomendación: " + ex.getMessage());
+            return;
+        } finally {
+            escena.setCursor(null);
+        }
+        var dialogo = new javafx.scene.control.Dialog<javafx.scene.control.ButtonType>();
+        dialogo.initOwner(ventana);
+        dialogo.setTitle("Cómo corregir la deriva");
+        dialogo.setHeaderText(v.texto() + "\n" + v.consejo());
+        Label cuerpo = new Label(rec.texto());
+        cuerpo.setWrapText(true);
+        cuerpo.setMaxWidth(560);
+        cuerpo.setMinHeight(Region.USE_PREF_SIZE);
+        dialogo.getDialogPane().setContent(cuerpo);
+        var irModelo = new javafx.scene.control.ButtonType("Ir al modelo 3D y precargar el cambio", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        if (!rec.cambios().isEmpty()) dialogo.getDialogPane().getButtonTypes().add(irModelo);
+        dialogo.getDialogPane().getButtonTypes().add(javafx.scene.control.ButtonType.CLOSE);
+        dialogo.setResizable(true);
+        if (dialogo.showAndWait().filter(irModelo::equals).isPresent()) {
+            walterQuispesayhuaPrincipal.getObject().fernandoHuancaIrA("modelo-view");
+            walterQuispesayhuaModelo.getObject().yefriLermaPrecargarCorreccion(rec.cambios(),
+                    "Recomendación del análisis sísmico (revise y pulse «Aplicar»; luego vuelva a calcular el análisis):\n" + rec.texto());
+        }
     }
 
     private void walterQuispesayhuaMostrar() {

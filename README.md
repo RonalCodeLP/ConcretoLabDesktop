@@ -61,6 +61,15 @@ en «Modelo 3D y metrado» y se exportan/importan con el proyecto.
 El resumen de metrado calcula el concreto **neto**: donde se cruzan elementos (columna con viga, viga con losa…) el volumen común se cuenta
 una sola vez, con prioridad zapata › columna › viga › muro › losa. Incluye encofrado y acero referenciales (anteproyecto, no metrado de obra); las cuantías de acero por tipo se cambian con «Cuantías de acero…» y se guardan en `cuantias-acero.properties` dentro de la carpeta de datos.
 El análisis sísmico sigue siendo de pórticos: los muros avisan que no entran en la rigidez y las losas solo se usan para el metrado.
+El resumen completo se abre con el botón «Metrado · … m³» (junto a «Cuantías de acero…») para no tapar la tabla.
+
+### Editar muchos elementos a la vez
+
+Sobre la tabla, el filtro muestra solo zapatas, columnas, vigas, losas o muros, y «Todos» selecciona toda la lista (también sirven Ctrl/Shift + clic).
+Con varios seleccionados, «Editar» abre un panel donde solo cambian los campos que se llenan: `0,50` fija la medida y `+0,05` / `-0,05` suma o resta a
+cada elemento; se guardan todos juntos o ninguno. En el visor 3D, un clic selecciona, **Ctrl+clic** suma o quita elementos de la selección (de cualquier tipo)
+y el **doble clic** abre «Editar elemento», que tiene el botón «Mover en 3D». El doble clic sobre uno de varios seleccionados, en la lista o en el 3D, abre la
+edición de todos ellos.
 
 ### Exportar a IFC y ETABS
 
@@ -105,17 +114,44 @@ Para completarlo desde «Ejes, niveles y generación», conserva las dimensiones
 
 El seeder omite el proyecto de práctica si ya existe, por lo que conserva los cambios hechos al completarlo. Si se elimina el proyecto, se volverá a crear al iniciar con los seeders activados.
 
-## Base de datos cifrada
+## Abrir sin contraseña (y bases de versiones anteriores)
 
-La base SQLite se cifra en reposo con AES-256 (driver SQLite3MultipleCiphers, modo SQLCipher 4). Al abrir la aplicación se pide la contraseña; la primera vez se crea (mínimo 8 caracteres) y, si ya había datos sin cifrar, se cifran en el sitio con una copia previa que se borra cuando la base abre bien (también se ofrece borrar las copias de seguridad antiguas que sigan sin cifrar). **La contraseña no se guarda en ningún lado: si se olvida, los datos no se pueden recuperar.** Las copias de seguridad nuevas salen cifradas con la misma contraseña; una copia hecha antes de cambiarla se abre con la contraseña que tenía. En «Datos y copias» está «Cambiar contraseña…» (la aplicación se cierra al terminar). Para automatizar (pruebas, scripts) la variable de entorno `CONCRETOLAB_DB_CLAVE` evita el diálogo; no se recomienda para uso normal.
+ConcretoLab abre directamente, sin contraseña. Si encuentra una base creada por una versión anterior que estaba protegida con
+contraseña, la pide **una sola vez** (hasta 3 intentos; con una incorrecta no se modifica nada) y la convierte: antes guarda una copia
+exacta de la base protegida en las copias de seguridad («Base anterior con contraseña», no se borra sola), luego quita la contraseña y
+comprueba la integridad y que cada tabla conserve sus registros; si algo falla, vuelve a poner la copia y la base queda como estaba.
+Desde entonces abre sin preguntar. Para automatizar, la variable de entorno `CONCRETOLAB_DB_CLAVE` evita el diálogo.
 
 ## Datos y copias de seguridad
 
-La base SQLite está en `%USERPROFILE%\.concretolab\concretolab.db`. Al abrir la aplicación se guarda una copia de seguridad **antes** de que se migre el esquema, y otra al cerrarla (se conservan las últimas 10 de cada una en `.concretolab\backups`). El menú «Datos y copias» permite crear copias manuales (nunca se borran solas), restaurar una (se aplica al reiniciar y antes se guarda una copia de lo actual), exportar un proyecto a un archivo `.concretolab` (opcionalmente cifrado con AES-256-GCM y contraseña) e importarlo en otra computadora (siempre como proyecto nuevo), y ver el historial de cambios. La base completa también está cifrada (ver «Base de datos cifrada»).
+La base SQLite está en `%USERPROFILE%\.concretolab\concretolab.db`. Al abrir la aplicación se guarda una copia de seguridad **antes** de
+que se migre el esquema, y otra al cerrarla (se conservan las últimas 10 de cada una en `.concretolab\backups`).
 
-El esquema lo gestiona Flyway (`src/main/resources/db/migration`): una base creada con versiones anteriores se completa sola (V1 tablas, V2 bitácora, V3 columnas faltantes). Cada cambio en las entidades requiere una migración nueva. Los registros técnicos se escriben en `.concretolab\logs\concretolab.log`.
+La pantalla «Datos y copias» está pensada para el cliente:
+- **Copias de seguridad:** «Crear copia ahora» (las manuales nunca se borran solas), «Restaurar la seleccionada…» (pide confirmación,
+  guarda antes una copia de lo actual y cierra ConcretoLab; al volver a abrirlo se ven los datos de la copia) y «Eliminar copia».
+- **Llevar un proyecto a otra computadora:** exportar a un archivo `.concretolab` (opcionalmente protegido con contraseña; eso solo
+  afecta al archivo exportado) e importarlo en otra computadora (siempre como proyecto nuevo).
+- **Opciones avanzadas** (plegado): rutas de la base, de las copias y de los registros, y el historial de cambios.
+
+El esquema lo gestiona Flyway (`src/main/resources/db/migration`): una base creada con versiones anteriores se completa sola (V1 tablas,
+V2 bitácora, V3 columnas faltantes). Cada cambio en las entidades requiere una migración nueva. Los registros técnicos se escriben en
+`.concretolab\logs\concretolab.log`.
+
+### Cómo corregir lo que no cumple
+
+En el resumen, cada verificación que no cumple trae «Cómo corregir». Para la **deriva**, la aplicación vuelve a analizar el edificio agrandando las
+columnas de 5 en 5 cm en la dirección que falla (hasta +60 cm) y muestra la menor medida que hace cumplir, con las derivas antes y después; «Ir al modelo 3D
+y precargar el cambio» deja esas columnas seleccionadas con el panel de edición ya lleno: se revisa, se pulsa «Aplicar» y se vuelve a calcular. Es una
+sugerencia de anteproyecto: peraltar vigas o agregar placas también puede ser la solución. Torsión, sistema no permitido y demás avisos dan un consejo en texto.
 
 ## Compilar y ejecutar
+
+En Windows, doble clic en **`INICIAR_CONCRETOLAB.bat`**: compila (sin pruebas) y abre la aplicación. Busca Java 17 en `JAVA_HOME` o en
+`C:\Program Files\Eclipse Adoptium` y Maven en el PATH o en `%USERPROFILE%\.m2\wrapper`. Para usar otra carpeta de datos:
+`set CONCRETOLAB_JAVA_OPTS=-Dconcretolab.datos=C:\ruta` antes de ejecutarlo.
+
+A mano:
 
 Se requiere JDK 17 o superior y Maven con las dependencias disponibles:
 
@@ -125,20 +161,43 @@ mvn package
 java -jar target/concretolab-desktop-0.1.0.jar
 ```
 
-## Distribución para Windows
+## Distribución para Windows (instalador para el cliente)
 
-En una computadora de desarrollo con JDK 17 o superior (con `jpackage` y `jlink`) y Maven:
+En una computadora de desarrollo con JDK 17 o superior (`jpackage` y `jlink`), Maven y WiX Toolset 3.x:
 
 ```powershell
-.\CREAR_DISTRIBUCION_WINDOWS.ps1
+.\CREAR_DISTRIBUCION_WINDOWS.ps1 -Verificar
 ```
 
-Opciones: `-ConDatosDemostracion` (activa los datos de demostración), `-Instalador` (además crea un instalador `.exe` con acceso directo y menú Inicio; requiere WiX Toolset 3.x en el PATH, si no está avisa y deja la carpeta portable) y `-Verificar` (arranca una copia de la aplicación empaquetada con una carpeta de datos temporal y confirma que crea la base cifrada; abre la ventana unos segundos y nunca toca la base real).
+Genera en `dist\`:
+- **`ConcretoLab-<versión>.exe`**: el instalador para el cliente (unos 106 MB) y su huella `…exe.sha256.txt`. Lleva su propio Java
+  (entorno recortado con `jlink`): el cliente no instala Java ni Maven. Se instala **solo para el usuario** (sin permisos de
+  administrador, en `%LOCALAPPDATA%\ConcretoLab`), crea siempre el acceso del **menú Inicio** y pregunta con una casilla si se quiere
+  también en el **escritorio**. Los textos del instalador están en español (`src/main/jpackage`). Se desinstala desde «Aplicaciones
+  instaladas» y desinstalar no borra los datos (`%USERPROFILE%\.concretolab`).
+- `ConcretoLab\ConcretoLab.exe`: la misma aplicación como carpeta portable (hay que copiar la carpeta completa).
 
-El resultado queda en `dist\ConcretoLab` (unos 126 MB): comparte toda la carpeta y ejecuta `ConcretoLab.exe`. Incluye un entorno Java recortado con `jlink`, por lo que el usuario final no necesita instalar Java ni Maven. La versión sale del `pom.xml`. Los datos quedan en `%USERPROFILE%\.concretolab`; con `-Dconcretolab.datos=<carpeta>` se puede usar otra carpeta (base, copias y registros).
+El script compila en una carpeta temporal aparte (no toca `target\` ni un ConcretoLab abierto desde `target\*.jar`), encuentra Maven en
+el PATH o en `%USERPROFILE%\.m2\wrapper`, y WiX en el PATH, en `%LOCALAPPDATA%\ConcretoLab-herramientas\wix314` o en
+`Archivos de programa (x86)\WiX Toolset v3.*`. Opciones: `-SinInstalador`, `-ConDatosDemostracion` y `-Verificar` (abre la versión
+portable con una carpeta de datos temporal y comprueba que abre sin contraseña y crea la base; nunca toca la base real).
 
-El arranque tarda varios segundos la primera vez (migraciones y carga de Spring/Hibernate); se midió que activar la inicialización perezosa de Spring ahorra menos del 10 % en caliente, así que no se activó.
+**Prueba del instalador** (instala, prueba con datos temporales y desinstala):
+
+```powershell
+.\PROBAR_INSTALADOR_WINDOWS.ps1
+```
+
+Con UI Automation de Windows comprueba que abre sin contraseña, que guarda un proyecto, que el proyecto sigue al reiniciar y que una copia
+de seguridad se crea y se restaura; también revisa los accesos directos y la desinstalación. No se ejecuta si ConcretoLab ya está instalado.
+
+**Compartir con el cliente:** enviar solo el archivo `ConcretoLab-<versión>.exe` (por ejemplo en una carpeta compartida de Google Drive u
+OneDrive, o en una memoria USB; por correo suele ser demasiado grande) junto con la huella SHA-256 para comprobar que llegó completo
+(`Get-FileHash .\ConcretoLab-0.1.0.exe`). El instalador **no está firmado digitalmente**, así que Windows SmartScreen mostrará «Windows
+protegió su PC»: hay que pulsar «Más información» y «Ejecutar de todas formas». Para evitarlo hace falta un certificado de firma de código.
+
+El arranque tarda varios segundos la primera vez (migraciones y carga de Spring/Hibernate).
 
 ## Acerca de
 
-El botón «Acerca de» del menú lateral muestra la versión, la autoría del equipo (Yefri Ronaldiño Lerma Pacompia, Erick Mijael Delgado Lima, Fernando André Huanca Huallpa, Walter David Quispesayhua Quispe), las normas aplicadas, la carpeta de datos y si la base está cifrada, los componentes de terceros con su licencia y el aviso de que los resultados no sustituyen la revisión de un profesional colegiado.
+El botón «Acerca de» del menú lateral muestra la versión, la autoría del equipo (Yefri Ronaldiño Lerma Pacompia, Erick Mijael Delgado Lima, Fernando André Huanca Huallpa, Walter David Quispesayhua Quispe), las normas aplicadas, la carpeta de datos, los componentes de terceros con su licencia y el aviso de que los resultados no sustituyen la revisión de un profesional colegiado y de que el análisis sísmico es preliminar (no validado para diseñar ni construir obras).

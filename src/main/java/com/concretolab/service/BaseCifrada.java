@@ -15,9 +15,10 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Cifrado en reposo de la base SQLite (AES-256, modo SQLCipher 4 del driver SQLite3MultipleCiphers). La clave se
- * deriva de la contraseña con PBKDF2 dentro del propio driver. Sin la contraseña el archivo es indescifrable: no hay
- * ninguna puerta trasera ni se guarda la clave en disco.
+ * Bases SQLite protegidas con contraseña (AES-256, modo SQLCipher 4 del driver SQLite3MultipleCiphers). Las versiones
+ * anteriores de ConcretoLab las creaban así; la actual abre sin contraseña y usa esta clase para reconocer esas bases y
+ * convertirlas una sola vez ({@link #erickDelgadoQuitarClave}). Sin la contraseña el archivo es indescifrable: no hay
+ * ninguna puerta trasera ni se guardó nunca la clave en disco.
  */
 public final class BaseCifrada {
 
@@ -112,20 +113,85 @@ public final class BaseCifrada {
         if (!erickDelgadoClaveCorrecta(base, nueva)) throw new SQLException("No se pudo verificar la nueva contraseña.");
     }
 
-    /** Conserva una copia cifrada antes de retirar la clave de una base existente. */
-    public static void erickDelgadoQuitarClave(Path base, char[] clave) throws SQLException, IOException {
-        if (!erickDelgadoClaveCorrecta(base, clave))
-            throw new IllegalArgumentException("La contraseña actual no es correcta.");
-        Path copia = Files.createTempFile(base.toAbsolutePath().getParent(), "concretolab-cifrada-", ".bak");
-        Files.copy(base, copia, StandardCopyOption.REPLACE_EXISTING);
+    /** Motivo de la copia que se guarda antes de quitar la contraseña (aparece en «Datos y copias»). */
+    public static final String ERICK_DELGADO_MOTIVO_ANTES_DE_QUITAR_CLAVE = "antes-de-quitar-clave";
+
+    /**
+     * Convierte una base protegida con contraseña en una base sin contraseña, sin perder datos:
+     * <ol>
+     *   <li>comprueba la contraseña y cuenta las filas de cada tabla;</li>
+     *   <li>guarda una copia exacta de la base protegida en {@code carpetaCopias} (no se rota ni se borra sola);</li>
+     *   <li>quita la contraseña y verifica la cabecera, la integridad y que cada tabla tenga las mismas filas;</li>
+     *   <li>si algo falla, vuelve a poner la copia en su lugar: la base queda como estaba.</li>
+     * </ol>
+     *
+     * @return la copia de la base protegida
+     * @throws IllegalArgumentException si la contraseña no es correcta (no se modifica nada)
+     */
+    public static Path erickDelgadoQuitarClave(Path base, char[] clave, Path carpetaCopias) throws SQLException, IOException {
+        if (erickDelgadoInspeccionar(base) != Estado.CIFRADA) throw new IllegalStateException("La base no está protegida con contraseña.");
+        if (!erickDelgadoClaveCorrecta(base, clave)) throw new IllegalArgumentException("La contraseña actual no es correcta.");
+        Map<String, Long> antes = erickDelgadoFilasPorTabla(base, clave);
+
+        Files.createDirectories(carpetaCopias);
+        java.time.LocalDateTime marca = java.time.LocalDateTime.now().withNano(0);
+        Path copia = carpetaCopias.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, ERICK_DELGADO_MOTIVO_ANTES_DE_QUITAR_CLAVE));
+        while (Files.exists(copia)) {
+            marca = marca.plusSeconds(1);
+            copia = carpetaCopias.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, ERICK_DELGADO_MOTIVO_ANTES_DE_QUITAR_CLAVE));
+        }
+        Files.copy(base, copia);
+        if (Files.size(copia) != Files.size(base) || erickDelgadoInspeccionar(copia) != Estado.CIFRADA) {
+            Files.deleteIfExists(copia);
+            throw new IOException("No se pudo guardar la copia previa; la base no se modificó.");
+        }
+
         try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(clave));
              Statement s = c.createStatement()) {
             s.execute("PRAGMA rekey=''");
         } catch (SQLException e) {
-            throw new SQLException("No se pudo quitar la contraseña. Se conservó la copia " + copia, e);
+            Files.copy(copia, base, StandardCopyOption.REPLACE_EXISTING);
+            throw new SQLException("No se pudo quitar la contraseña; se dejó la base como estaba.", e);
         }
-        if (erickDelgadoInspeccionar(base) != Estado.SIN_CIFRAR || !erickDelgadoClaveCorrecta(base, null))
-            throw new SQLException("No se pudo verificar la base. Se conservó la copia " + copia);
+        String problema = null;
+        try {
+            if (erickDelgadoInspeccionar(base) != Estado.SIN_CIFRAR) problema = "la base sigue protegida";
+            else if (!"ok".equalsIgnoreCase(erickDelgadoIntegridad(base))) problema = "la revisión de integridad falló";
+            else if (!antes.equals(erickDelgadoFilasPorTabla(base, null))) problema = "la cantidad de registros cambió";
+        } catch (SQLException e) {
+            problema = e.getMessage();
+        }
+        if (problema != null) {
+            Files.copy(copia, base, StandardCopyOption.REPLACE_EXISTING);
+            throw new SQLException("No se pudo verificar la conversión (" + problema + "); se dejó la base como estaba.");
+        }
+        return copia;
+    }
+
+    /** Filas de cada tabla de la base (para comprobar que una conversión no pierde datos). */
+    static Map<String, Long> erickDelgadoFilasPorTabla(Path base, char[] clave) throws SQLException {
+        var filas = new java.util.TreeMap<String, Long>();
+        try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(clave));
+             Statement s = c.createStatement()) {
+            var tablas = new java.util.ArrayList<String>();
+            try (var rs = s.executeQuery("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")) {
+                while (rs.next()) tablas.add(rs.getString(1));
+            }
+            for (String t : tablas) {
+                try (var rs = s.executeQuery("SELECT count(*) FROM \"" + t.replace("\"", "\"\"") + "\"")) {
+                    rs.next();
+                    filas.put(t, rs.getLong(1));
+                }
+            }
+        }
+        return filas;
+    }
+
+    private static String erickDelgadoIntegridad(Path base) throws SQLException {
+        try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(null));
+             Statement s = c.createStatement(); var rs = s.executeQuery("PRAGMA integrity_check")) {
+            return rs.next() ? rs.getString(1) : "";
+        }
     }
 
     private static String erickDelgadoEscapar(char[] clave) {

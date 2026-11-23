@@ -3,6 +3,7 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\CifradoArchivoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\CifradoBaseTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\CompatibilidadMezclaTest.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\controller\EdicionLoteTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\CuadriculaIntegracionTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\DisenoMezclaTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\DxfDeteccionTest.java
@@ -16,12 +17,14 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\IntercambioProyectoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\MetradoNetoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\MezclaIntegracionTest.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\ModeloSeleccionMultipleTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\MovimientoElementoIntegracionTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\OsciladorSismicoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\PendientesCierreTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\PerfilesNormaTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\PlanoDxfRobustezTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\ProyectoIntegracionTest.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\RecomendacionSismicaTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\RegistrosSismicosTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\RespaldoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\SeederApagadoPorDefectoTest.java
@@ -29,7 +32,9 @@ C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\SismoE030Test.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\TiempoHistoriaPestanaTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\TiempoHistoriaTest.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\TmpCapturaDatos.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\ui\VisorMovimientoTest.java
+C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\ui\VisorSeleccionTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\VistasFxmlTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\VolumenAbsolutoTest.java
 C:\documentos\Proyectos\offline\ConcretoLabDesktop\src\test\java\com\concretolab\ZonificacionServiceTest.java

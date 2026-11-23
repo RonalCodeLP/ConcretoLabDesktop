@@ -181,8 +181,7 @@ public class MainController {
 
     @FXML
     private void onAcercaDe() {
-        boolean cifrada = fernandoHuancaContext.getBean(com.concretolab.service.ClaveBaseService.class).erickDelgadoEstaCifrada();
-        com.concretolab.ui.AcercaDe.fernandoHuancaMostrar(raiz.getScene().getWindow(), fernandoHuancaVersion, cifrada,
+        com.concretolab.ui.AcercaDe.fernandoHuancaMostrar(raiz.getScene().getWindow(), fernandoHuancaVersion,
                 com.concretolab.service.RespaldoDatos.erickDelgadoCarpetaDatos().toString());
     }
 

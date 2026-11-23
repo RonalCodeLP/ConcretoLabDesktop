@@ -35,8 +35,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * Datos y copias de seguridad: ubicación de la base y de los registros, copias manuales y restauración,
- * exportación e importación de proyectos (con cifrado opcional) e historial de cambios.
+ * Datos y copias de seguridad, pensada para el cliente: copias (crear, restaurar, eliminar) y exportación e importación
+ * de proyectos (el archivo exportado puede protegerse con contraseña de forma opcional). Las rutas, los registros y el
+ * historial de cambios están en «Opciones avanzadas».
  */
 @Component
 @RequiredArgsConstructor
@@ -54,38 +55,18 @@ public class DatosController implements Refrescable {
     private final Notificador erickDelgadoNotificador;
     private final Exportador exportador;
 
+    // ---- opciones avanzadas
     @FXML private Label lblRutaBase;
     @FXML private Label lblTamanoBase;
-    @FXML private Label lblCifrado;
-    @FXML private Button btnCambiarClave;
-    private final com.concretolab.service.ClaveBaseService erickDelgadoClaveBase;
 
-    @FXML
-    private void onCambiarClaveBase() {
-        var respuesta = com.concretolab.ui.DialogoClaveBase.erickDelgadoPedirCambio();
-        if (respuesta.isEmpty()) {
-            return;
-        }
-        try {
-            erickDelgadoClaveBase.erickDelgadoCambiar(respuesta.get()[0], respuesta.get()[1]);
-        } catch (IllegalArgumentException e) {
-            erickDelgadoNotificador.fernandoHuancaAdvertencia(e.getMessage());
-            return;
-        } catch (Exception e) {
-            erickDelgadoNotificador.fernandoHuancaError("No se pudo cambiar la contraseña: " + e.getMessage());
-            return;
-        }
-        var aviso = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
-                "La contraseña se cambió. La aplicación se cerrará ahora; vuelva a abrirla con la nueva contraseña.");
-        aviso.setHeaderText("Contraseña cambiada");
-        aviso.showAndWait();
-        javafx.application.Platform.exit();
-    }
+    // ---- copias
+    @FXML private Label lblRestauracionPendiente;
     @FXML private TableView<RespaldoService.Copia> tablaCopias;
     @FXML private TableColumn<RespaldoService.Copia, String> colFechaCopia;
     @FXML private TableColumn<RespaldoService.Copia, String> colTipoCopia;
     @FXML private TableColumn<RespaldoService.Copia, String> colTamanoCopia;
-    @FXML private TableColumn<RespaldoService.Copia, String> colNombreCopia;
+    /** Cierra la aplicación tras programar una restauración (se sustituye en las pruebas). */
+    private Runnable erickDelgadoCerrarAplicacion = javafx.application.Platform::exit;
     @FXML private Button btnRestaurar;
     @FXML private Button btnEliminarCopia;
     @FXML private ComboBox<Proyecto> cmbProyecto;
@@ -117,7 +98,6 @@ public class DatosController implements Refrescable {
         colFechaCopia.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().fecha().format(ERICK_DELGADO_FORMATO_FECHA)));
         colTipoCopia.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoNombreTipo(c.getValue().tipo())));
         colTamanoCopia.setCellValueFactory(c -> new SimpleStringProperty(erickDelgadoTamano(c.getValue().bytes())));
-        colNombreCopia.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().nombre()));
         Tablas.fernandoHuancaConfigurar(tablaCopias, "Todavía no hay copias de seguridad.", copia -> { });
         btnRestaurar.disableProperty().bind(tablaCopias.getSelectionModel().selectedItemProperty().isNull());
         btnEliminarCopia.disableProperty().bind(tablaCopias.getSelectionModel().selectedItemProperty().isNull());
@@ -137,13 +117,15 @@ public class DatosController implements Refrescable {
 
     @Override
     public void refrescar() {
-        boolean cifrada = erickDelgadoClaveBase.erickDelgadoEstaCifrada();
-        lblCifrado.setText(cifrada ? "Cifrado: SÍ (AES-256). La contraseña se pide al abrir la aplicación."
-                : "Cifrado: NO. Esta base no está cifrada (modo de pruebas o abierta con otro método).");
-        btnCambiarClave.setVisible(false);
-        btnCambiarClave.setManaged(false);
-        lblRutaBase.setText("Base de datos: " + erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos() + "\nRegistros: " + erickDelgadoRespaldos.erickDelgadoCarpetaRegistros());
-        lblTamanoBase.setText("Tamaño de la base: " + erickDelgadoTamano(erickDelgadoRespaldos.erickDelgadoTamanoBaseDatos()) + " · Copias en: " + erickDelgadoRespaldos.erickDelgadoCarpetaCopias());
+        lblRutaBase.setText("Base de datos: " + erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos()
+                + "\nCopias de seguridad: " + erickDelgadoRespaldos.erickDelgadoCarpetaCopias()
+                + "\nRegistros de la aplicación: " + erickDelgadoRespaldos.erickDelgadoCarpetaRegistros());
+        lblTamanoBase.setText("Tamaño de la base de datos: " + erickDelgadoTamano(erickDelgadoRespaldos.erickDelgadoTamanoBaseDatos()));
+        var pendiente = erickDelgadoRespaldos.erickDelgadoRestauracionPendiente();
+        lblRestauracionPendiente.setText(pendiente.map(p -> "Restauración pendiente: la copia «" + p.getFileName()
+                + "» se aplicará la próxima vez que abras ConcretoLab.").orElse(""));
+        lblRestauracionPendiente.setVisible(pendiente.isPresent());
+        lblRestauracionPendiente.setManaged(pendiente.isPresent());
         tablaCopias.getItems().setAll(erickDelgadoRespaldos.erickDelgadoListar());
         Proyecto activo = erickDelgadoSesion.getProyecto();
         cmbProyecto.getItems().setAll(proyectos.proyectos());
@@ -170,15 +152,16 @@ public class DatosController implements Refrescable {
         var copia = tablaCopias.getSelectionModel().getSelectedItem();
         if (copia == null) return;
         erickDelgadoNotificador.fernandoHuancaConfirmar("Restaurar copia",
-                "Se reemplazarán todos tus datos actuales por los de la copia del " + copia.fecha().format(ERICK_DELGADO_FORMATO_FECHA)
-                        + ". Antes se guardará una copia de lo actual. El cambio se aplica al volver a abrir la aplicación.",
-                "Restaurar", () -> {
+                "Tus datos actuales se reemplazarán por los de la copia del " + copia.fecha().format(ERICK_DELGADO_FORMATO_FECHA)
+                        + ". Antes se guarda automáticamente una copia de lo que tienes ahora.\n\n"
+                        + "ConcretoLab se cerrará para aplicarla: vuelve a abrirlo y verás los datos de esa copia.",
+                "Restaurar y cerrar", () -> {
                     try {
                         erickDelgadoRespaldos.erickDelgadoProgramarRestauracion(copia.archivo());
-                        erickDelgadoNotificador.fernandoHuancaAdvertencia("Restauración programada. Cierra ConcretoLab y vuelve a abrirlo para aplicarla.");
                         refrescar();
-                    } catch (IllegalArgumentException ex) {
-                        erickDelgadoNotificador.fernandoHuancaError(ex.getMessage());
+                        erickDelgadoCerrarAplicacion.run();
+                    } catch (IllegalArgumentException | java.io.UncheckedIOException ex) {
+                        erickDelgadoNotificador.fernandoHuancaError(erickDelgadoMensaje(ex));
                     }
                 });
     }
@@ -210,7 +193,7 @@ public class DatosController implements Refrescable {
         erickDelgadoModo = Modo.EXPORTAR;
         erickDelgadoProyectoAExportar = p;
         lblTituloContrasena.setText("Exportar «" + p.getNombre() + "»");
-        lblSubtituloContrasena.setText("Puedes protegerlo con una contraseña");
+        lblSubtituloContrasena.setText("Se guardará como archivo .concretolab");
         erickDelgadoAbrirPanelContrasena(false);
     }
 
@@ -381,6 +364,7 @@ public class DatosController implements Refrescable {
             case "cierre" -> "Al cerrarla";
             case "manual" -> "Manual";
             case "previa-restauracion" -> "Antes de restaurar";
+            case "antes-de-quitar-clave" -> "Base anterior con contraseña";
             default -> tipo;
         };
     }

@@ -27,9 +27,35 @@ public final class GuiaSismica {
     /** Nivel de una verificacion mostrada en el semaforo. */
     public enum Nivel { OK, ALERTA, ERROR, INFO }
 
-    /** Una linea de la lista de verificaciones. */
-    public record Verificacion(Nivel nivel, String texto) {
+    /** Que ofrece el boton de mejora de una verificacion. */
+    public enum Correccion {
+        /** Sin boton: la verificacion cumple o es solo informativa. */
+        NINGUNA,
+        /** La deriva no cumple: se calcula cuanto agrandar las columnas y se precarga en el modelo 3D. */
+        DERIVA,
+        /** Solo un consejo en texto (no hay un cambio del modelo que lo resuelva de forma directa). */
+        CONSEJO
     }
+
+    /** Una linea de la lista de verificaciones; {@code consejo} explica como mejorarla cuando no cumple. */
+    public record Verificacion(Nivel nivel, String texto, Correccion correccion, String consejo) {
+        public Verificacion(Nivel nivel, String texto) {
+            this(nivel, texto, Correccion.NINGUNA, null);
+        }
+    }
+
+    static final String WALTER_QUISPESAYHUA_CONSEJO_TORSION = "La torsión aparece cuando la rigidez está repartida de forma desigual en planta "
+            + "(el centro de rigidez queda lejos del centro de masas). Para corregirla: agrande las columnas o agregue placas en el lado "
+            + "más flexible del perímetro, o haga la planta más simétrica. Si la irregularidad se mantiene, la norma pide reducir R con Ip "
+            + "(Opciones avanzadas). Después vuelva a calcular.";
+    static final String WALTER_QUISPESAYHUA_CONSEJO_CORTANTE = "No es un error del modelo: la norma exige que el cortante dinámico no sea menor "
+            + "que un porcentaje del estático, y la aplicación ya escaló las fuerzas. No hace falta cambiar nada.";
+    static final String WALTER_QUISPESAYHUA_CONSEJO_ESTATICO = "Por la altura o la irregularidad del edificio, la norma no permite usar el método "
+            + "estático. Tome como válido el resultado espectral (pestaña «Espectral» y derivas espectrales).";
+    static final String WALTER_QUISPESAYHUA_CONSEJO_SISTEMA = "Esta categoría y zona no permiten pórticos. Cambie la estructuración a sistema dual "
+            + "o de muros de concreto (placas) y analícela en un programa que modele muros; esta aplicación solo analiza pórticos.";
+    static final String WALTER_QUISPESAYHUA_CONSEJO_AISLAMIENTO = "La norma pide aislamiento sísmico para este uso en zonas 3 y 4. "
+            + "Se requiere un proyecto con aisladores, que esta aplicación no modela.";
 
     /** Zona de la E.030 a partir del numero 1 a 4 del Anexo II. */
     public static Zona walterQuispesayhuaZonaDe(int numero) {
@@ -124,29 +150,36 @@ public final class GuiaSismica {
                 new Object[]{"Espectral", r.espectralX()}, new Object[]{"Espectral", r.espectralY()})) {
             Direccion d = (Direccion) par[1];
             boolean ok = d.cumple();
-            v.add(new Verificacion(ok ? Nivel.OK : Nivel.ERROR, "Deriva " + par[0].toString().toLowerCase(Locale.ROOT) + " " + d.nombre()
-                    + ": " + String.format(Locale.ROOT, "%.5f", d.derivaMaxima()) + (ok ? " ≤ " : " > ") + lim));
+            String texto = "Deriva " + par[0].toString().toLowerCase(Locale.ROOT) + " " + d.nombre()
+                    + ": " + String.format(Locale.ROOT, "%.5f", d.derivaMaxima()) + (ok ? " ≤ " : " > ") + lim;
+            v.add(ok ? new Verificacion(Nivel.OK, texto)
+                    : new Verificacion(Nivel.ERROR, texto, Correccion.DERIVA, "El edificio es demasiado flexible en " + d.nombre()
+                            + ": hay que darle más rigidez lateral en esa dirección."));
         }
         double escala = Math.max(r.espectralX().factorEscala(), r.espectralY().factorEscala());
         v.add(escala > 1.0001
                 ? new Verificacion(Nivel.ALERTA, "Cortante mínimo (" + norma.art("minimo") + "): el cortante dinámico era menor y se escalaron las fuerzas por "
-                        + String.format(Locale.ROOT, "%.2f", escala) + ".")
+                        + String.format(Locale.ROOT, "%.2f", escala) + ".", Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_CORTANTE)
                 : new Verificacion(Nivel.OK, "Cortante mínimo (" + norma.art("minimo") + "): el cortante dinámico alcanza el mínimo, sin escalar."));
         double razon = walterQuispesayhuaRazonTorsionMaxima(r);
-        if (razon > 1.5) v.add(new Verificacion(Nivel.ERROR, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (irregularidad torsional extrema; revise Ip)."));
-        else if (razon > 1.3) v.add(new Verificacion(Nivel.ALERTA, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (posible irregularidad torsional; revise Ip)."));
+        if (razon > 1.5) v.add(new Verificacion(Nivel.ERROR, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (irregularidad torsional extrema; revise Ip).",
+                Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_TORSION));
+        else if (razon > 1.3) v.add(new Verificacion(Nivel.ALERTA, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (posible irregularidad torsional; revise Ip).",
+                Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_TORSION));
         else v.add(new Verificacion(Nivel.OK, "Torsión: Δmáx/Δprom = " + String.format(Locale.ROOT, "%.2f", razon) + " (sin irregularidad torsional)."));
         double hn = r.junta().alturaM();
         boolean estaticoAplica = norma.regular() ? !(hn > 30 && norma.zona() != Zona.Z1) : norma.zona() == Zona.Z1;
         v.add(estaticoAplica
                 ? new Verificacion(Nivel.OK, "Método estático aplicable (" + norma.art("aplicabilidad") + ").")
-                : new Verificacion(Nivel.ALERTA, "El método estático NO es aplicable (" + norma.art("aplicabilidad") + "): use el resultado espectral."));
+                : new Verificacion(Nivel.ALERTA, "El método estático NO es aplicable (" + norma.art("aplicabilidad") + "): use el resultado espectral.",
+                        Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_ESTATICO));
         String t9 = walterQuispesayhuaAvisoTabla9(norma.categoria(), norma.zona(), norma.version());
         v.add(t9 == null
                 ? new Verificacion(Nivel.OK, "Sistema estructural: los pórticos están permitidos para la categoría " + norma.categoria().name() + " en esta zona.")
-                : new Verificacion(Nivel.ERROR, t9));
+                : new Verificacion(Nivel.ERROR, t9, Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_SISTEMA));
         if (uso != null && uso.requiereAislamientoZ3Z4() && (norma.zona() == Zona.Z3 || norma.zona() == Zona.Z4))
-            v.add(new Verificacion(Nivel.ERROR, "Tabla 7: esta edificación (A1) pide aislamiento sísmico en zonas 3 y 4; la aplicación no lo modela."));
+            v.add(new Verificacion(Nivel.ERROR, "Tabla 7: esta edificación (A1) pide aislamiento sísmico en zonas 3 y 4; la aplicación no lo modela.",
+                    Correccion.CONSEJO, WALTER_QUISPESAYHUA_CONSEJO_AISLAMIENTO));
         var j = r.junta();
         v.add(new Verificacion(Nivel.INFO, "Junta sísmica (" + norma.art("junta") + "): mínimo por norma " + String.format(Locale.ROOT, "%.1f cm", j.minimoNormaM() * 100)
                 + "; este edificio aporta 2/3 de su desplazamiento = " + String.format(Locale.ROOT, "%.1f cm", j.dosTerciosPropioM() * 100)

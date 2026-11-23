@@ -1,3 +1,4 @@
+com\concretolab\ModeloSeleccionMultipleTest.class
 com\concretolab\CuadriculaIntegracionTest.class
 com\concretolab\HistoriaPisoTest.class
 com\concretolab\SeederApagadoPorDefectoTest.class
@@ -5,7 +6,9 @@ com\concretolab\GuiaSismicaTest.class
 com\concretolab\ZonificacionServiceTest.class
 com\concretolab\RegistrosSismicosTest.class
 com\concretolab\RespaldoTest.class
+com\concretolab\TmpCapturaDatos.class
 com\concretolab\EdificioPracticaSeederTest.class
+com\concretolab\RecomendacionSismicaTest.class
 com\concretolab\TiempoHistoriaTest.class
 com\concretolab\VolumenAbsolutoTest.class
 com\concretolab\IntercambioProyectoTest.class
@@ -18,6 +21,7 @@ com\concretolab\CompatibilidadMezclaTest.class
 com\concretolab\PlanoDxfRobustezTest.class
 com\concretolab\DxfDeteccionTest.class
 com\concretolab\SeederDemostracionTest.class
+com\concretolab\controller\EdicionLoteTest.class
 com\concretolab\DisenoMezclaTest.class
 com\concretolab\VistasFxmlTest.class
 com\concretolab\CifradoBaseTest.class
@@ -32,5 +36,6 @@ com\concretolab\ProyectoIntegracionTest.class
 com\concretolab\TiempoHistoriaPestanaTest.class
 com\concretolab\EsquemaMigracionesTest.class
 com\concretolab\MetradoNetoTest.class
+com\concretolab\ui\VisorSeleccionTest.class
 com\concretolab\CifradoArchivoTest.class
 com\concretolab\ExportacionIfcEtabsTest.class

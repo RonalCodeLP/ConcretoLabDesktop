@@ -118,7 +118,59 @@
 
             <HBox styleClass="drawer-footer">
                 <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button fx:id="btnMoverDesdeEditar" text="Mover en 3D" onAction="#onMoverDesdeEditar" styleClass="button-outlined">
+                    <graphic><FontIcon iconLiteral="fth-move"/></graphic>
+                </Button>
                 <Button text="Guardar" onAction="#onGuardarElemento" styleClass="accent" defaultButton="true">
+                    <graphic><FontIcon iconLiteral="fth-check"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <!-- ============ Panel: editar varios elementos a la vez ============ -->
+        <VBox fx:id="panelLote" styleClass="drawer"
+              prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
+            <HBox styleClass="drawer-header">
+                <StackPane styleClass="drawer-icono"><FontIcon iconLiteral="fth-layers"/></StackPane>
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label fx:id="lblTituloLote" text="Editar varios elementos" styleClass="drawer-titulo"/>
+                    <Label text="Solo cambian los campos que llene" styleClass="drawer-subtitulo"/>
+                </VBox>
+                <Button onAction="#onCerrarPanel" styleClass="flat,button-circle">
+                    <graphic><FontIcon iconLiteral="fth-x"/></graphic>
+                </Button>
+            </HBox>
+
+            <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
+                <VBox styleClass="drawer-body">
+                    <Label fx:id="lblAvisoLote" styleClass="modelo-resumen" wrapText="true" maxWidth="Infinity"
+                           minHeight="-Infinity" visible="false" managed="false"/>
+                    <Label fx:id="lblDetalleLote" styleClass="pagina-subtitulo" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
+                    <Label text="Deje vacío para no cambiar. Escriba 0,50 para fijar la medida, o +0,05 / -0,05 para sumar o restar a cada elemento."
+                           styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
+
+                    <Label text="DIMENSIONES (m)" styleClass="seccion-form"/>
+                    <VBox styleClass="campo">
+                        <Label text="Largo eje X" styleClass="campo-label"/>
+                        <TextField fx:id="txtLoteLargo" promptText="Sin cambio"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Ancho eje Y" styleClass="campo-label"/>
+                        <TextField fx:id="txtLoteAncho" promptText="Sin cambio"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                    <VBox styleClass="campo">
+                        <Label text="Altura eje Z" styleClass="campo-label"/>
+                        <TextField fx:id="txtLoteAltura" promptText="Sin cambio"/>
+                        <Label styleClass="campo-error" visible="false" managed="false"/>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+
+            <HBox styleClass="drawer-footer">
+                <Button text="Cancelar" onAction="#onCerrarPanel" styleClass="button-outlined"/>
+                <Button fx:id="btnAplicarLote" text="Aplicar" onAction="#onGuardarLote" styleClass="accent" defaultButton="true">
                     <graphic><FontIcon iconLiteral="fth-check"/></graphic>
                 </Button>
             </HBox>
@@ -258,6 +310,16 @@
                 <Button fx:id="btnDeshacerMovimiento" text="Deshacer movimiento" onAction="#onDeshacerMovimiento" styleClass="button-outlined"/>
             </HBox>
 
+            <HBox spacing="8.0" alignment="CENTER_LEFT">
+                <ComboBox fx:id="cmbFiltroTipo" prefWidth="145.0" minWidth="120.0"/>
+                <Button fx:id="btnSeleccionarTodo" text="Todos" onAction="#onSeleccionarTodo"
+                        styleClass="button-outlined,button-small" minWidth="-Infinity">
+                    <tooltip><Tooltip text="Seleccionar todos los elementos de la lista (para editarlos a la vez)"/></tooltip>
+                    <graphic><FontIcon iconLiteral="fth-check-square"/></graphic>
+                </Button>
+                <Label fx:id="lblSeleccion" styleClass="pagina-subtitulo" minWidth="-Infinity"/>
+            </HBox>
+
             <TableView fx:id="tabla" VBox.vgrow="ALWAYS">
                 <columns>
                     <TableColumn fx:id="colTipo" text="TIPO" prefWidth="100.0"/>
@@ -266,11 +328,14 @@
                 </columns>
             </TableView>
 
-            <Label fx:id="lblResumen" text="Seleccione un proyecto" styleClass="modelo-resumen"
-                   wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
-            <Button text="Cuantías de acero…" onAction="#onEditarCuantias" styleClass="button-outlined,button-small">
-                <graphic><FontIcon iconLiteral="fth-sliders"/></graphic>
-            </Button>
+            <HBox spacing="8.0" alignment="CENTER_LEFT">
+                <Button text="Cuantías de acero…" onAction="#onEditarCuantias" styleClass="button-outlined,button-small">
+                    <graphic><FontIcon iconLiteral="fth-sliders"/></graphic>
+                </Button>
+                <Button fx:id="btnMetrado" text="Metrado" onAction="#onVerMetrado" styleClass="button-outlined,button-small">
+                    <graphic><FontIcon iconLiteral="fth-info"/></graphic>
+                </Button>
+            </HBox>
         </VBox>
 
         <!-- Visor 3D -->
@@ -285,8 +350,8 @@
                 <Button fx:id="btnExportarDxf" text="Exportar DXF…" onAction="#onExportarDxf"
                         styleClass="button-outlined"/>
             </HBox>
-            <Label text="Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Posiciones expresadas en metros"
-                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <Label text="Clic: seleccionar · Ctrl+clic: seleccionar varios · Doble clic: editar · Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Medidas en metros"
+                   styleClass="pagina-subtitulo" wrapText="true" minHeight="-Infinity"/>
             <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>
             <VBox fx:id="panelMovimiento" visible="false" managed="false"/>
             <Label text="La vista no realiza análisis estructural. El metrado descuenta cruces entre elementos; el encofrado y el acero son referenciales."

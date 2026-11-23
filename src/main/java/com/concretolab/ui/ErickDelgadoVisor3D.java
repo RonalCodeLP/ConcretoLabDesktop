@@ -53,6 +53,16 @@ public class ErickDelgadoVisor3D {
     private Long erickDelgadoIdMovimiento;
     private Consumer<Double> erickDelgadoAlArrastrar;
     private double erickDelgadoInicioArrastre;
+    /** Tiempo máximo entre dos clics sobre el mismo elemento para tomarlos como doble clic. */
+    public static final long ERICK_DELGADO_DOBLE_CLIC_MS = 450;
+
+    /** Clic sobre un elemento: {@code agregar} es true con Ctrl (o Shift / Cmd) para sumar o quitar de la selección. */
+    @FunctionalInterface
+    public interface AlClic {
+        void accept(Elemento elemento, boolean agregar);
+    }
+    private Long erickDelgadoUltimoClicId;
+    private long erickDelgadoUltimoClicMs;
 
     public ErickDelgadoVisor3D() {
         contenido.getChildren().addAll(erickDelgadoSuelo, ejes, erickDelgadoReferencias, elementos);
@@ -103,15 +113,37 @@ public class ErickDelgadoVisor3D {
 
     /** Redibuja los elementos. Si {@code reencuadrar} es true, ajusta el suelo y la cámara al modelo. */
     public void erickDelgadoMostrar(List<Elemento> lista, Elemento seleccionado, Consumer<Elemento> alSeleccionar, boolean reencuadrar) {
+        erickDelgadoMostrar(lista, e -> e == seleccionado, (e, agregar) -> alSeleccionar.accept(e), e -> { }, reencuadrar);
+    }
+
+    /**
+     * Igual que {@link #erickDelgadoMostrar(List, Elemento, Consumer, boolean)} pero resalta todos los elementos que cumplen
+     * {@code resaltado} (selección múltiple), distingue el clic con Ctrl (agregar a la selección) y avisa del doble clic
+     * sobre un elemento con {@code alDobleClic} (el segundo clic de un doble clic no vuelve a seleccionar).
+     */
+    public void erickDelgadoMostrar(List<Elemento> lista, java.util.function.Predicate<Elemento> resaltado, AlClic alSeleccionar,
+                                    Consumer<Elemento> alDobleClic, boolean reencuadrar) {
         elementos.getChildren().clear();
         for (Elemento e : lista) {
+            boolean marcado = resaltado.test(e);
             Box caja = new Box(e.getLargo() * ERICK_DELGADO_ESCALA, e.getAltura() * ERICK_DELGADO_ESCALA, e.getAncho() * ERICK_DELGADO_ESCALA);
             caja.setTranslateX(e.getX() * ERICK_DELGADO_ESCALA);
             caja.setTranslateY(-e.getZ() * ERICK_DELGADO_ESCALA);
             caja.setTranslateZ(e.getY() * ERICK_DELGADO_ESCALA);
-            caja.setMaterial(erickDelgadoMaterial(e == seleccionado ? ERICK_DELGADO_COLOR_SELECCION : erickDelgadoColorDe(e.getTipo()), e == seleccionado));
+            caja.setMaterial(erickDelgadoMaterial(marcado ? ERICK_DELGADO_COLOR_SELECCION : erickDelgadoColorDe(e.getTipo()), marcado));
             caja.setUserData(e.getId());
-            caja.setOnMouseClicked(ev -> { if (erickDelgadoIdMovimiento == null && ev.isStillSincePress() && ev.getButton() == MouseButton.PRIMARY) alSeleccionar.accept(e); });
+            caja.setOnMouseClicked(ev -> {
+                if (erickDelgadoIdMovimiento != null || !ev.isStillSincePress() || ev.getButton() != MouseButton.PRIMARY) return;
+                // La caja se vuelve a crear al seleccionar, así que el doble clic se detecta por elemento y tiempo, no por nodo.
+                boolean agregar = ev.isControlDown() || ev.isShortcutDown() || ev.isMetaDown() || ev.isShiftDown();
+                long ahora = System.currentTimeMillis();
+                boolean doble = !agregar && e.getId() != null && e.getId().equals(erickDelgadoUltimoClicId)
+                        && ahora - erickDelgadoUltimoClicMs <= ERICK_DELGADO_DOBLE_CLIC_MS;
+                erickDelgadoUltimoClicId = doble || agregar ? null : e.getId();
+                erickDelgadoUltimoClicMs = ahora;
+                if (doble) alDobleClic.accept(e);
+                else alSeleccionar.accept(e, agregar);
+            });
             caja.setOnMousePressed(ev -> {
                 if (erickDelgadoIdMovimiento != null && erickDelgadoIdMovimiento.equals(e.getId()) && ev.getButton() == MouseButton.PRIMARY) {
                     erickDelgadoInicioArrastre = ev.getSceneX();
@@ -290,7 +322,7 @@ public class ErickDelgadoVisor3D {
     }
 
     private void erickDelgadoAjustar() {
-        vista(-25, -35);
+        vista(25, -35); // mismo ángulo que «Isométrica» (el eje X se invirtió para que Z quede hacia arriba)
         erickDelgadoDistancia = erickDelgadoDistanciaParaEncuadrar(erickDelgadoRadioModelo);
         new Timeline(new KeyFrame(Duration.millis(350), new KeyValue(erickDelgadoCamara.translateZProperty(), -erickDelgadoDistancia))).play();
     }
