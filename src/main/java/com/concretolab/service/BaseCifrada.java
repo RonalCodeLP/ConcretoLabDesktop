@@ -14,14 +14,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Properties;
 
-/**
- * Bases SQLite protegidas con contraseña (AES-256, modo SQLCipher 4 del driver SQLite3MultipleCiphers). Las versiones
- * anteriores de ConcretoLab las creaban así; la actual abre sin contraseña y usa esta clase para reconocer esas bases y
- * convertirlas una sola vez ({@link #erickDelgadoQuitarClave}). Sin la contraseña el archivo es indescifrable: no hay
- * ninguna puerta trasera ni se guardó nunca la clave en disco.
- */
 public final class BaseCifrada {
-
     private BaseCifrada() { }
 
     public enum Estado { NO_EXISTE, SIN_CIFRAR, CIFRADA }
@@ -29,7 +22,6 @@ public final class BaseCifrada {
     private static final byte[] ERICK_DELGADO_CABECERA = "SQLite format 3\0".getBytes(StandardCharsets.ISO_8859_1);
     public static final int ERICK_DELGADO_LONGITUD_MINIMA = 8;
 
-    /** Propiedades de conexión del driver para abrir la base con esa contraseña (sin clave: base sin cifrar). */
     public static Properties erickDelgadoPropiedades(char[] clave) {
         Properties p = new Properties();
         p.setProperty("cipher", "sqlcipher");
@@ -38,7 +30,6 @@ public final class BaseCifrada {
         return p;
     }
 
-    /** Las mismas propiedades como mapa, para pasarlas a Spring/Hikari como {@code data-source-properties}. */
     public static Map<String, Object> erickDelgadoPropiedadesSpring(char[] clave) {
         Properties p = erickDelgadoPropiedades(clave);
         var m = new java.util.LinkedHashMap<String, Object>();
@@ -62,7 +53,6 @@ public final class BaseCifrada {
         return "jdbc:sqlite:" + base.toAbsolutePath();
     }
 
-    /** Comprueba que la contraseña abre la base: lee el catálogo, que falla con «file is not a database» si es incorrecta. */
     public static boolean erickDelgadoClaveCorrecta(Path base, char[] clave) {
         try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(clave));
              Statement s = c.createStatement()) {
@@ -79,10 +69,6 @@ public final class BaseCifrada {
         }
     }
 
-    /**
-     * Cifra una base sin cifrar en el sitio. Antes guarda una copia sin cifrar junto al archivo; si la verificación con
-     * la contraseña falla, deja la base como estaba. Devuelve la ruta de esa copia.
-     */
     public static Path erickDelgadoCifrarExistente(Path base, char[] clave) throws SQLException, IOException {
         erickDelgadoValidarClaveNueva(clave);
         if (erickDelgadoInspeccionar(base) != Estado.SIN_CIFRAR) throw new IllegalStateException("La base no está sin cifrar.");
@@ -102,7 +88,6 @@ public final class BaseCifrada {
         return copia;
     }
 
-    /** Cambia la contraseña de una base cifrada. Falla sin tocar nada si la contraseña actual es incorrecta. */
     public static void erickDelgadoCambiarClave(Path base, char[] actual, char[] nueva) throws SQLException {
         erickDelgadoValidarClaveNueva(nueva);
         if (!erickDelgadoClaveCorrecta(base, actual)) throw new IllegalArgumentException("La contraseña actual no es correcta.");
@@ -113,21 +98,8 @@ public final class BaseCifrada {
         if (!erickDelgadoClaveCorrecta(base, nueva)) throw new SQLException("No se pudo verificar la nueva contraseña.");
     }
 
-    /** Motivo de la copia que se guarda antes de quitar la contraseña (aparece en «Datos y copias»). */
     public static final String ERICK_DELGADO_MOTIVO_ANTES_DE_QUITAR_CLAVE = "antes-de-quitar-clave";
 
-    /**
-     * Convierte una base protegida con contraseña en una base sin contraseña, sin perder datos:
-     * <ol>
-     *   <li>comprueba la contraseña y cuenta las filas de cada tabla;</li>
-     *   <li>guarda una copia exacta de la base protegida en {@code carpetaCopias} (no se rota ni se borra sola);</li>
-     *   <li>quita la contraseña y verifica la cabecera, la integridad y que cada tabla tenga las mismas filas;</li>
-     *   <li>si algo falla, vuelve a poner la copia en su lugar: la base queda como estaba.</li>
-     * </ol>
-     *
-     * @return la copia de la base protegida
-     * @throws IllegalArgumentException si la contraseña no es correcta (no se modifica nada)
-     */
     public static Path erickDelgadoQuitarClave(Path base, char[] clave, Path carpetaCopias) throws SQLException, IOException {
         if (erickDelgadoInspeccionar(base) != Estado.CIFRADA) throw new IllegalStateException("La base no está protegida con contraseña.");
         if (!erickDelgadoClaveCorrecta(base, clave)) throw new IllegalArgumentException("La contraseña actual no es correcta.");
@@ -168,7 +140,6 @@ public final class BaseCifrada {
         return copia;
     }
 
-    /** Filas de cada tabla de la base (para comprobar que una conversión no pierde datos). */
     static Map<String, Long> erickDelgadoFilasPorTabla(Path base, char[] clave) throws SQLException {
         var filas = new java.util.TreeMap<String, Long>();
         try (Connection c = DriverManager.getConnection(erickDelgadoUrl(base), erickDelgadoPropiedades(clave));

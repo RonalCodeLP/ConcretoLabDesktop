@@ -48,7 +48,6 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class MezclasController implements Refrescable {
-
     private static final String YEFRI_LERMA_SIN_MEZCLA = "Seleccione una mezcla.";
     private static final String YEFRI_LERMA_ERROR_NUMERO = "Ingrese valores numéricos válidos.";
 
@@ -59,12 +58,10 @@ public class MezclasController implements Refrescable {
     private final Notificador yefriLermaNotificador;
     private final Exportador exportador;
 
-    // ---- paneles laterales
     @FXML private VBox panelMezcla;
     @FXML private VBox panelEnsayo;
     @FXML private VBox panelElementos;
 
-    // ---- formulario de mezcla
     @FXML private Label lblSubtituloMezcla;
     @FXML private TextField txtNombre;
     @FXML private TextField txtReferencia;
@@ -81,7 +78,6 @@ public class MezclasController implements Refrescable {
     @FXML private TextField txtHumedadGrueso;
     @FXML private TextArea txtObservaciones;
 
-    // ---- asistente de diseno
     @FXML private VBox panelDiseno;
     @FXML private TextField txtFcDiseno;
     @FXML private TextField txtAsentDiseno;
@@ -105,7 +101,6 @@ public class MezclasController implements Refrescable {
     private DisenoMezclaACI.Resultado yefriLermaUltimoDiseno;
     private double yefriLermaUltimaFc;
 
-    // ---- formulario de ensayo
     @FXML private Label lblSubtituloEnsayo;
     @FXML private TextField txtIdentificacion;
     @FXML private TextField txtFecha;
@@ -114,10 +109,8 @@ public class MezclasController implements Refrescable {
     @FXML private TextField txtAsentamiento;
     @FXML private TextArea txtObservacionesEnsayo;
 
-    // ---- elegir elementos
     @FXML private ListView<Elemento> lstElementos;
 
-    // ---- pagina
     @FXML private Label lblProyecto;
     @FXML private TextField txtVolumen;
     @FXML private Label lblResultado;
@@ -205,8 +198,6 @@ public class MezclasController implements Refrescable {
         yefriLermaCargar();
     }
 
-    // ------------------------------------------------------------- acciones
-
     @FXML
     private void onCerrarPanel() {
         yefriLermaNotificador.fernandoHuancaCerrarPanel();
@@ -216,8 +207,6 @@ public class MezclasController implements Refrescable {
     private void onCalcular() {
         yefriLermaActualizar();
     }
-
-    // -------------------------------------------------- asistente de diseño
 
     @FXML
     private void onDisenar() {
@@ -367,12 +356,6 @@ public class MezclasController implements Refrescable {
                 + String.join(" ", r.advertencias()));
     }
 
-    /**
-     * Abre «Registrar mezcla» con cantidades por m³ calculadas en otra pantalla (balance de volúmenes). La f’c, la humedad
-     * y la absorción quedan vacías para que el profesional las complete.
-     *
-     * @return {@code false} si no hay proyecto seleccionado (se avisa y no se abre el formulario)
-     */
     public boolean yefriLermaNuevaMezclaDesde(String nombre, String referencia, double cemento, double agua,
                                               double finoSss, double gruesoSss, String observaciones) {
         if (yefriLermaSesion.getProyecto() == null) {
@@ -622,8 +605,6 @@ public class MezclasController implements Refrescable {
                 destino -> Files.write(destino.toPath(), ReporteMezcla.yefriLermaGenerar(proyecto, m, volumen, ensayos)));
     }
 
-    // ----------------------------------------------------------------- apoyo
-
     private void yefriLermaCargar() {
         yefriLermaDatosMezclas.clear();
         yefriLermaDatosEnsayos.clear();
@@ -651,10 +632,9 @@ public class MezclasController implements Refrescable {
         }
     }
 
-    /** Evaluación E.060 (art. 5.6) con los ensayos de 28 días en el orden en que se registraron. */
     private String yefriLermaEvaluacion(Mezcla m) {
         List<Double> resultados = new java.util.ArrayList<>();
-        for (int i = yefriLermaDatosEnsayos.size() - 1; i >= 0; i--) { // la lista viene del más reciente al más antiguo
+        for (int i = yefriLermaDatosEnsayos.size() - 1; i >= 0; i--) {
             Ensayo e = yefriLermaDatosEnsayos.get(i);
             if (Math.abs(e.getEdadDias() - 28) <= 0.5) {
                 resultados.add(e.getResistenciaMpa());
@@ -678,7 +658,6 @@ public class MezclasController implements Refrescable {
                 + "Base: masas de agregados SSS por m³; humedad y absorción sobre masa seca. Revise los datos y valide con mezcla de prueba.";
     }
 
-    /** Marca el campo de volumen cuando el error del calculo proviene de el. */
     private void yefriLermaMarcarVolumen(Exception ex) {
         String mensaje = yefriLermaMensaje(ex);
         if (ex instanceof NumberFormatException || mensaje.startsWith("Ingrese un volumen")) {
@@ -686,7 +665,6 @@ public class MezclasController implements Refrescable {
         }
     }
 
-    /** Lee un decimal del campo; si no es valido lo marca y devuelve {@code null}. */
     private Double yefriLermaLeer(TextField campo) {
         try {
             return yefriLermaNum(campo);
@@ -718,7 +696,6 @@ public class MezclasController implements Refrescable {
         return String.format(Locale.ROOT, "%.3f", n);
     }
 
-    /** Mismo formato que {@code FormatoNumeros.volumen} (clase de uso interno del paquete ui). */
     private static String yefriLermaVolumen(double valor) {
         return BigDecimal.valueOf(valor).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
                 .replace('.', ',');

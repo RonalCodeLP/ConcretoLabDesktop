@@ -4,44 +4,28 @@ import com.concretolab.model.Elemento;
 import java.util.*;
 import org.apache.commons.math3.linear.*;
 
-/**
- * Análisis sísmico educativo de un pórtico de concreto armado según la E.030.
- * Modelo: columnas y vigas como barras 3D de Euler-Bernoulli (ejes a nudos), base empotrada,
- * un diafragma rígido por nivel (3 GDL por piso en el centro de masas) y condensación estática de los demás GDL.
- * No modela muros, losas deformables, zonas rígidas, interacción suelo-estructura ni diseño de elementos.
- */
 public final class FernandoHuancaAnalisisSismico {
     private FernandoHuancaAnalisisSismico() {}
 
-    public static final double FERNANDO_HUANCA_G = 9.80665;        // m/s²
-    public static final double FERNANDO_HUANCA_PESO_CONCRETO = 24; // kN/m³ (E.020: 2400 kgf/m³)
-    private static final double FERNANDO_HUANCA_TOL = 0.05;        // m, tolerancia para agrupar cotas y ubicar nudos
+    public static final double FERNANDO_HUANCA_G = 9.80665;
+    public static final double FERNANDO_HUANCA_PESO_CONCRETO = 24;
+    private static final double FERNANDO_HUANCA_TOL = 0.05;
 
-    /** Piso detectado: cota de entrepiso (cara superior de vigas) y área envolvente por defecto. */
     public record PisoBase(double cota, double areaPorDefecto) {}
-    /** Cargas de losa de un piso: área en m²; carga muerta adicional y viva en kN/m². */
     public record CargaPiso(double area, double cmAdicional, double cv) {}
     public record Entrada(List<Elemento> elementos, double fcMpa, double poisson, double fraccionRigidez,
                           double espesorLosa, List<CargaPiso> cargas, NormaE030.Parametros norma) {}
 
     public record Piso(int numero, double cota, double altura, double area, double peso, double xcm, double ycm, double inercia, double largoX, double largoY) {}
     public record Modo(int numero, double periodo, double masaEfectivaX, double masaEfectivaY, List<Double> forma) {}
-    /** Resultado de una dirección. Desplazamientos inelásticos en m; derivas adimensionales; fuerzas en kN. */
     public record Direccion(String nombre, double periodo, double cortanteBase, double[] fuerzas, double[] cortantes,
                             double[] desplazamientosCm, double[] derivasCm, double[] derivasMaximas, double factorEscala, double[] razonTorsion) {
         public double derivaMaxima() { return Arrays.stream(derivasMaximas).max().orElse(0); }
         public boolean cumple() { return derivaMaxima() <= NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO; }
     }
-    /** Separación sísmica: mínimo por norma según la altura y 2/3 del desplazamiento máximo propio (a sumar con el del vecino). */
     public record Junta(double alturaM, double minimoNormaM, double dosTerciosPropioM) {}
-    /**
-     * Modelo dinámico del edificio con diafragma rígido: 3 grados de libertad por piso (ux, uy, rz en el centro de masas),
-     * ordenados piso a piso. Masas en kN·s²/m (el giro, en kN·s²·m), rigidez condensada en kN/m, kN y kN·m. Sirve para el
-     * análisis tiempo-historia: M·ü + C·u̇ + K·u = −M·r·ag(t).
-     */
     public record ModeloDinamico(int pisos, double[] masas, double[][] rigidez, double[] cotas, double[] alturas,
                                  double[] xcm, double[] ycm, List<List<double[]>> puntos, double[] periodos) {
-        /** Vector de influencia del movimiento del suelo: 1 en los GDL de traslación de la dirección (0 = X, 1 = Y). */
         public double[] influencia(int direccion) {
             double[] r = new double[3 * pisos];
             for (int s = 0; s < pisos; s++) r[3 * s + direccion] = 1.0;
@@ -55,10 +39,7 @@ public final class FernandoHuancaAnalisisSismico {
         public double masaAcumuladaY() { return modos.stream().mapToDouble(Modo::masaEfectivaY).sum(); }
     }
 
-    /** E.060: Ec = 15 000·√f'c con f'c en kgf/cm²; se devuelve en MPa. */
     public static double fernandoHuancaModulo(double fcMpa) { return 15000 * Math.sqrt(fcMpa / 0.0980665) * 0.0980665; }
-
-    // ---------- Geometría ----------
 
     private static List<Elemento> fernandoHuancaDe(List<Elemento> l, String tipo) { return l.stream().filter(e -> tipo.equals(e.getTipo())).toList(); }
 
@@ -75,7 +56,6 @@ public final class FernandoHuancaAnalisisSismico {
 
     private static double fernandoHuancaBaseColumnas(List<Elemento> cols) { return cols.stream().mapToDouble(c -> c.getZ() - c.getAltura() / 2).min().orElse(0); }
 
-    /** Pisos del modelo, para que la pantalla ofrezca la tabla de cargas. */
     public static List<PisoBase> fernandoHuancaPisos(List<Elemento> elementos) {
         var cols = fernandoHuancaDe(elementos, "COLUMNA"); var vigas = fernandoHuancaDe(elementos, "VIGA");
         if (cols.isEmpty() || vigas.isEmpty()) throw new IllegalArgumentException("El análisis sísmico necesita al menos una columna y una viga en el proyecto.");
@@ -90,7 +70,6 @@ public final class FernandoHuancaAnalisisSismico {
         return res;
     }
 
-    /** {xmin, xmax, ymin, ymax} de las columnas que llegan al nivel y de las vigas de ese nivel. */
     private static double[] fernandoHuancaEnvolvente(List<Elemento> cols, List<Elemento> vigas, double nivel) {
         double[] r = {Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE};
         for (Elemento c : cols) if (c.getZ() - c.getAltura() / 2 < nivel - FERNANDO_HUANCA_TOL && c.getZ() + c.getAltura() / 2 >= nivel - FERNANDO_HUANCA_TOL) fernandoHuancaAmpliar(r, c);
@@ -103,40 +82,27 @@ public final class FernandoHuancaAnalisisSismico {
     }
 
     private static final class Nudo {
-        final double x, y, fernandoHuancaZ, fernandoHuancaHx, fernandoHuancaHy; final int fernandoHuancaPiso; // piso -1 = base empotrada
+        final double x, y, fernandoHuancaZ, fernandoHuancaHx, fernandoHuancaHy; final int fernandoHuancaPiso;
         int[][] fernandoHuancaGdl; double[][] fernandoHuancaCoef;
         Nudo(double x, double y, double z, int piso, double hx, double hy) { this.x = x; this.y = y; this.fernandoHuancaZ = z; this.fernandoHuancaPiso = piso; this.fernandoHuancaHx = hx; this.fernandoHuancaHy = hy; }
     }
     private record Barra(Nudo a, Nudo b, double l2, double l3, double[] e1, double[] e2, double[] e3) {}
-    /** Masa puntual de un piso: peso (kN), posición, inercia propia (kN·m²). */
     private record Peso(double w, double x, double y, double inercia) {}
 
     private static Nudo fernandoHuancaNudo(Map<String, Nudo> mapa, double x, double y, double z, int piso, double hx, double hy) {
         return mapa.computeIfAbsent(Math.round(x * 1000) + "|" + Math.round(y * 1000) + "|" + Math.round(z * 1000), k -> new Nudo(x, y, z, piso, hx, hy));
     }
 
-    /** Una viga (dirección, centro y media longitud) toca la columna de centro (nx, ny) y sección hx × hy. */
     private static boolean fernandoHuancaEnLinea(boolean xDir, double xc, double yc, double mitad, double nx, double ny, double hx, double hy) {
         return xDir ? Math.abs(ny - yc) <= hy / 2 + FERNANDO_HUANCA_TOL && nx >= xc - mitad - hx / 2 - FERNANDO_HUANCA_TOL && nx <= xc + mitad + hx / 2 + FERNANDO_HUANCA_TOL
                 : Math.abs(nx - xc) <= hx / 2 + FERNANDO_HUANCA_TOL && ny >= yc - mitad - hy / 2 - FERNANDO_HUANCA_TOL && ny <= yc + mitad + hy / 2 + FERNANDO_HUANCA_TOL;
     }
 
-    /**
-     * Cómo están unidas las vigas a las columnas. {@code sueltas}: vigas que no unen al menos dos columnas (no aportan
-     * rigidez); {@code pisosSinPortico}: pisos (1 = el primero) donde ninguna viga une dos columnas, es decir, sin pórtico.
-     */
     public record ConexionVigas(int vigas, List<Long> idsSueltas, List<String> sueltas, List<Integer> pisosSinPortico) {
-        /** Hay al menos un pórtico en cada piso: el análisis representa un edificio de pórticos. */
         public boolean formaPorticos() { return pisosSinPortico.isEmpty() && sueltas.size() < vigas; }
         public static ConexionVigas fernandoHuancaVacia() { return new ConexionVigas(0, List.of(), List.of(), List.of()); }
     }
 
-    /**
-     * Revisa, con el mismo criterio que el análisis, qué vigas unen dos columnas. Sirve también antes de guardar una edición
-     * para avisar si una viga deja de llegar a las columnas.
-     *
-     * @throws IllegalArgumentException si el proyecto no tiene columnas y vigas o no se reconocen pisos
-     */
     public static ConexionVigas fernandoHuancaConexionVigas(List<Elemento> elementos) {
         var cols = fernandoHuancaDe(elementos, "COLUMNA"); var vigas = fernandoHuancaDe(elementos, "VIGA");
         double[] cotas = fernandoHuancaPisos(elementos).stream().mapToDouble(PisoBase::cota).toArray();
@@ -167,8 +133,6 @@ public final class FernandoHuancaAnalisisSismico {
         return -2;
     }
 
-    // ---------- Rigidez de barra ----------
-
     private static double[][] fernandoHuancaRigidezLocal(double L, double E, double Gm, double A, double iy, double iz, double J) {
         double[][] k = new double[12][12];
         double ea = E * A / L, gj = Gm * J / L;
@@ -191,8 +155,6 @@ public final class FernandoHuancaAnalisisSismico {
         return a * Math.pow(b, 3) * (1.0 / 3 - 0.21 * (b / a) * (1 - Math.pow(b, 4) / (12 * Math.pow(a, 4))));
     }
 
-    // ---------- Análisis ----------
-
     public static Resultado fernandoHuancaAnalizar(Entrada in) {
         var norma = in.norma();
         if (norma == null) throw new IllegalArgumentException("Seleccione los parámetros de la E.030.");
@@ -212,9 +174,8 @@ public final class FernandoHuancaAnalisisSismico {
         for (int s = 0; s < S; s++) alturas[s] = cotas[s] - (s == 0 ? zBase : cotas[s - 1]);
         double hn = cotas[S - 1] - zBase;
 
-        double ecMpa = fernandoHuancaModulo(in.fcMpa()), E = ecMpa * 1000, Gm = E / (2 * (1 + in.poisson())); // kN/m²
+        double ecMpa = fernandoHuancaModulo(in.fcMpa()), E = ecMpa * 1000, Gm = E / (2 * (1 + in.poisson()));
 
-        // Nudos y barras
         Map<String, Nudo> mapa = new LinkedHashMap<>(); List<Barra> barras = new ArrayList<>();
         List<List<Peso>> pesos = new ArrayList<>(); for (int s = 0; s < S; s++) pesos.add(new ArrayList<>());
         for (Elemento c : cols) {
@@ -256,13 +217,12 @@ public final class FernandoHuancaAnalisisSismico {
             pesos.get(s).add(new Peso(w, xc, yc, w * (v.getLargo() * v.getLargo() + v.getAncho() * v.getAncho()) / 12));
         }
 
-        // Pisos: peso, centro de masas e inercia polar
         List<Piso> pisosRes = new ArrayList<>(); double[] W = new double[S], xcm = new double[S], ycm = new double[S], I = new double[S];
         for (int s = 0; s < S; s++) {
             double[] r = fernandoHuancaEnvolvente(cols, vigas, cotas[s]);
             double lx = r[1] - r[0], ly = r[3] - r[2], areaBox = lx * ly;
             CargaPiso cp = in.cargas().get(s);
-            double pct = s == S - 1 ? 0.25 : norma.categoria().porcentajeCv; // art. 31: azoteas y techos, 25 % de la carga viva
+            double pct = s == S - 1 ? 0.25 : norma.categoria().porcentajeCv;
             double ws = cp.area() * (in.espesorLosa() * FERNANDO_HUANCA_PESO_CONCRETO + cp.cmAdicional() + cp.cv() * pct), esc = Math.sqrt(cp.area() / areaBox);
             pesos.get(s).add(new Peso(ws, (r[0] + r[1]) / 2, (r[2] + r[3]) / 2, ws * (lx * lx + ly * ly) * esc * esc / 12));
             double w = 0, mx = 0, my = 0;
@@ -274,7 +234,6 @@ public final class FernandoHuancaAnalisisSismico {
         }
         double P = Arrays.stream(W).sum();
 
-        // Grados de libertad: 3 maestros por piso (diafragma rígido) + 3 libres (uz, rx, ry) por nudo de piso
         int nm = 3 * S, sig = nm;
         Map<Integer, List<Nudo>> porPiso = new HashMap<>();
         for (Nudo n : mapa.values()) {
@@ -321,7 +280,6 @@ public final class FernandoHuancaAnalisisSismico {
         try { solKc = new LUDecomposition(Kc).getSolver(); if (!solKc.isNonSingular()) throw new SingularMatrixException(); }
         catch (SingularMatrixException e) { throw new IllegalArgumentException("La rigidez lateral del modelo es nula: faltan columnas empotradas o vigas que unan los pórticos."); }
 
-        // Modos de vibración: K φ = ω² M φ con M diagonal
         double[] m = new double[nm];
         for (int s = 0; s < S; s++) { m[3 * s] = W[s] / FERNANDO_HUANCA_G; m[3 * s + 1] = W[s] / FERNANDO_HUANCA_G; m[3 * s + 2] = I[s] / FERNANDO_HUANCA_G; }
         double[][] Ad = new double[nm][nm];
@@ -341,7 +299,6 @@ public final class FernandoHuancaAnalisisSismico {
             modos.add(new Modo(n + 1, per[n], gx[n] * gx[n] / masaTotal, gy[n] * gy[n] / masaTotal, Arrays.stream(phi[n]).boxed().toList()));
         }
 
-        // Puntos de control por piso: el centro de masas y todos los nudos del piso
         List<List<double[]>> puntos = new ArrayList<>();
         for (int s = 0; s < S; s++) {
             List<double[]> p = new ArrayList<>(); p.add(new double[]{xcm[s], ycm[s]});
@@ -356,7 +313,6 @@ public final class FernandoHuancaAnalisisSismico {
                 new double[][]{gx, gy}, S, alturas, pisosRes, solKc, puntos, xcm, ycm, factorIne);
         Direccion estX = est[0], estY = est[1], espX = esp[0], espY = esp[1];
 
-        // Art. 33.2: el método estático vale para estructuras regulares de hasta 30 m y para cualquier estructura en zona 1.
         if (norma.regular() ? hn > 30 && norma.zona() != NormaE030.Zona.Z1 : norma.zona() != NormaE030.Zona.Z1)
             avisos.add("El método estático de la E.030 (" + norma.art("aplicabilidad") + ") no es aplicable a este caso (" + (norma.regular() ? "regular de más de 30 m" : "estructura irregular fuera de la zona 1") + "); use el resultado espectral.");
         if (espX.factorEscala() > 1.0001 || espY.factorEscala() > 1.0001) avisos.add("El cortante dinámico fue menor que el mínimo de la E.030 (" + norma.art("minimo") + ") y se escalaron fuerzas, no desplazamientos.");
@@ -400,9 +356,6 @@ public final class FernandoHuancaAnalisisSismico {
         return (fernandoHuancaDesplazamiento(u, dir, s, x, y, xcm, ycm) - fernandoHuancaDesplazamiento(u, dir, s - 1, x, y, xcm, ycm)) / h;
     }
 
-    // ---------- Método estático (E.030 2026, arts. 33 a 37) ----------
-
-    /** Razón Δmáx/Δprom entre los nudos extremos en planta (perpendiculares a la dirección de análisis); 1 si no hay dos extremos. */
     private static double fernandoHuancaRazonTorsion(List<double[]> pts, double[] derivaAbs, int dir) {
         int a = -1, b = -1; double min = Double.MAX_VALUE, max = -Double.MAX_VALUE;
         for (int i = 1; i < pts.size(); i++) {
@@ -414,17 +367,11 @@ public final class FernandoHuancaAnalisisSismico {
         return prom > 1e-12 ? Math.max(derivaAbs[a], derivaAbs[b]) / prom : 1.0;
     }
 
-    /**
-     * Resultados estáticos para las direcciones X (índice 0) e Y (índice 1). Cada dirección se analiza con el 100 % de la acción
-     * en esa dirección (con excentricidad accidental, art. 37) más el 30 % de la acción en la perpendicular sin excentricidad
-     * accidental (arts. 28.3 y 33.3), sumando valores absolutos.
-     */
     private static Direccion[] estatico(double hn, NormaE030.Parametros norma, double[] W, double[] cotas, double[] alturas,
                                         List<Piso> pisos, DecompositionSolver solKc, List<List<double[]>> puntos, double[] xcm, double[] ycm, double factorIne) {
         int S = W.length; double zBase = cotas[S - 1] - hn;
         double T = hn / norma.ct(), k = NormaE030.Parametros.k(T), P = Arrays.stream(W).sum();
         double V = norma.coeficienteCortante(T) * P, den = 0;
-        // Art. 50.3: para los desplazamientos no se considera el mínimo C/R de 0,11.
         double reduccion = norma.coeficienteCortanteSinMinimo(T) * P / V;
         double[] h = new double[S], F = new double[S], Q = new double[S];
         for (int s = 0; s < S; s++) { h[s] = cotas[s] - zBase; den += W[s] * Math.pow(h[s], k); }
@@ -465,13 +412,6 @@ public final class FernandoHuancaAnalisisSismico {
         return res;
     }
 
-    // ---------- Análisis modal espectral con CQC (E.030 2026, arts. 39 a 45) ----------
-
-    /**
-     * Resultados espectrales para X (índice 0) e Y (índice 1). Respuesta modal por CQC (art. 42), excentricidad accidental
-     * sobre la dirección al 100 % (art. 45, sumada en valor absoluto) y combinación direccional 100 % + 30 % por raíz de la
-     * suma de cuadrados (art. 43). El cortante mínimo (art. 44) escala fuerzas y cortantes, no desplazamientos.
-     */
     private static Direccion[] espectral(double[] periodoUsado, double[] cortanteEstatico, NormaE030.Parametros norma, double[] m,
                                          double[][] phi, double[] omega, double[] per, double[][] gamma, int S, double[] alturas, List<Piso> pisos,
                                          DecompositionSolver solKc, List<List<double[]>> puntos, double[] xcm, double[] ycm, double factorIne) {
@@ -481,11 +421,9 @@ public final class FernandoHuancaAnalisisSismico {
             double r = omega[j] / omega[i];
             rho[i][j] = 8 * xi * xi * (1 + r) * Math.pow(r, 1.5) / (Math.pow(1 - r * r, 2) + 4 * xi * xi * r * Math.pow(1 + r, 2));
         }
-        // Para cada espectro L (dirección del sismo): desplazamientos modales, fuerzas y cortantes combinados, y respuestas CQC
-        // de las derivas en cada componente d.
         double[][] fuerza = new double[2][S], cort = new double[2][S];
         double[][][] dCmCqc = new double[2][2][S]; double[][][][] derCqc = new double[2][2][S][];
-        double[][][] torsion = new double[2][2][]; // [L][d][s] se llena luego
+        double[][][] torsion = new double[2][2][];
         double[][] utorsion = new double[2][];
         for (int L = 0; L < 2; L++) {
             double[][] u = new double[nm][3 * S];
@@ -512,7 +450,6 @@ public final class FernandoHuancaAnalisisSismico {
                     }
                 }
             }
-            // Art. 45: momento accidental ±F·e con las fuerzas combinadas sin escalar (mismo signo en todos los pisos)
             double[] mt = new double[3 * S];
             for (int s = 0; s < S; s++) mt[3 * s + 2] = fuerza[L][s] * 0.05 * (L == 0 ? pisos.get(s).largoY() : pisos.get(s).largoX());
             utorsion[L] = solKc.solve(new ArrayRealVector(mt)).toArray();

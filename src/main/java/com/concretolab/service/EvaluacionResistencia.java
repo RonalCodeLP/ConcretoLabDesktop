@@ -4,16 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Evaluación de la resistencia a compresión con los criterios de aceptación de la E.060 (art. 5.6) / ACI 318:
- * (a) el promedio de cualquier grupo de 3 ensayos consecutivos es ≥ f'c, y
- * (b) ningún ensayo individual es menor que f'c − 3,5 MPa (f'c ≤ 35 MPa) o que 0,90 f'c (f'c &gt; 35 MPa).
- *
- * <p>Cada «ensayo» de la norma es el promedio de al menos dos probetas de la misma muestra, a la edad de
- * diseño (28 días). Si se registran probetas sueltas, el resultado es orientativo.</p>
- */
 public final class EvaluacionResistencia {
-
     private EvaluacionResistencia() { }
 
     public record Resultado(int cantidad, double promedio, double minimo, double menorPromedioDeTres,

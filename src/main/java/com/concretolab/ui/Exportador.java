@@ -12,15 +12,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-/**
- * Genera archivos (PDF, Excel) en segundo plano para no congelar la interfaz y los
- * abre con la aplicacion predeterminada del sistema, desde donde se pueden imprimir.
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class Exportador {
-
     @FunctionalInterface
     public interface Generador {
         void generar(File destino) throws Exception;
@@ -49,7 +44,6 @@ public class Exportador {
         this.fernandoHuancaHostServices = hostServices;
     }
 
-    /** Pide al usuario donde guardar, genera el archivo y lo abre al terminar. */
     public void fernandoHuancaGuardar(Window ventana, String titulo, String nombreSugerido, Formato formato, Generador generador) {
         FileChooser selector = new FileChooser();
         selector.setTitle(titulo);
@@ -73,7 +67,6 @@ public class Exportador {
         });
     }
 
-    /** Genera el archivo en una carpeta temporal y lo abre para verlo o imprimirlo. */
     public void fernandoHuancaAbrirTemporal(String nombre, Formato formato, Generador generador) {
         File destino;
         try {
@@ -110,7 +103,6 @@ public class Exportador {
         hilo.start();
     }
 
-    /** Abre una carpeta en el explorador del sistema. */
     public void fernandoHuancaAbrirCarpeta(File carpeta) {
         if (carpeta == null || !carpeta.isDirectory()) {
             fernandoHuancaNotificador.fernandoHuancaAdvertencia("La carpeta todavía no existe.");

@@ -36,9 +36,8 @@ import java.util.function.Function;
 @Component
 @RequiredArgsConstructor
 public class GranulometriaController implements Refrescable {
-
     private static final String YEFRI_LERMA_RESUMEN_INICIAL = "El resultado se calculará al ingresar las mediciones.";
-    private static final String YEFRI_LERMA_RESUMEN_INVALIDO = "Los datos cambiaron. Calcula nuevamente los resultados.";
+    private static final String YEFRI_LERMA_RESUMEN_INVALIDO = "Los datos cambiaron. Calcule nuevamente los resultados.";
 
     private final MaterialService materiales;
     private final RegistroGranulometriaService yefriLermaRegistros;
@@ -81,7 +80,6 @@ public class GranulometriaController implements Refrescable {
         txtFecha.setText(LocalDate.now().toString());
         lblResumen.setText(YEFRI_LERMA_RESUMEN_INICIAL);
 
-        // Cualquier cambio en los datos de calculo invalida el resultado mostrado.
         txtMasa.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
         txtFondo.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
         txtMediciones.textProperty().addListener((obs, a, b) -> yefriLermaInvalidar());
@@ -92,7 +90,6 @@ public class GranulometriaController implements Refrescable {
 
     @Override
     public void refrescar() {
-        // Recarga los agregados de la biblioteca conservando el seleccionado.
         Long idSeleccionado = cmbMaterial.getValue() == null ? null : cmbMaterial.getValue().getId();
         List<Material> agregados = materiales.yefriLermaListar().stream()
                 .filter(m -> m.getTipo().startsWith("AGREGADO"))
@@ -104,8 +101,6 @@ public class GranulometriaController implements Refrescable {
         cmbMaterial.setValue(actual);
         yefriLermaRecargarHistorial();
     }
-
-    // ------------------------------------------------------------- acciones
 
     @FXML
     private void onMaterialSeleccionado() {
@@ -186,7 +181,7 @@ public class GranulometriaController implements Refrescable {
             yefriLermaRegistros.yefriLermaGuardar(r);
 
             cmbHistorial.getItems().setAll(yefriLermaRegistros.yefriLermaListar(material.getId()));
-            lblResumen.setText("Ensayo guardado. Selecciónalo en el historial para volver a consultarlo.");
+            lblResumen.setText("Ensayo guardado. Selecciónelo en el historial para volver a consultarlo.");
             yefriLermaNotificador.exito("Ensayo guardado.");
         } catch (IllegalArgumentException | NegocioException e) {
             Control campo = yefriLermaCampoDelError(e.getMessage());
@@ -200,8 +195,6 @@ public class GranulometriaController implements Refrescable {
         }
     }
 
-    // ----------------------------------------------------------------- apoyo
-
     private void yefriLermaRecargarHistorial() {
         cmbHistorial.getItems().clear();
         Material material = cmbMaterial.getValue();
@@ -210,7 +203,6 @@ public class GranulometriaController implements Refrescable {
         }
     }
 
-    /** Verifica el huso NTP 400.037 / ASTM C33 según el tipo del agregado elegido (fino o grueso). */
     private String yefriLermaVerificarHuso(List<GranulometriaService.Fila> filas) {
         Material m = cmbMaterial.getValue();
         boolean fino = m != null && "AGREGADO FINO".equals(m.getTipo());
@@ -244,10 +236,6 @@ public class GranulometriaController implements Refrescable {
         grafico.getData().clear();
     }
 
-    /**
-     * Lee masa inicial y masa en fondo. Si alguna no es numerica la marca con el mensaje dado
-     * y devuelve {@code null}.
-     */
     private double[] yefriLermaLeerMasas(String mensaje) {
         Double masa = yefriLermaNumero(txtMasa);
         Double fondo = yefriLermaNumero(txtFondo);
@@ -263,7 +251,6 @@ public class GranulometriaController implements Refrescable {
         return new double[] {masa, fondo};
     }
 
-    /** Asocia el mensaje de validacion con el campo que corresponde, si se puede identificar. */
     private Control yefriLermaCampoDelError(String mensaje) {
         if (mensaje == null) {
             return null;

@@ -30,12 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.sqlite.SQLiteDataSource;
 
-/**
- * Pruebas de copias de seguridad. Todas trabajan en una carpeta temporal (propiedad {@code concretolab.datos}):
- * jamás tocan la base real de {@code ~/.concretolab}.
- */
 class RespaldoTest {
-
     @TempDir
     Path temporal;
 
@@ -53,9 +48,6 @@ class RespaldoTest {
         else System.setProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS, propiedadAnterior);
     }
 
-    // ---------------------------------------------------------------- Ayudas
-
-    /** Crea una base SQLite real con una tabla y {@code filas} filas. */
     private static void crearBase(Path archivo, int filas) throws SQLException, IOException {
         Files.createDirectories(archivo.getParent());
         try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + archivo.toAbsolutePath());
@@ -81,21 +73,17 @@ class RespaldoTest {
         }
     }
 
-    // ---------------------------------------------------------------- Pruebas
-
     @Test
     void rotacionConservaLasUltimasDiezPorMotivo() throws Exception {
         crearBase(RespaldoDatos.erickDelgadoArchivoBaseDatos(), 1);
         for (int i = 0; i < 12; i++) {
             assertTrue(RespaldoDatos.erickDelgadoRespaldarArchivo("inicio", LocalDateTime.of(2026, 1, 1, 10, 0, i)).isPresent());
         }
-        // Una de otro motivo no debe verse afectada por la rotación de «inicio».
         RespaldoDatos.erickDelgadoRespaldarArchivo("cierre", LocalDateTime.of(2026, 1, 1, 10, 0, 0));
 
         Path carpeta = RespaldoDatos.erickDelgadoCarpetaCopias();
         assertEquals(10, contarArchivos(carpeta, "-inicio.db"));
         assertEquals(1, contarArchivos(carpeta, "-cierre.db"));
-        // Se borraron las dos más antiguas (segundos 0 y 1).
         assertFalse(Files.exists(carpeta.resolve("concretolab-20260101-100000-inicio.db")));
         assertFalse(Files.exists(carpeta.resolve("concretolab-20260101-100001-inicio.db")));
         assertTrue(Files.exists(carpeta.resolve("concretolab-20260101-100011-inicio.db")));
@@ -131,7 +119,6 @@ class RespaldoTest {
         assertTrue(RespaldoDatos.erickDelgadoRestauracionPendiente().isEmpty());
         assertFalse(Files.exists(temporal.resolve("restaurar.pendiente")));
 
-        // La previa conserva el contenido anterior (1 fila).
         try (Stream<Path> s = Files.list(RespaldoDatos.erickDelgadoCarpetaCopias())) {
             Path previa = s.filter(p -> p.getFileName().toString().endsWith("-previa-restauracion.db"))
                     .findFirst().orElseThrow();
@@ -146,10 +133,8 @@ class RespaldoTest {
         Path corrupta = temporal.resolve("corrupta.db");
         Files.writeString(corrupta, "esto no es sqlite", StandardCharsets.UTF_8);
 
-        // programarRestauracion valida la copia y la rechaza.
         assertThrows(IllegalArgumentException.class, () -> RespaldoDatos.erickDelgadoProgramarRestauracion(corrupta));
 
-        // Aun con un marcador escrito a mano, la restauración se descarta sin tocar la base.
         Files.writeString(temporal.resolve("restaurar.pendiente"), corrupta.toString(), StandardCharsets.UTF_8);
         assertFalse(RespaldoDatos.erickDelgadoAplicarRestauracionPendiente());
         assertEquals(2, contarFilas(base));
@@ -192,7 +177,6 @@ class RespaldoTest {
         Path ajeno = temporal.resolve("ajeno.db");
         Files.writeString(ajeno, "x");
         assertThrows(IllegalArgumentException.class, () -> servicio.erickDelgadoEliminarCopia(ajeno));
-        // Intento de escape con «..» desde la carpeta de copias.
         Files.createDirectories(servicio.erickDelgadoCarpetaCopias());
         Path escape = servicio.erickDelgadoCarpetaCopias().resolve("..").resolve("ajeno.db");
         assertThrows(IllegalArgumentException.class, () -> servicio.erickDelgadoEliminarCopia(escape));
@@ -201,7 +185,6 @@ class RespaldoTest {
 
     @Test
     void crearCopiaConVacuumIntoContieneLasFilas() throws Exception {
-        // Carpeta con una comilla simple para comprobar el escape de la ruta en VACUUM INTO.
         Path datos = temporal.resolve("dato's");
         System.setProperty(RespaldoDatos.ERICK_DELGADO_PROPIEDAD_DATOS, datos.toString());
         Path base = RespaldoDatos.erickDelgadoArchivoBaseDatos();
@@ -221,7 +204,6 @@ class RespaldoTest {
         assertEquals(5, contarFilas(copia.archivo()));
         verify(bitacora).erickDelgadoRegistrar(eq("COPIA_CREADA"), anyString());
 
-        // Una segunda copia en el mismo segundo no choca con la primera.
         RespaldoService.Copia otra = servicio.erickDelgadoCrearCopia(null);
         assertFalse(copia.archivo().equals(otra.archivo()));
 
@@ -229,7 +211,6 @@ class RespaldoTest {
         assertEquals(2, lista.size());
         assertTrue(lista.get(0).fecha().compareTo(lista.get(1).fecha()) >= 0);
 
-        // Los archivos ajenos al patrón se ignoran al listar.
         Files.writeString(servicio.erickDelgadoCarpetaCopias().resolve("notas.txt"), "x");
         assertEquals(2, servicio.erickDelgadoListar().size());
 

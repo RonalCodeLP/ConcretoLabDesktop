@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 class CifradoArchivoTest {
-
     private static final byte[] TEXTO = "Proyecto de prueba: zapatas, columnas y vigas".getBytes(StandardCharsets.UTF_8);
 
     @Test
@@ -38,7 +37,7 @@ class CifradoArchivoTest {
     @Test
     void laCabeceraAlteradaTambienSeDetecta() {
         byte[] cifrado = CifradoArchivo.erickDelgadoCifrar(TEXTO, "clave".toCharArray());
-        cifrado[8] ^= 0x01; // dentro de la sal
+        cifrado[8] ^= 0x01;
         assertThatThrownBy(() -> CifradoArchivo.erickDelgadoDescifrar(cifrado, "clave".toCharArray()))
                 .isInstanceOf(IllegalArgumentException.class);
     }

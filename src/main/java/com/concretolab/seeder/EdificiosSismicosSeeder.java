@@ -8,15 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Edificios de pórticos de varios pisos para probar el análisis sísmico: uno regular que cumple, uno asimétrico que
- * muestra torsión y una torre flexible que no cumple la deriva. Las dimensiones y cargas son ficticias.
- * Cada proyecto es idempotente (se omite si ya existe uno con el mismo nombre).
- */
 @Component
 @RequiredArgsConstructor
 public class EdificiosSismicosSeeder {
-
     public static final String YEFRI_LERMA_REGULAR = "DEMO - Pórtico regular de 3 pisos";
     public static final String YEFRI_LERMA_ASIMETRICO = "DEMO - Edificio asimétrico de 4 pisos";
     public static final String YEFRI_LERMA_TORRE = "DEMO - Torre flexible de 6 pisos";
@@ -25,7 +19,6 @@ public class EdificiosSismicosSeeder {
 
     private final YefriLermaProyectoService proyectos;
 
-    /** Definición de un edificio de pórticos: malla de columnas y secciones. */
     record Edificio(String nombre, double[] xs, double[] ys, int pisos, double alturaPiso, double lado, double anchoViga, double alturaViga,
                     double ladoEspecial, int indiceColumnaEspecial) {}
 
@@ -34,7 +27,6 @@ public class EdificiosSismicosSeeder {
         int nuevos = 0;
         for (Edificio e : List.of(
                 new Edificio(YEFRI_LERMA_REGULAR, new double[]{0, 5, 10}, new double[]{0, 4, 8}, 3, 3.0, 0.50, 0.30, 0.55, 0, -1),
-                // Una columna de esquina mucho más rígida desplaza el centro de rigidez y genera torsión.
                 new Edificio(YEFRI_LERMA_ASIMETRICO, new double[]{0, 5, 10}, new double[]{0, 4}, 4, 3.0, 0.35, 0.25, 0.45, 0.90, 0),
                 new Edificio(YEFRI_LERMA_TORRE, new double[]{0, 5}, new double[]{0, 4}, 6, 3.2, 0.30, 0.25, 0.40, 0, -1))) {
             if (proyectos.proyectos().stream().noneMatch(p -> e.nombre().equals(p.getNombre()))) {

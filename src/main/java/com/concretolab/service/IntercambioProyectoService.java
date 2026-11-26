@@ -45,15 +45,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Exportación e importación de proyectos como archivos {@code .concretolab}: un ZIP con
- * {@code manifiesto.json} y {@code datos.json}, opcionalmente cifrado completo con {@link CifradoArchivo}.
- * La importación siempre crea un proyecto nuevo y valida todo antes de guardar.
- */
 @Service
 @RequiredArgsConstructor
 public class IntercambioProyectoService {
-
     public static final String ERICK_DELGADO_FORMATO = "concretolab-proyecto";
     public static final int ERICK_DELGADO_VERSION_FORMATO = 1;
     static final String ERICK_DELGADO_ENTRADA_MANIFIESTO = "manifiesto.json";
@@ -80,7 +74,6 @@ public class IntercambioProyectoService {
     public record Resultado(Proyecto proyecto, int elementos, int mezclas, int ensayos, List<String> avisos) {
     }
 
-    // ---- Formato (DTOs sin ids) ----
     public record ProyectoDto(String nombre, String ubicacion) { }
     public record ElementoDto(String tipo, String nombre, double largo, double ancho, double altura, double x, double y, double z) { }
     public record CuadriculaDto(String separacionesX, String separacionesY, String niveles, double origenX, double origenY) { }
@@ -95,8 +88,6 @@ public class IntercambioProyectoService {
     public record DatosDto(ProyectoDto proyecto, List<ElementoDto> elementos, CuadriculaDto cuadricula, List<VinculoDto> vinculos,
                            List<MezclaDto> mezclas, ExpedienteDto expediente) { }
     public record ManifiestoDto(String formato, int version, String aplicacion, String fecha, String sha256, Map<String, Integer> conteos) { }
-
-    // ---- Exportación ----
 
     @Transactional
     public Path erickDelgadoExportar(Long proyectoId, Path destino, char[] contrasena) {
@@ -126,7 +117,7 @@ public class IntercambioProyectoService {
                 .orElse(null);
 
         List<Mezcla> listaMezclas = new ArrayList<>(mezclas.findByProyectoIdOrderByIdDesc(proyectoId));
-        Collections.reverse(listaMezclas); // orden de creación
+        Collections.reverse(listaMezclas);
         List<MezclaDto> mezclasDto = new ArrayList<>();
         int totalEnsayos = 0;
         for (Mezcla m : listaMezclas) {
@@ -189,8 +180,6 @@ public class IntercambioProyectoService {
             Files.deleteIfExists(temporal);
         }
     }
-
-    // ---- Importación ----
 
     public boolean erickDelgadoEstaCifrado(Path archivo) {
         if (archivo == null) return false;
@@ -265,7 +254,6 @@ public class IntercambioProyectoService {
         List<String> avisos = new ArrayList<>();
         erickDelgadoValidar(datos, avisos);
 
-        // Todo validado: se guarda (la transacción revierte cualquier fallo inesperado).
         String nombreBase = datos.proyecto().nombre().trim();
         String nombre = erickDelgadoNombreLibre(nombreBase, avisos);
         Proyecto proyecto = new Proyecto();
@@ -360,8 +348,6 @@ public class IntercambioProyectoService {
                 + ": " + nuevos.size() + " elementos, " + totalMezclas + " mezclas, " + totalEnsayos + " ensayos");
         return new Resultado(proyecto, nuevos.size(), totalMezclas, totalEnsayos, List.copyOf(avisos));
     }
-
-    // ---- Validación ----
 
     private void erickDelgadoValidar(DatosDto datos, List<String> avisos) {
         if (datos == null || datos.proyecto() == null) throw new IllegalArgumentException(ERICK_DELGADO_MSG_INVALIDO);
@@ -469,8 +455,6 @@ public class IntercambioProyectoService {
             n++;
         }
     }
-
-    // ---- Utilidades ----
 
     private static <T> List<T> erickDelgadoLista(List<T> l) {
         return l == null ? List.of() : l;

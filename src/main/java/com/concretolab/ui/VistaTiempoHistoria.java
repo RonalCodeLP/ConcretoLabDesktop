@@ -11,17 +11,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
-/**
- * Elevación animada del edificio sobre un suelo que también se mueve. El bloque de suelo se desplaza con el
- * desplazamiento del terreno ug(t) y cada losa se dibuja en desplazamiento ABSOLUTO (ug + u relativo). La posición inicial
- * se muestra punteada de referencia y cada entrepiso se colorea por su deriva instantánea respecto al límite 0,00875.
- *
- * <p>Los desplazamientos se exageran con un factor automático (el mayor desplazamiento absoluto ocupa cerca del 17,5 % de
- * la altura) multiplicado por la escala elegida por el usuario. Los colores salen de constantes con nombre, sin estilos en línea.</p>
- */
 public final class VistaTiempoHistoria extends Pane {
-
-    // Colores del lienzo: lienzo propio de fondo claro para que se lea igual en tema claro y oscuro.
     static final Color WALTER_QUISPESAYHUA_FONDO = Color.web("#f5f7fa");
     static final Color WALTER_QUISPESAYHUA_SUELO = Color.web("#8a6d4b");
     static final Color WALTER_QUISPESAYHUA_SUELO_BORDE = Color.web("#5e4a33");
@@ -57,7 +47,6 @@ public final class VistaTiempoHistoria extends Pane {
         walterQuispesayhuaDibujar();
     }
 
-    /** Carga un resultado; las cotas (m) son las del modelo dinámico, una por piso. */
     public void walterQuispesayhuaMostrar(ResultadoTiempoHistoria r, double[] cotasPisos) {
         this.walterQuispesayhuaResultado = r;
         this.walterQuispesayhuaCotas = cotasPisos == null ? new double[0] : cotasPisos.clone();
@@ -78,13 +67,11 @@ public final class VistaTiempoHistoria extends Pane {
         walterQuispesayhuaDibujar();
     }
 
-    /** Multiplicador sobre la escala automática (1 = automática). */
     public void setMultiplicador(double m) {
         this.walterQuispesayhuaMultiplicador = m > 0 ? m : 1;
         walterQuispesayhuaDibujar();
     }
 
-    /** Factor total de exageración ×N que se está aplicando. */
     public double walterQuispesayhuaFactorTotal() { return walterQuispesayhuaFactorAutomatico * walterQuispesayhuaMultiplicador; }
 
     private void walterQuispesayhuaRecalcularFactor() {
@@ -119,7 +106,6 @@ public final class VistaTiempoHistoria extends Pane {
         double ug = ResumenSimulacion.walterQuispesayhuaSuelo(walterQuispesayhuaResultado, walterQuispesayhuaDireccion)[walterQuispesayhuaPaso];
         double dxSuelo = ug * factor * pxPorM;
 
-        // Referencia punteada (posición inicial)
         g.setStroke(WALTER_QUISPESAYHUA_REFERENCIA);
         g.setLineWidth(1.2);
         g.setLineDashes(6, 4);
@@ -132,7 +118,6 @@ public final class VistaTiempoHistoria extends Pane {
         g.strokeLine(x0 + anchoEdif / 2, baseY, x0 + anchoEdif / 2, baseY - walterQuispesayhuaAltura * pxPorM);
         g.setLineDashes(null);
 
-        // Suelo móvil
         g.setFill(WALTER_QUISPESAYHUA_SUELO);
         g.fillRect(x0 - anchoSuelo / 2 + dxSuelo, baseY, anchoSuelo, grosorSuelo);
         g.setStroke(WALTER_QUISPESAYHUA_SUELO_BORDE);
@@ -143,7 +128,6 @@ public final class VistaTiempoHistoria extends Pane {
         g.setTextAlign(TextAlignment.CENTER);
         g.fillText("Suelo (movimiento del terreno)", x0 + dxSuelo, baseY + grosorSuelo / 2 + 4);
 
-        // Estructura en desplazamiento absoluto
         g.setLineCap(StrokeLineCap.BUTT);
         double xPrev = x0 + dxSuelo, yPrev = baseY;
         double semi = anchoEdif * 0.4;
@@ -162,7 +146,6 @@ public final class VistaTiempoHistoria extends Pane {
         g.setFill(LOSA);
         g.fillRect(x0 + dxSuelo - anchoEdif / 2, baseY - 4, anchoEdif, 8);
 
-        // Rótulos
         g.setFill(WALTER_QUISPESAYHUA_TEXTO);
         g.setTextAlign(TextAlignment.LEFT);
         g.setFont(Font.font("System", FontWeight.BOLD, 12));
@@ -185,7 +168,6 @@ public final class VistaTiempoHistoria extends Pane {
         g.fillRect(xDerecha - 130 - 14, y - 9, 10, 10);
     }
 
-    /** Texto fijo que debe verse siempre: «Los desplazamientos están exagerados ×N». */
     public String walterQuispesayhuaTextoExageracion() {
         return String.format(Locale.forLanguageTag("es-PE"), "Los desplazamientos están exagerados ×%,.0f", walterQuispesayhuaFactorTotal());
     }

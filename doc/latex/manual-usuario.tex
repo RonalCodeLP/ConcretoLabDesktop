@@ -1,0 +1,30 @@
+% ConcretoLab Desktop - Manual de usuario (usuario y desarrollador)
+% Basado en «Template-Informe» de Pablo Pizarro R. (licencia MIT, ver LICENCIA-PLANTILLA.md).
+% Compilar con compilar.ps1 (pdflatex, tres pasadas). Codificación: UTF-8
+
+\documentclass[a4paper,oneside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\def\titulodelinforme {Manual de usuario}
+\def\temaatratar {ConcretoLab Desktop}
+\def\departamentouniversidad {Manual de usuario}
+
+\input{comun/datos}
+\def\nombredelcurso {Desktop}
+\input{template}
+\input{comun/concretolab}
+\usepackage{qrcode}
+\input{img/manual/coordenadas}
+
+\begin{document}
+
+\portadaSimple
+\templatePagecfg
+
+\templateIndex
+\templateFinalcfg
+
+\input{contenido/manual/03-uso}
+
+\end{document}

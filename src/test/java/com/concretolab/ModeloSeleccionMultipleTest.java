@@ -46,15 +46,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
-/**
- * «Modelo 3D y metrado» con la interfaz real (ventana, tabla y visor 3D): seleccionar varios elementos en la lista o en
- * el 3D y editarlos todos a la vez. Los clics se envían como eventos de ratón a las celdas y a las cajas 3D. Se omite
- * sola si no hay entorno gráfico.
- */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestExecutionListeners(DependencyInjectionTestExecutionListener.class)
 class ModeloSeleccionMultipleTest {
-
     @DynamicPropertySource
     static void baseTemporal(DynamicPropertyRegistry registro) throws Exception {
         File db = Files.createTempFile("seleccion-multiple", ".db").toFile();
@@ -76,13 +70,11 @@ class ModeloSeleccionMultipleTest {
         try {
             Platform.startup(() -> { });
         } catch (IllegalStateException yaIniciado) {
-            // otra prueba ya arrancó JavaFX
         } catch (Throwable sinPantalla) {
             assumeTrue(false, "Sin entorno gráfico para JavaFX: " + sinPantalla);
         }
-        Platform.setImplicitExit(false); // cerrar la ventana de una prueba no debe apagar JavaFX para la siguiente
+        Platform.setImplicitExit(false);
         proyecto = proyectos.yefriLermaCrearProyecto("Selección múltiple " + System.nanoTime(), "Lima");
-        // 4 zapatas, 4 columnas y 4 vigas
         proyectos.yefriLermaCrearPlantilla(proyecto.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
         sesion.setProyecto(proyecto);
         fx(() -> {
@@ -128,8 +120,8 @@ class ModeloSeleccionMultipleTest {
             assertThat(z.getAncho()).isEqualTo(1.2);
             assertThat(z.getAltura()).isEqualTo(0.6);
         });
-        assertThat(tipo("COLUMNA")).allMatch(c -> c.getLargo() == 0.4); // lo demás no se toca
-        assertThat(seleccionados()).hasSize(4); // siguen seleccionadas después de guardar
+        assertThat(tipo("COLUMNA")).allMatch(c -> c.getLargo() == 0.4);
+        assertThat(seleccionados()).hasSize(4);
     }
 
     @Test
@@ -161,17 +153,15 @@ class ModeloSeleccionMultipleTest {
         fx(() -> filtro().setValue("Solo zapatas"));
         fx(() -> Event.fireEvent(caja(zapata.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, false)));
         assertThat(ids(seleccionados())).containsExactly(zapata.getId());
-        esperarFx(600); // fuera del tiempo de doble clic
+        esperarFx(600);
         fx(() -> Event.fireEvent(caja(columna.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, true)));
         esperarFx(600);
         fx(() -> Event.fireEvent(caja(otraColumna.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, true)));
         assertThat(ids(seleccionados())).containsExactlyInAnyOrder(zapata.getId(), columna.getId(), otraColumna.getId());
         assertThat(fxValor(() -> filtro().getValue())).isEqualTo("Todos los tipos");
-        // Ctrl+clic sobre uno ya seleccionado lo quita
         esperarFx(600);
         fx(() -> Event.fireEvent(caja(columna.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, true)));
         assertThat(ids(seleccionados())).containsExactlyInAnyOrder(zapata.getId(), otraColumna.getId());
-        // un clic normal deja solo ese
         esperarFx(600);
         fx(() -> Event.fireEvent(caja(columna.getId()), raton(MouseEvent.MOUSE_CLICKED, 1, false)));
         esperarFx(700);
@@ -209,8 +199,6 @@ class ModeloSeleccionMultipleTest {
         assertThat(fxValor(() -> campo("btnMoverDesdeEditar", Button.class).isVisible())).isTrue();
     }
 
-    // ------------------------------------------------------------------ deshacer
-
     @Test
     void editarVariosYDeshacerDevuelveLasMedidasAnteriores() throws Exception {
         assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).as("sin cambios no hay nada que deshacer").isTrue();
@@ -226,8 +214,8 @@ class ModeloSeleccionMultipleTest {
 
     @Test
     void ctrlZDeshaceVariosPasosEnOrdenInverso() throws Exception {
-        editarZapatas("1,5", "");           // paso 1
-        editarZapatas("", "+0,3");          // paso 2: ancho 1,2 → 1,5
+        editarZapatas("1,5", "");
+        editarZapatas("", "+0,3");
         assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.5 && z.getAncho() == 1.5);
         fx(() -> filtro().setValue("Todos los tipos"));
         Runnable ctrlZ = fxValor(() -> ventana.getScene().getAccelerators().get(
@@ -237,7 +225,7 @@ class ModeloSeleccionMultipleTest {
         assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.5 && z.getAncho() == 1.2);
         fx(ctrlZ);
         assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.2 && z.getAncho() == 1.2);
-        fx(ctrlZ); // sin más pasos: no hace nada
+        fx(ctrlZ);
         assertThat(tipo("ZAPATA")).allMatch(z -> z.getLargo() == 1.2);
     }
 
@@ -264,9 +252,8 @@ class ModeloSeleccionMultipleTest {
         editarZapatas("1,5", "");
         var z = tipo("ZAPATA").get(0);
         z.setAltura(0.9);
-        proyectos.yefriLermaGuardar(z); // cambio hecho fuera del historial
+        proyectos.yefriLermaGuardar(z);
         fx(() -> campo("btnDeshacer", Button.class).fire());
-        // no se tocó nada: la zapata cambiada sigue así y las demás también conservan el 1,5
         assertThat(tipo("ZAPATA")).allMatch(x -> x.getLargo() == 1.5);
         assertThat(fxValor(() -> campo("btnDeshacer", Button.class).isDisabled())).as("el paso que no se pudo deshacer se descarta").isTrue();
     }
@@ -327,8 +314,6 @@ class ModeloSeleccionMultipleTest {
         }
     }
 
-    // ------------------------------------------------------------------ apoyo
-
     private List<Elemento> tipo(String tipo) {
         return proyectos.elementos(proyecto.getId()).stream().filter(e -> tipo.equals(e.getTipo())).toList();
     }
@@ -354,7 +339,6 @@ class ModeloSeleccionMultipleTest {
                 .map(n -> (TableCell<?, ?>) n).findFirst().orElseThrow(() -> new AssertionError("sin celda para " + item.getNombre()));
     }
 
-    /** La caja 3D del elemento (cada caja guarda el id del elemento en userData). */
     private Box caja(Long id) {
         Pane contenedor = campo("contenedorVisor", Pane.class);
         Node visor = contenedor.getChildren().get(0);

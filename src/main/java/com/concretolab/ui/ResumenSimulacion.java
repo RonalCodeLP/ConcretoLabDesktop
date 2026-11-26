@@ -11,56 +11,34 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.DoubleConsumer;
 
-/**
- * Lógica pura (sin JavaFX) de la pestaña «Simulación temporal»: ejecución de la simulación, decimación de series,
- * escala visual automática, nivel de deriva y selección del periodo fundamental.
- */
 public final class ResumenSimulacion {
     private ResumenSimulacion() {}
 
-    /** Distorsión límite del tiempo-historia: 1,25 × 0,007 (art. 49.2). */
     public static final double WALTER_QUISPESAYHUA_LIMITE_DERIVA = 1.25 * 0.007;
-    /** Amortiguamiento fijo (art. 48.5). */
     public static final double WALTER_QUISPESAYHUA_AMORTIGUAMIENTO = 0.05;
-    /** Máximo de puntos por serie en las gráficas. */
     public static final int WALTER_QUISPESAYHUA_PUNTOS_MAXIMOS = 2000;
-    /** Fracción de la altura del edificio que ocupa el mayor desplazamiento absoluto con la escala automática. */
     public static final double WALTER_QUISPESAYHUA_FRACCION_VISUAL = 0.175;
-    /** Hasta este cociente deriva/límite el entrepiso se pinta verde; hasta 1,0 ámbar; más, rojo. */
     public static final double WALTER_QUISPESAYHUA_UMBRAL_VERDE = 0.6;
 
-    /** Nivel de deriva de un entrepiso respecto al límite. */
     public enum NivelDeriva { BAJO, ALERTA, EXCEDE }
 
-    /** Periodo fundamental para escalado y rejilla: el mayor entre los de X e Y (la rejilla 0,2T a 1,5T cubre ambas direcciones). */
     public static double walterQuispesayhuaPeriodoFundamental(double periodoX, double periodoY) {
         if (!(periodoX > 0) || !(periodoY > 0) || !Double.isFinite(periodoX) || !Double.isFinite(periodoY))
             throw new IllegalArgumentException("Los periodos fundamentales deben ser positivos.");
         return Math.max(periodoX, periodoY);
     }
 
-    /** Nivel de una deriva (valor absoluto) respecto a {@link #WALTER_QUISPESAYHUA_LIMITE_DERIVA}. */
     public static NivelDeriva walterQuispesayhuaNivel(double deriva) {
         double c = Math.abs(deriva) / WALTER_QUISPESAYHUA_LIMITE_DERIVA;
         if (c <= WALTER_QUISPESAYHUA_UMBRAL_VERDE) return NivelDeriva.BAJO;
         return c <= 1.0 ? NivelDeriva.ALERTA : NivelDeriva.EXCEDE;
     }
 
-    /**
-     * Factor de exageración visual: el mayor desplazamiento absoluto ocupa {@link #WALTER_QUISPESAYHUA_FRACCION_VISUAL} de la altura.
-     * Si no hay movimiento se devuelve 1.
-     */
     public static double walterQuispesayhuaFactorVisual(double desplazamientoMaximo, double alturaEdificio) {
         if (!(desplazamientoMaximo > 1e-12) || !(alturaEdificio > 0)) return 1.0;
         return WALTER_QUISPESAYHUA_FRACCION_VISUAL * alturaEdificio / desplazamientoMaximo;
     }
 
-    /**
-     * Reduce la serie a como máximo {@code maximo} puntos conservando siempre el primero, el último y el de mayor valor
-     * absoluto de cada tramo (así el máximo absoluto global nunca se pierde).
-     *
-     * @return {x, y} decimados
-     */
     public static double[][] walterQuispesayhuaDecimar(double[] x, double[] y, int maximo) {
         if (x.length != y.length) throw new IllegalArgumentException("Las series x e y deben tener igual longitud.");
         if (maximo < 3) throw new IllegalArgumentException("El máximo de puntos debe ser al menos 3.");
@@ -81,7 +59,6 @@ public final class ResumenSimulacion {
         return r;
     }
 
-    /** Mayor |desplazamiento absoluto| (suelo + relativo) de cualquier piso o del suelo, en la dirección (0 = X, 1 = Y), en m. */
     public static double walterQuispesayhuaDesplazamientoAbsolutoMaximo(ResultadoTiempoHistoria r, int dir) {
         double m = 0;
         double[] suelo = walterQuispesayhuaSuelo(r, dir);
@@ -106,14 +83,12 @@ public final class ResumenSimulacion {
         return Math.abs(dir == 0 ? r.derivaX()[paso][piso] : r.derivaY()[paso][piso]);
     }
 
-    /** Mayor deriva de entrepiso (valor absoluto) en un instante. */
     public static double walterQuispesayhuaDerivaMaximaInstante(ResultadoTiempoHistoria r, int dir, int paso) {
         double m = 0;
         for (int s = 0; s < r.pisos(); s++) m = Math.max(m, walterQuispesayhuaDeriva(r, dir, paso, s));
         return m;
     }
 
-    /** Piso (0 = primero) con la mayor deriva máxima en la dirección. */
     public static int walterQuispesayhuaPisoCritico(ResultadoTiempoHistoria r, int dir) {
         double[] d = dir == 0 ? r.derivaMaximaPisoX() : r.derivaMaximaPisoY();
         int k = 0;
@@ -121,33 +96,24 @@ public final class ResumenSimulacion {
         return k;
     }
 
-    /** Serie del desplazamiento relativo (m) del último piso. */
     public static double[] walterQuispesayhuaTechoRelativo(ResultadoTiempoHistoria r, int dir) {
         double[] s = new double[r.pasos()];
         for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaRelativo(r, dir, p, r.pisos() - 1);
         return s;
     }
 
-    /** Serie del desplazamiento absoluto (m) del último piso. */
     public static double[] walterQuispesayhuaTechoAbsoluto(ResultadoTiempoHistoria r, int dir) {
         double[] s = new double[r.pasos()];
         for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaAbsoluto(r, dir, p, r.pisos() - 1);
         return s;
     }
 
-    /** Serie de la deriva (valor absoluto) de un entrepiso. */
     public static double[] walterQuispesayhuaDerivaPiso(ResultadoTiempoHistoria r, int dir, int piso) {
         double[] s = new double[r.pasos()];
         for (int p = 0; p < s.length; p++) s[p] = walterQuispesayhuaDeriva(r, dir, p, piso);
         return s;
     }
 
-    /**
-     * Escala los registros, los simula todos sobre el modelo y verifica el art. 49. Es el cálculo que corre en segundo plano.
-     *
-     * @param espectroCompatible {@code true} para sintéticos compatibles, {@code false} para registros reales importados
-     * @param progreso           recibe la fracción completada (0 a 1); puede ser {@code null}
-     */
     public static ResumenTiempoHistoria walterQuispesayhuaSimular(ModeloDinamico modelo, Parametros norma, List<RegistroSismico> registros,
                                                 boolean espectroCompatible, double periodoFundamental, String origen,
                                                 DoubleConsumer progreso) {

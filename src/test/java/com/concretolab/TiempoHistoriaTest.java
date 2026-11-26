@@ -19,9 +19,7 @@ import java.util.function.DoubleUnaryOperator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-/** Pruebas físicas del motor tiempo-historia (sin Spring): oscilador exacto, periodo, simetría, convergencia y verificación E.030. */
 class TiempoHistoriaTest {
-
     private static final double M1 = 2.0, KX = 1000.0, KY = 4000.0;
 
     private static List<List<double[]>> puntos(int pisos) {
@@ -31,7 +29,6 @@ class TiempoHistoriaTest {
         return l;
     }
 
-    /** Edificio de 1 piso: ux (kx), uy (ky) y rz desacoplados; periodos {Tx, Ty, Tθ} con Tx el fundamental. */
     private static ModeloDinamico unPiso() {
         double ix = M1 * 8, kt = 6000;
         double[][] k = {{KX, 0, 0}, {0, KY, 0}, {0, 0, kt}};
@@ -40,7 +37,6 @@ class TiempoHistoriaTest {
                 new double[]{0}, new double[]{0}, puntos(1), per);
     }
 
-    /** Edificio de 2 pisos simétrico (bloques X, Y y giro desacoplados) con periodos reales de los autovalores. */
     private static ModeloDinamico dosPisos() {
         double m = 2, ip = 16;
         double[] masas = {m, m, ip, m, m, ip};
@@ -49,7 +45,6 @@ class TiempoHistoriaTest {
         for (int d = 0; d < 3; d++) {
             k[d][d] += 2 * kd[d]; k[d][d + 3] -= kd[d]; k[d + 3][d] -= kd[d]; k[d + 3][d + 3] += kd[d];
         }
-        // Autovalores de M^-1/2 K M^-1/2
         RealMatrix a = new Array2DRowRealMatrix(6, 6);
         for (int i = 0; i < 6; i++) for (int j = 0; j < 6; j++) a.setEntry(i, j, k[i][j] / Math.sqrt(masas[i] * masas[j]));
         double[] ev = new EigenDecomposition(a).getRealEigenvalues();
@@ -85,7 +80,6 @@ class TiempoHistoriaTest {
         double esperado = A / (w0 * w0) / Math.sqrt(Math.pow(1 - r * r, 2) + Math.pow(2 * xi * r, 2));
         int desde = (int) (res.pasos() * 0.8);
         assertThat(maximoAbs(columna(res.ux(), 0), desde)).isCloseTo(esperado, within(0.015 * esperado));
-        // Cortante basal = fuerza del resorte + amortiguador: amplitud k·û·√(1+(2ξr)²)
         double vEsperado = KX * esperado * Math.sqrt(1 + Math.pow(2 * xi * r, 2));
         assertThat(maximoAbs(res.cortanteBaseX(), desde)).isCloseTo(vEsperado, within(0.02 * vEsperado));
         assertThat(res.cortanteBaseMaximoX()).isGreaterThan(0);
@@ -107,17 +101,12 @@ class TiempoHistoriaTest {
         var modelo = dosPisos();
         double t1 = modelo.periodos()[0];
         double dt = 0.001;
-        // Impulso corto en el primer paso; luego vibración libre sin amortiguamiento
         var res = AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, registro(dt, 25, t -> t < 0.0015 ? 20.0 : 0.0, t -> 0), 0.0);
-        // Coordenada modal del modo fundamental: q = v1ᵀ M^½ u, con v1 el autovector del menor autovalor
         double[] m = modelo.masas();
         RealMatrix a = new Array2DRowRealMatrix(6, 6);
         for (int i = 0; i < 6; i++) for (int j = 0; j < 6; j++) a.setEntry(i, j, modelo.rigidez()[i][j] / Math.sqrt(m[i] * m[j]));
         var eig = new EigenDecomposition(a);
         double[] ev = eig.getRealEigenvalues();
-        // El impulso es en X: solo excita los modos con participación en X. El modo fundamental del modelo puede ser Y o
-        // torsional (el edificio no es simétrico en ambas direcciones), así que se busca el primer modo con participación
-        // en X proyectando la excitación (vector √M·r) sobre cada subespacio propio (válido aun con autovalores repetidos).
         double[] excitacion = new double[6];
         for (int g = 0; g < 6; g++) excitacion[g] = (g % 3 == 0) ? Math.sqrt(m[g]) : 0.0;
         double[] v1 = null;
@@ -150,7 +139,6 @@ class TiempoHistoriaTest {
             double[] u = {res.ux()[p][0], res.uy()[p][0], res.rz()[p][0], res.ux()[p][1], res.uy()[p][1], res.rz()[p][1]};
             for (int g = 0; g < 6; g++) q[p] += v1[g] * Math.sqrt(m[g]) * u[g];
         }
-        // Cruces ascendentes por cero (interpolados), tras el impulso
         List<Double> cruces = new ArrayList<>();
         for (int p = 10; p < q.length - 1; p++)
             if (q[p] < 0 && q[p + 1] >= 0) cruces.add((p + q[p] / (q[p] - q[p + 1])) * dt);
@@ -208,8 +196,6 @@ class TiempoHistoriaTest {
                 () -> AnalisisTiempoHistoria.fernandoHuancaResolver(modelo, new RegistroSismico("x", "y", 0.01, new double[10], new double[9]), 0.05));
     }
 
-    // ---------- verificación E.030 ----------
-
     private static ResultadoTiempoHistoria sintetico(double d0, double d1, double e0, double e1) {
         double[] z = new double[1];
         return new ResultadoTiempoHistoria("s", 0.01, 1, 2, z, new double[1][2], new double[1][2], new double[1][2], z, z, z, z,
@@ -229,7 +215,6 @@ class TiempoHistoriaTest {
         var n2026 = new NormaE030.Parametros(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S1, 8, 1, 1, 45);
         var n2018 = NormaE030.Parametros.v2018(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S1_2018, 8, 1, 1, 35);
 
-        // Siete conjuntos: promedio = 0,007 (el máximo 0,010 incumpliría el límite 0,00875)
         var v7 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(7), n2026);
         assertThat(v7.limite()).isCloseTo(0.00875, within(1e-12));
         assertThat(v7.criterio()).isEqualTo("promedio");
@@ -240,16 +225,13 @@ class TiempoHistoriaTest {
         assertThat(v7.avisos()).hasSizeGreaterThanOrEqualTo(3);
         assertThat(String.join(" ", v7.avisos())).contains("VERIFICACIÓN complementaria").contains("R = 1").contains("empotrada");
 
-        // 2018 con siete conjuntos también promedia
         assertThat(AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(7), n2018).pisosX().get(0).derivaDiseno()).isCloseTo(0.007, within(1e-12));
 
-        // 2018 con tres conjuntos {0,004; 0,005; 0,006}: máximo 0,006 cumple; suficientes
         var v3 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(3), n2018);
         assertThat(v3.criterio()).isEqualTo("máximo");
         assertThat(v3.conjuntosSuficientes()).isTrue();
         assertThat(v3.pisosX().get(0).derivaDiseno()).isCloseTo(0.006, within(1e-12));
 
-        // 2018 con menos de siete toma el máximo aunque el promedio cumpliría
         var lista = new ArrayList<>(conjunto(3));
         lista.set(2, sintetico(0.010, 0.002, 0.001, 0.001));
         var vMax = AnalisisTiempoHistoria.fernandoHuancaVerificar(lista, n2018);
@@ -257,13 +239,11 @@ class TiempoHistoriaTest {
         assertThat(vMax.pisosX().get(0).cumple()).isFalse();
         assertThat(vMax.cumple()).isFalse();
 
-        // 2026 con tres conjuntos: insuficientes
         var v3_2026 = AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(3), n2026);
         assertThat(v3_2026.conjuntosSuficientes()).isFalse();
         assertThat(v3_2026.cumple()).isFalse();
         assertThat(v3_2026.conjuntos()).isEqualTo(3);
 
-        // 2018 con dos conjuntos: insuficientes
         assertThat(AnalisisTiempoHistoria.fernandoHuancaVerificar(conjunto(2), n2018).conjuntosSuficientes()).isFalse();
     }
 }

@@ -9,15 +9,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
-/**
- * Exporta el modelo a un archivo de texto de ETABS (.e2k): pisos, puntos, columnas y vigas como líneas, losas y muros como
- * áreas, secciones rectangulares de concreto y apoyos empotrados en la base. Unidades kN, m.
- *
- * <p><b>Experimental.</b> No se ha podido verificar la importación en ETABS. Los pisos salen de las cotas superiores de vigas y
- * losas; las zapatas no se exportan (la base se modela empotrada). Revise el modelo importado antes de analizarlo.</p>
- */
 public final class ExportadorEtabs {
-
     private ExportadorEtabs() { }
 
     public record Resultado(String texto, List<String> avisos) { }
@@ -54,7 +46,6 @@ public final class ExportadorEtabs {
         if (zapatas > 0) avisos.add(zapatas + " zapata(s) no se exportan: la base se modela empotrada en la cota más baja de las columnas.");
         if (columnas.isEmpty() && vigas.isEmpty()) throw new IllegalArgumentException("Se necesitan columnas o vigas para armar el modelo.");
 
-        // pisos: cotas superiores de vigas y losas; si no hay, de columnas y muros
         var cotas = new TreeSet<Long>();
         vigas.forEach(e -> cotas.add(erickDelgadoMm(e.getZ() + e.getAltura() / 2)));
         losas.forEach(e -> cotas.add(erickDelgadoMm(e.getZ() + e.getAltura() / 2)));
@@ -72,7 +63,6 @@ public final class ExportadorEtabs {
         var nombrePiso = new ArrayList<String>();
         for (int i = 0; i < niveles.size(); i++) nombrePiso.add("PISO" + (i + 1));
 
-        // puntos en planta (únicos a 1 mm)
         var puntos = new LinkedHashMap<String, double[]>();
         var nombrePunto = new LinkedHashMap<String, String>();
         java.util.function.BiFunction<Double, Double, String> punto = (x, y) -> {
@@ -83,7 +73,7 @@ public final class ExportadorEtabs {
                 return n;
             });
         };
-        var secciones = new LinkedHashMap<String, String>(); // nombre → línea
+        var secciones = new LinkedHashMap<String, String>();
         var lineas = new ArrayList<String>();
         var asignaciones = new ArrayList<String>();
         var areas = new ArrayList<String>();
@@ -165,7 +155,7 @@ public final class ExportadorEtabs {
             sb.append('\n');
         }
         sb.append("  STORY  \"BASE\"  ELEV ").append(f(base)).append("\n\n");
-        double ec = 4700 * Math.sqrt(fcMpa) * 1000; // kN/m²
+        double ec = 4700 * Math.sqrt(fcMpa) * 1000;
         sb.append("$ MATERIAL PROPERTIES\n");
         sb.append("  MATERIAL  \"CONCRETO\"  TYPE \"Concrete\"  WEIGHTPERVOLUME 23.5\n");
         sb.append("  MATERIAL  \"CONCRETO\"  SYMTYPE \"Isotropic\"  E ").append(String.format(Locale.ROOT, "%.0f", ec)).append("  U 0.2  A 0.0000099\n");
@@ -197,7 +187,6 @@ public final class ExportadorEtabs {
         return -1;
     }
 
-    /** Centro de la columna cuya huella (con 5 cm de holgura) contiene el punto, o null. */
     private static double[] erickDelgadoAnclar(List<double[]> centros, double x, double y) {
         double[] mejor = null;
         double dmin = Double.MAX_VALUE;

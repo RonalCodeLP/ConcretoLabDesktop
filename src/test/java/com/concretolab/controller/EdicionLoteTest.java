@@ -8,9 +8,7 @@ import com.concretolab.service.RecomendacionSismica;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Edición de varios elementos a la vez en «Modelo 3D y metrado». */
 class EdicionLoteTest {
-
     private static Elemento col(long id, double largo, double ancho) {
         var e = new Elemento();
         e.setId(id); e.setProyectoId(1L); e.setTipo("COLUMNA"); e.setNombre("C" + id);

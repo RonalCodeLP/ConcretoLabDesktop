@@ -7,18 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MaterialService {
- /**
-  * Tipos de material admitidos. «CEMENTO» es el genérico de versiones anteriores. Cementos según NTP 334.009 (Portland I, II, V),
-  * NTP 334.090 (adicionados IP, ICo) y NTP 334.082 (por desempeño MS, HS). Los aditivos (NTP 334.088 / ASTM C494) se registran
-  * en la biblioteca con su dosis en observaciones; el diseño de mezcla ACI de la aplicación no los considera.
-  */
  public static final List<String> YEFRI_LERMA_TIPOS = List.of("CEMENTO", "CEMENTO TIPO I", "CEMENTO TIPO IP", "CEMENTO TIPO ICo",
    "CEMENTO TIPO II", "CEMENTO TIPO V", "CEMENTO TIPO MS", "CEMENTO TIPO HS", "AGREGADO FINO", "AGREGADO GRUESO", "ADITIVO");
  private final MaterialRepository yefriLermaRepository;
  public MaterialService(MaterialRepository repository){this.yefriLermaRepository=repository;}
  @Transactional(readOnly=true) public List<Material> yefriLermaListar(){return yefriLermaRepository.findAllByOrderByNombreAsc();}
  @Transactional(readOnly=true) public List<Material> yefriLermaPorTipo(String tipo){return yefriLermaRepository.findByTipoOrderByNombreAsc(tipo);}
- /** Todos los cementos de la biblioteca (genérico y por tipo). */
  @Transactional(readOnly=true) public List<Material> yefriLermaCementos(){return yefriLermaRepository.findAllByOrderByNombreAsc().stream().filter(m->m.getTipo()!=null&&m.getTipo().startsWith("CEMENTO")).toList();}
  @Transactional public Material yefriLermaGuardar(Material m){
   if(m==null||m.getNombre()==null||m.getNombre().isBlank()||m.getNombre().trim().length()>120)throw new IllegalArgumentException("Ingrese un nombre de hasta 120 caracteres.");

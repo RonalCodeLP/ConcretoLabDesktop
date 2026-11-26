@@ -1,20 +1,4 @@
-﻿<#
- Prueba de punta a punta del instalador de ConcretoLab en esta PC (Windows).
-
- 1. Instala dist\ConcretoLab-<versión>.exe en modo silencioso (solo para el usuario) y comprueba el registro de Windows,
-    el acceso del menú Inicio y el del escritorio.
- 2. Abre la aplicación instalada con una carpeta de datos TEMPORAL (variable JAVA_TOOL_OPTIONS): nunca toca la carpeta
-    real del usuario (%USERPROFILE%\.concretolab).
- 3. Con UI Automation de Windows (como si fuera una persona) comprueba que:
-      - abre directamente, sin pedir contraseña;
-      - crea y guarda un proyecto;
-      - el proyecto sigue ahí al cerrar y volver a abrir;
-      - crea una copia de seguridad, y al restaurarla vuelven los datos de esa copia.
- 4. Desinstala (salvo -DejarInstalado) y comprueba que no quedan accesos ni archivos del programa.
-
- No se ejecuta si ConcretoLab ya está instalado en esta PC (para no desinstalar una instalación real).
-#>
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$Instalador,
     [switch]$DejarInstalado
@@ -23,8 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $raizProyecto = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $Instalador) {
-    [xml]$pom = Get-Content (Join-Path $raizProyecto 'pom.xml') -Encoding UTF8
-    $Instalador = Join-Path $raizProyecto ("dist\ConcretoLab-" + $pom.project.version + '.exe')
+    $Instalador = Join-Path $raizProyecto 'dist\ConcretoLab-Setup.exe'
 }
 if (-not (Test-Path -LiteralPath $Instalador)) { throw "No existe el instalador $Instalador. Créalo con CREAR_DISTRIBUCION_WINDOWS.ps1." }
 
@@ -49,8 +32,6 @@ function Instalacion-Registrada {
     Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue |
         ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -eq 'ConcretoLab' } | Select-Object -First 1
 }
-
-# ------------------------------------------------------------------ UI Automation
 
 function Ids-Proceso([int]$padre) {
     @($padre) + @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$padre" | ForEach-Object { [int]$_.ProcessId })
@@ -121,7 +102,7 @@ function Escribir($el, [string]$texto) {
 }
 
 function Ir-A([int]$padre, [string]$vista) {
-    Pulsar (Buscar $padre $vista 'Button')
+    Pulsar (Buscar $padre $vista 'TabItem')
     Start-Sleep -Seconds 1
 }
 
@@ -139,7 +120,6 @@ function Combo-Proyecto([int]$padre) {
     throw 'No se encontró el selector de proyecto.'
 }
 
-# Proyectos que muestra el selector (abre la lista, lee los nombres y la cierra).
 function Proyectos-Listados([int]$padre) {
     $combo = Combo-Proyecto $padre
     $exp = Patron $combo ([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
@@ -202,13 +182,10 @@ function Matar-App($app) {
     if ($app -and $app.Proceso -and -not $app.Proceso.HasExited) { & taskkill /PID $app.Proceso.Id /T /F 2>$null | Out-Null }
 }
 
-# Primeros 15 bytes del archivo, aunque la aplicación lo tenga abierto.
 function Cabecera([string]$ruta) {
     $fs = New-Object System.IO.FileStream($ruta, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
     try { $b = New-Object byte[] 15; [void]$fs.Read($b, 0, 15); return [System.Text.Encoding]::ASCII.GetString($b) } finally { $fs.Dispose() }
 }
-
-# ------------------------------------------------------------------ prueba
 
 if (Instalacion-Registrada) { throw 'ConcretoLab ya está instalado en esta PC. Desinstálalo antes de ejecutar la prueba (así no se toca una instalación real).' }
 
@@ -226,7 +203,6 @@ Write-Host "Instalador: $Instalador"
 Write-Host "Datos de la prueba (temporales): $datos"
 
 try {
-    # 1. Instalación silenciosa (los argumentos pasan a Windows Installer)
     $inst = Start-Process -FilePath $Instalador -ArgumentList @('/qn', '/l*v', "`"$registroMsi`"") -PassThru
     if (-not $inst.WaitForExit(600000)) { $inst.Kill(); throw 'La instalación no terminó en 10 minutos.' }
     $instalado = Instalacion-Registrada
@@ -239,19 +215,24 @@ try {
     Anotar (Test-Path -LiteralPath $menuInicio) "Acceso en el menú Inicio: $menuInicio"
     Anotar (Test-Path -LiteralPath $escritorio) "Acceso en el escritorio (en modo silencioso se crea; en la instalación normal es una casilla): $escritorio"
 
-    # 2. Primera apertura: sin contraseña, crear y guardar un proyecto
     $app = Abrir-App $exe $datos
     Exigir ($app.Titulo -eq 'ConcretoLab Desktop') 'La aplicación instalada abre directamente en su ventana principal, sin pedir contraseña.'
     $base = Join-Path $datos 'concretolab.db'
     Exigir ((Test-Path $base) -and ((Cabecera $base) -eq 'SQLite format 3')) 'Creó la base de datos en la carpeta temporal, sin contraseña.'
+    $casilla = Buscar $app.Proceso.Id 'No volver a mostrar al abrir' 'CheckBox' 20 -Opcional
+    Exigir ($null -ne $casilla) 'En el primer uso se abrió el recorrido de bienvenida.'
+    Pulsar $casilla
+    Pulsar (Buscar $app.Proceso.Id 'Cerrar la bienvenida' 'Button')
+    $preferencias = Join-Path $datos 'preferencias.properties'
+    Exigir ((Test-Path $preferencias) -and ((Get-Content $preferencias -Raw) -match 'bienvenida\.mostrar=false')) 'Al cerrarla con «No volver a mostrar al abrir» marcado, la preferencia quedó guardada en la carpeta de datos.'
     $valor = Crear-Proyecto $app.Proceso.Id $proyecto1
     Exigir ($valor -eq $proyecto1) "Creó y seleccionó el proyecto «$proyecto1»."
     Exigir (Cerrar-App $app) 'Se cerró normalmente con el botón de cerrar de la ventana.'
     $app = $null
 
-    # 3. Segunda apertura: el proyecto sigue; crear copia; crear otro proyecto; restaurar la copia
     $app = Abrir-App $exe $datos
     Exigir ($app.Titulo -eq 'ConcretoLab Desktop') 'Volvió a abrir sin pedir contraseña.'
+    Exigir ($null -eq (Buscar $app.Proceso.Id 'No volver a mostrar al abrir' 'CheckBox' 6 -Opcional)) 'La bienvenida no volvió a abrirse sola.'
     Ir-A $app.Proceso.Id 'Modelo 3D y metrado'
     $lista = Proyectos-Listados $app.Proceso.Id
     Exigir ($lista -contains $proyecto1) "El proyecto se conservó al reiniciar (proyectos: $($lista -join ', '))."
@@ -273,7 +254,6 @@ try {
     Exigir (Esperar-Salida $app 60) 'Al confirmar la restauración, ConcretoLab se cerró para aplicarla.'
     $app = $null
 
-    # 4. Tercera apertura: los datos son los de la copia
     $app = Abrir-App $exe $datos
     Exigir ($app.Titulo -eq 'ConcretoLab Desktop') 'Abrió de nuevo tras la restauración.'
     Ir-A $app.Proceso.Id 'Modelo 3D y metrado'

@@ -1,0 +1,809 @@
+% ------------------------------------------------------------------------------
+\section{Diseño de concreto y laboratorio}
+\label{sec:con}
+% ------------------------------------------------------------------------------
+
+Este capítulo documenta el módulo de concreto: la biblioteca de materiales, la granulometría con husos
+NTP~400.037 / ASTM~C33, el balance de volúmenes absolutos, el diseño de mezclas por el método ACI~211.1 con los
+requisitos de la NTE~E.060, la corrección por humedad de una tanda, el registro de probetas con su evaluación y el
+reporte en PDF. Las fórmulas y las tablas son las que contiene el código; donde el valor depende de una edición
+concreta de una norma, se indica que debe verificarse.
+
+% ------------------------------------------------------------------------------
+\subsection{Flujo de datos entre pantallas}
+\label{sec:con-flujo}
+
+Las cuatro pantallas del módulo comparten la biblioteca de materiales y el proyecto activo
+(\ruta{SesionProyecto}). Las mezclas y sus ensayos pertenecen a un proyecto; los materiales y sus granulometrías no.
+
+\begin{table}[H]
+	\centering
+	\caption{Pantallas, controladores y servicios del módulo de concreto.}
+	\label{tab:con-pantallas}
+	\begin{tabular}{L{3.2cm}L{3.8cm}L{6.6cm}}
+		\hline
+		\textbf{Pantalla} & \textbf{Controlador} & \textbf{Servicios y cálculo} \\ \hline
+		Materiales y ensayos & \ruta{MaterialesController} & \ruta{MaterialService} \\
+		Granulometría & \ruta{GranulometriaController} & \ruta{GranulometriaService}, \ruta{HusosGranulometricos},
+		\ruta{RegistroGranulometriaService} \\
+		Balance de volúmenes & \ruta{BalanceController} & \ruta{VolumenAbsolutoService} \\
+		Mezclas y probetas & \ruta{MezclasController} & \ruta{DisenoMezclaACI}, \ruta{MezclaService},
+		\ruta{EvaluacionResistencia}, \ruta{ReporteMezcla} \\
+		\hline
+	\end{tabular}
+\end{table}
+
+El recorrido habitual es: registrar los agregados y el cemento con sus ensayos; verificar la granulometría de cada
+agregado; obtener una dosificación por m$^3$ con el asistente ACI o con el balance de volúmenes; pasarla con «Usar en
+una mezcla» al formulario «Registrar dosificación»; calcular la tanda corregida por humedad; registrar las probetas y
+revisar la evaluación E.060; y guardar el PDF.
+
+% ------------------------------------------------------------------------------
+\subsection{Biblioteca de materiales}
+\label{sec:con-materiales}
+
+\ruta{service/MaterialService} guarda los materiales (entidad \ruta{Material}). Los tipos admitidos están en
+\ruta{YEFRI\_LERMA\_TIPOS}, que también llena el combo de la pantalla:
+
+\begin{table}[H]
+	\centering
+	\caption{Tipos de material (\ruta{MaterialService.YEFRI\_LERMA\_TIPOS}).}
+	\label{tab:con-tipos}
+	\begin{tabular}{L{4.4cm}L{9.2cm}}
+		\hline
+		\textbf{Tipo} & \textbf{Referencia indicada en el código} \\ \hline
+		\ruta{CEMENTO} & Genérico de versiones anteriores, sin tipo. \\
+		\ruta{CEMENTO TIPO I}, \ruta{II}, \ruta{V} & Portland, NTP~334.009. \\
+		\ruta{CEMENTO TIPO IP}, \ruta{ICo} & Adicionados, NTP~334.090. \\
+		\ruta{CEMENTO TIPO MS}, \ruta{HS} & Por desempeño, NTP~334.082. \\
+		\ruta{AGREGADO FINO}, \ruta{AGREGADO GRUESO} & Agregados. \\
+		\ruta{ADITIVO} & NTP~334.088 / ASTM~C494; la dosis se anota en observaciones. El diseño ACI de la aplicación no
+		considera aditivos. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\caption{Validaciones de \ruta{MaterialService.\allowbreak{}yefriLermaGuardar}.}
+	\label{tab:con-material-validacion}
+	\begin{tabular}{L{5.4cm}L{8.2cm}}
+		\hline
+		\textbf{Campo} & \textbf{Regla} \\ \hline
+		Nombre & Obligatorio, de 1 a 120 caracteres tras recortar espacios. \\
+		Tipo & Uno de la tabla~\ref{tab:con-tipos}. \\
+		Densidad relativa, módulo de finura, tamaño máximo (mm), peso unitario compactado (kg/m$^3$) & Opcionales; si se
+		indican, finitos y mayores que cero. \\
+		Absorción y humedad total (\%) & Opcionales; si se indican, entre 0 y 100. \\
+		Fecha del ensayo & Opcional; si se indica, fecha ISO (AAAA-MM-DD). \\
+		Procedencia, referencia del ensayo, observaciones & Hasta 255 caracteres cada uno. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\ruta{MaterialesController} lista los materiales ordenados por nombre, con un paginador, y muestra el detalle del
+seleccionado. La pantalla \textbf{no edita ni elimina} materiales: cada resultado nuevo se registra como otro material,
+para conservar la trazabilidad de los anteriores. Los mensajes de error del servicio se asocian al campo
+correspondiente buscando palabras clave en el texto del mensaje (\ruta{yefriLermaCampoDelError}).
+
+Otros servicios consultan la biblioteca con \ruta{yefriLermaPorTipo(tipo)} y \ruta{yefriLermaCementos()}, que devuelve
+todos los tipos que empiezan por \ruta{CEMENTO}.
+
+% ------------------------------------------------------------------------------
+\subsection{Granulometría}
+\label{sec:con-granulometria}
+
+\subsubsection{Entrada de datos}
+
+Las mediciones se escriben como texto, una línea por tamiz con el formato «abertura en mm; masa retenida en g», de
+mayor a menor abertura. \ruta{RegistroGranulometriaService.\allowbreak{}yefriLermaLeer(String)} acepta coma decimal, ignora las
+líneas vacías y rechaza textos vacíos o de más de 10\,000 caracteres y líneas que no tengan exactamente dos partes.
+Aparte se ingresan la masa seca inicial $M_0$ y la masa en el fondo $F$.
+
+\subsubsection{Cálculo}
+
+\ruta{GranulometriaService.\allowbreak{}yefriLermaCalcular(M0, tamices, F)} produce una fila por tamiz. Con $R_i$ la masa retenida
+en el tamiz $i$ (ordenados de mayor a menor abertura):
+
+\begin{align}
+	r_i &= \frac{R_i}{M_0} \cdot 100 && \text{(\% retenido)}, \\
+	A_i &= \frac{1}{M_0} \sum_{k \le i} R_k \cdot 100 && \text{(\% retenido acumulado)}, \\
+	P_i &= 100 - A_i && \text{(\% que pasa)}, \\
+	M_r &= \sum_i R_i + F, \qquad \Delta = M_r - M_0, \qquad \Delta_{\%} = \frac{\Delta}{M_0} \cdot 100
+	&& \text{(balance de masas)}.
+\end{align}
+
+Los porcentajes se refieren a la masa \textbf{inicial}, no a la recuperada. El cálculo rechaza $M_0 \le 0$, $F < 0$,
+aberturas no positivas, repetidas o desordenadas, masas retenidas negativas y una masa acumulada mayor que $M_0$. La
+diferencia $\Delta$ no se limita: se informa para que usted la compare con el procedimiento del laboratorio.
+
+\subsubsection{Módulo de finura}
+
+\ruta{HusosGranulometricos.\allowbreak{}yefriLermaModuloFinura} suma los porcentajes retenidos acumulados en la serie estándar
+
+\begin{equation}
+	\mathrm{MF} = \frac{1}{100} \sum_{a \in S} A(a), \qquad
+	S = \{0.15;\ 0.30;\ 0.60;\ 1.18;\ 2.36;\ 4.75;\ 9.5;\ 19;\ 37.5;\ 75;\ 150\}\ \text{mm}.
+\end{equation}
+
+Un tamiz ingresado de abertura $a_i$ se identifica con la abertura $a$ de la serie si
+$\lvert a_i - a \rvert \le 0{,}02\,a + 0{,}005$\,mm. Si se encuentran menos de seis tamices de la serie, el método
+devuelve \ruta{null} (sin módulo de finura).
+
+\subsubsection{Husos granulométricos}
+
+\begin{table}[H]
+	\centering
+	\caption{Límites de \% que pasa de \ruta{HusosGranulometricos.Huso}.}
+	\label{tab:con-husos}
+	\begin{tabular}{cL{2.6cm}L{2.6cm}L{2.6cm}L{2.6cm}}
+		\hline
+		\textbf{Tamiz (mm)} & \textbf{Fino} & \textbf{Grueso N.º 57} & \textbf{Grueso N.º 67} & \textbf{Grueso N.º 7} \\ \hline
+		37,5 & & 100 & & \\
+		25 & & 95--100 & 100 & \\
+		19 & & & 90--100 & 100 \\
+		12,5 & & 25--60 & & 90--100 \\
+		9,5 & 100 & & 20--55 & 40--70 \\
+		4,75 & 95--100 & 0--10 & 0--10 & 0--15 \\
+		2,36 & 80--100 & 0--5 & 0--5 & 0--5 \\
+		1,18 & 50--85 & & & \\
+		0,60 & 25--60 & & & \\
+		0,30 & 5--30 & & & \\
+		0,15 & 0--10 & & & \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\ruta{yefriLermaVerificar(huso, filas)} busca cada tamiz del huso entre los ingresados con la misma tolerancia que el
+módulo de finura y comprueba $P_{\min} \le P \le P_{\max}$ (con holgura de $10^{-9}$). El resultado:
+
+\begin{itemize}
+	\item \ruta{cumple} es verdadero solo si todos los tamices encontrados están dentro \textbf{y} no falta ninguno;
+	\item si faltan tamices, el mensaje advierte que la verificación es parcial;
+	\item si ningún tamiz coincide, el resultado es «no cumple» con el aviso correspondiente;
+	\item para el huso fino incluye el módulo de finura y si está dentro del rango 2,3--3,1.
+\end{itemize}
+
+\subsubsection{Flujo de la pantalla}
+
+\ruta{GranulometriaController}:
+
+\begin{enumerate}
+	\item El combo «Agregado de la biblioteca» lista solo materiales cuyo tipo empieza por \ruta{AGREGADO}. Al elegir
+	      uno se carga su historial de ensayos guardados; elegir un ensayo del historial copia sus datos al formulario.
+	\item «Calcular resultados» llena la tabla (abertura, retenido en g y \%, acumulado y pasa) y la curva granulométrica,
+	      e informa la masa recuperada y la diferencia. Cualquier cambio en las masas o las mediciones borra el resultado
+	      mostrado.
+	\item La verificación depende del agregado elegido: si es \ruta{AGREGADO FINO}, se aplica el huso fino; si es
+	      grueso, se prueban en orden los husos N.º 57, 67 y 7 y se informa el primero que se cumple por completo (o que
+	      no cumple ninguno); sin agregado, solo se informa el módulo de finura.
+	\item «Guardar ensayo» exige un agregado y guarda un \ruta{RegistroGranulometria} (material, identificación de
+	      hasta 120 caracteres, fecha ISO, $M_0$, $F$ y el texto de mediciones) después de recalcularlo para validarlo.
+\end{enumerate}
+
+La curva es un gráfico de líneas con las aberturas como categorías, no en escala semilogarítmica. El módulo de finura
+calculado no se copia al material: el valor que usa el diseño es el que se registró en la biblioteca.
+
+\subsubsection{Ejemplo verificado}
+
+La prueba \ruta{DisenoMezclaTest.\allowbreak{}husoDelAgregadoFinoYModuloDeFinura} usa una arena de 500\,g con 25\,g en el fondo:
+
+\begin{table}[H]
+	\centering
+	\caption{Granulometría de la arena de prueba.}
+	\label{tab:con-ejemplo-granulometria}
+	\begin{tabular}{ccccc}
+		\hline
+		\textbf{Tamiz (mm)} & \textbf{Retenido (g)} & \textbf{Acumulado (\%)} & \textbf{Pasa (\%)} & \textbf{Huso fino} \\ \hline
+		9,5 & 0 & 0 & 100 & 100 \\
+		4,75 & 25 & 5 & 95 & 95--100 \\
+		2,36 & 70 & 19 & 81 & 80--100 \\
+		1,18 & 85 & 36 & 64 & 50--85 \\
+		0,60 & 100 & 56 & 44 & 25--60 \\
+		0,30 & 120 & 80 & 20 & 5--30 \\
+		0,15 & 75 & 95 & 5 & 0--10 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{equation}
+	\mathrm{MF} = \frac{0 + 5 + 19 + 36 + 56 + 80 + 95}{100} = 2.91 .
+\end{equation}
+
+La arena cumple el huso fino y su módulo de finura está dentro de 2,3--3,1.
+
+% ------------------------------------------------------------------------------
+\subsection{Balance de volúmenes absolutos}
+\label{sec:con-balance}
+
+\ruta{service/VolumenAbsolutoService.\allowbreak{}yefriLermaCalcular(Datos)} completa un metro cúbico de concreto con agregado fino a
+partir de parámetros elegidos por el profesional: agua $W$ (kg/m$^3$), relación agua/cemento $a/c$, densidades
+relativas del cemento $\rho_c$, del grueso SSS $\rho_g$ y del fino SSS $\rho_f$, masa de grueso SSS $G$ (kg/m$^3$) y aire
+$\alpha$ (\%). Con la densidad del agua tomada como 1000\,kg/m$^3$:
+
+\begin{align}
+	C &= \frac{W}{a/c}, \\
+	V_w &= \frac{W}{1000}, \qquad V_c = \frac{C}{1000\,\rho_c}, \qquad V_g = \frac{G}{1000\,\rho_g}, \qquad
+	V_{\text{aire}} = \frac{\alpha}{100}, \\
+	V_f &= 1 - V_w - V_c - V_g - V_{\text{aire}}, \\
+	F &= 1000\,\rho_f\,V_f .
+\end{align}
+
+El servicio exige $W$, $a/c$, las tres densidades y $G$ positivos y finitos, $0 \le \alpha < 100$ y $V_f > 0$; si no
+queda volumen para el fino, lanza «No queda volumen positivo para agregado fino».
+
+\begin{table}[H]
+	\centering
+	\caption{Ejemplo de \ruta{VolumenAbsolutoTest.\allowbreak{}balanceaUnMetroCubico}.}
+	\label{tab:con-ejemplo-balance}
+	\begin{tabular}{L{4.4cm}L{4.4cm}c}
+		\hline
+		\textbf{Dato} & \textbf{Resultado} & \textbf{Volumen (m$^3$)} \\ \hline
+		$W = 180$ kg, $a/c = 0{,}50$ & $C = 360$ kg & $V_w = 0{,}180$; $V_c = 0{,}120$ \\
+		$\rho_c = 3{,}0$ & & \\
+		$G = 1000$ kg, $\rho_g = 2{,}5$ & & $V_g = 0{,}400$ \\
+		$\alpha = 2$\,\% & & $V_{\text{aire}} = 0{,}020$ \\
+		$\rho_f = 2{,}5$ & $F = 700$ kg & $V_f = 0{,}280$ \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Pantalla y «Usar en una mezcla»}
+
+\ruta{BalanceController} lee los siete campos (con coma decimal), muestra cemento, fino, agua, grueso y los cinco
+volúmenes, y habilita «Usar en una mezcla». Cualquier cambio posterior en un campo invalida el resultado y vuelve a
+deshabilitar el botón. Al pulsarlo, \ruta{onUsarEnMezcla} navega a «Mezclas y probetas»
+(\ruta{MainController.\allowbreak{}fernandoHuancaIrA}) y llama a \ruta{MezclasController.\allowbreak{}yefriLermaNuevaMezclaDesde}, que abre
+«Registrar dosificación» con:
+
+\begin{itemize}
+	\item nombre «Balance a/c 0.50» (la relación con dos decimales) y referencia «Balance de volúmenes absolutos»;
+	\item cemento, agua de diseño, fino SSS y grueso SSS por m$^3$;
+	\item una observación con la relación $a/c$ y el aire, que pide completar la $f'_c$, la humedad y la absorción.
+\end{itemize}
+
+La resistencia, la humedad y la absorción quedan vacías. Si no hay un proyecto activo, se avisa y el formulario no se
+abre. Las dependencias entre los dos controladores se inyectan con \ruta{@Lazy} para evitar un ciclo.
+
+% ------------------------------------------------------------------------------
+\subsection{Diseño de mezcla ACI 211.1}
+\label{sec:con-aci}
+
+\ruta{service/DisenoMezclaACI.\allowbreak{}yefriLermaDisenar(Entrada)} calcula una dosificación de partida para concreto de peso
+normal por el método de volumen absoluto de ACI~211.1, con la resistencia promedio requerida y los límites de
+durabilidad de la E.060. Las masas resultantes de agregados están en condición saturada superficialmente seca (SSS).
+
+\subsubsection{Datos de entrada}
+
+\begin{table}[H]
+	\centering
+	\caption{Campos de \ruta{DisenoMezclaACI.Entrada} y sus validaciones.}
+	\label{tab:con-entrada-aci}
+	\begin{tabular}{L{5.4cm}L{8.2cm}}
+		\hline
+		\textbf{Dato} & \textbf{Regla} \\ \hline
+		$f'_c$ (MPa), asentamiento (mm), TMA (mm), módulo de finura, peso unitario compactado del grueso, densidades &
+		Finitos y positivos. \\
+		Desviación estándar $s$ y n.º de ensayos $n$ & Opcionales ($s$ nulo y $n = 0$ si se dejan vacíos). \\
+		Absorción del grueso & De 0 a 20\,\%. \\
+		Densidades relativas de fino y grueso & De 2,0 a 3,2. \\
+		Densidad del cemento & De 2,5 a 3,3\,g/cm$^3$. \\
+		Peso unitario compactado del grueso & De 1000 a 2000\,kg/m$^3$. \\
+		TMA & Al menos 9,5\,mm. \\
+		Exposición, aire incorporado y severidad & Exposición \ruta{NORMAL} si es nula; severidad \ruta{MODERADA} si es
+		nula. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Paso 1: resistencia promedio requerida}
+
+\ruta{yefriLermaFcr(fc, s, n, criterio)} aplica dos casos. \textbf{Sin registro estadístico} ($s$ nulo o $n < 15$):
+
+\begin{equation}
+	f'_{cr} =
+	\begin{cases}
+		f'_c + 7.0 & f'_c < 21\ \text{MPa},\\
+		f'_c + 8.5 & 21 \le f'_c \le 35\ \text{MPa},\\
+		f'_c + 9.8 & f'_c > 35\ \text{MPa}.
+	\end{cases}
+	\label{eq:con-fcr-sin}
+\end{equation}
+
+\textbf{Con desviación estándar} ($n \ge 15$, $s > 0$), con $s' = k(n)\,s$:
+
+\begin{equation}
+	f'_{cr} = \max\left\{ f'_c + 1.34\, s',\;
+	\begin{array}{ll}
+		f'_c + 2.33\, s' - 3.5 & \text{si } f'_c \le 35\ \text{MPa}\\
+		0.9\, f'_c + 2.33\, s' & \text{si } f'_c > 35\ \text{MPa}
+	\end{array}
+	\right\} .
+	\label{eq:con-fcr-con}
+\end{equation}
+
+\begin{table}[H]
+	\centering
+	\caption{Factor de corrección de la desviación estándar $k(n)$ (\ruta{yefriLermaFactorMuestra}).}
+	\label{tab:con-factor}
+	\begin{tabular}{cc}
+		\hline
+		\textbf{Número de ensayos $n$} & \textbf{$k(n)$} \\ \hline
+		15 & 1,16 \\
+		20 & 1,08 \\
+		25 & 1,03 \\
+		30 o más & 1,00 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Entre los valores de la tabla se interpola linealmente. El texto del criterio aplicado (\ruta{criterioFcr}) se
+muestra con el resultado.
+
+\begin{advertencia}[Verifíquese contra la norma]
+	Para $f'_c > 35$\,MPa sin registro estadístico, el código suma 9,8\,MPa. En ACI~318, desde la edición de 2005, ese
+	caso es $1{,}10\,f'_c + 5{,}0$\,MPa. Compruebe la tabla 5.3 de la E.060 vigente antes de usar este caso; la prueba
+	\ruta{fcrSinRegistroEstadistico} fija el valor actual del código ($42 + 9{,}8$).
+\end{advertencia}
+
+\subsubsection{Paso 2: durabilidad}
+
+La exposición elegida (\ruta{DisenoMezclaACI.Exposicion}) fija una relación $a/c$ máxima, una $f'_c$ mínima y si se
+exige aire incorporado. Los valores son los del código; el propio servicio advierte que se tomaron de ACI~318 cap.~19 /
+E.060 cap.~4 y que deben verificarse contra la edición vigente.
+
+\begin{table}[H]
+	\centering
+	\caption{Exposiciones de \ruta{DisenoMezclaACI.Exposicion}.}
+	\label{tab:con-exposicion}
+	\begin{tabular}{L{6.6cm}ccc}
+		\hline
+		\textbf{Exposición} & \textbf{$a/c$ máx.} & \textbf{$f'_c$ mín. (MPa)} & \textbf{Aire} \\ \hline
+		Normal (sin requisitos especiales) & --- & --- & no \\
+		Servicio en agua: baja permeabilidad & 0,50 & 28 & no \\
+		Congelamiento y deshielo en condición húmeda & 0,45 & 31 & sí \\
+		Sulfatos moderados (SO$_4$ 0,10--0,20\,\%): cemento tipo II & 0,50 & 28 & no \\
+		Sulfatos severos (SO$_4$ 0,20--2,00\,\%): cemento tipo V & 0,45 & 31 & no \\
+		Sulfatos muy severos (SO$_4 > 2{,}00$\,\%): tipo V + puzolana & 0,45 & 31 & no \\
+		Agua salobre o de mar / cloruros & 0,40 & 35 & no \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Si la exposición exige aire, el diseño se calcula con aire incorporado aunque no se haya marcado, y se avisa. Si
+$f'_c$ es menor que la mínima de la exposición, se avisa (no se cambia $f'_c$). También se avisa si $f'_c < 17$\,MPa,
+mínimo que la E.060 exige para concreto estructural según el mensaje del código.
+
+\subsubsection{Paso 3: relación agua/cemento}
+
+La relación por resistencia $(a/c)_R$ se interpola en la tabla 6.3.4(a) de ACI~211.1 con $f'_{cr}$:
+
+\begin{table}[H]
+	\centering
+	\caption{Relación $a/c$ en función de $f'_{cr}$ a 28 días (\ruta{YEFRI\_LERMA\_AC\_SIN\_AIRE} y \ruta{YEFRI\_LERMA\_AC\_CON\_AIRE}).}
+	\label{tab:con-ac}
+	\begin{tabular}{L{3.8cm}ccccccc}
+		\hline
+		\textbf{$f'_{cr}$ (MPa)} & 15 & 20 & 25 & 30 & 35 & 40 & 45 \\ \hline
+		Sin aire incorporado & 0,79 & 0,69 & 0,61 & 0,54 & 0,47 & 0,42 & 0,38 \\
+		Con aire incorporado & 0,70 & 0,60 & 0,52 & 0,45 & 0,39 & --- & --- \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{itemize}
+	\item Sin aire, si $f'_{cr} > 45$\,MPa el diseño se rechaza (se remite a ACI~211.4 y a mezclas de prueba); con aire,
+	      el límite es $f'_{cr} = 35$\,MPa.
+	\item Si $f'_{cr} < 15$\,MPa, se usa la relación de 15\,MPa y se avisa.
+\end{itemize}
+
+La relación adoptada es la menor entre la de resistencia y la de durabilidad:
+
+\begin{equation}
+	a/c = \min\left\{ (a/c)_R,\; (a/c)_D \right\}, \qquad (a/c)_D = +\infty \text{ si la exposición no la limita}.
+\end{equation}
+
+Si rige la durabilidad, se avisa con ambos valores.
+
+\subsubsection{Paso 4: tamaño máximo nominal, agua y aire}
+
+\ruta{yefriLermaIndiceTma} toma el mayor TMA de la tabla que no supera el ingresado
+($9{,}5;\ 12{,}5;\ 19;\ 25;\ 37{,}5;\ 50;\ 75;\ 150$\,mm) y avisa si difiere en más de 0,6\,mm. El agua de mezclado se
+lee en la tabla 6.3.3 de ACI~211.1. El código asocia cada rango de asentamiento a su valor central (25--50\,mm
+$\rightarrow$ 37,5; 75--100\,mm $\rightarrow$ 87,5; 150--175\,mm $\rightarrow$ 162,5) e \textbf{interpola linealmente}
+entre esos centros. Fuera de 25--175\,mm usa el límite más cercano y avisa.
+
+\begin{table}[H]
+	\centering
+	\caption{Agua de mezclado (kg/m$^3$) según asentamiento y TMA.}
+	\label{tab:con-agua}
+	\begin{tabular}{L{3.6cm}cccccccc}
+		\hline
+		\textbf{Asentamiento} & \textbf{9,5} & \textbf{12,5} & \textbf{19} & \textbf{25} & \textbf{37,5} & \textbf{50} &
+		\textbf{75} & \textbf{150} \\ \hline
+		\multicolumn{9}{l}{\textit{Sin aire incorporado}} \\
+		25--50\,mm & 207 & 199 & 190 & 179 & 166 & 154 & 130 & 113 \\
+		75--100\,mm & 228 & 216 & 205 & 193 & 181 & 169 & 145 & 124 \\
+		150--175\,mm & 243 & 228 & 216 & 202 & 190 & 178 & 160 & --- \\
+		\multicolumn{9}{l}{\textit{Con aire incorporado}} \\
+		25--50\,mm & 181 & 175 & 168 & 160 & 150 & 142 & 122 & 107 \\
+		75--100\,mm & 202 & 193 & 184 & 175 & 165 & 157 & 133 & 119 \\
+		150--175\,mm & 216 & 205 & 197 & 184 & 174 & 166 & 154 & --- \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Para TMA de 150\,mm la tabla no tiene el rango de 150--175\,mm; si el asentamiento supera 87,5\,mm se usa el valor de
+75--100\,mm y se avisa.
+
+\begin{table}[H]
+	\centering
+	\caption{Contenido de aire (\%) según TMA (\ruta{YEFRI\_LERMA\_AIRE\_ATRAPADO} y \ruta{YEFRI\_LERMA\_AIRE\_INCORPORADO}).}
+	\label{tab:con-aire}
+	\begin{tabular}{L{3.6cm}cccccccc}
+		\hline
+		\textbf{TMA (mm)} & \textbf{9,5} & \textbf{12,5} & \textbf{19} & \textbf{25} & \textbf{37,5} & \textbf{50} &
+		\textbf{75} & \textbf{150} \\ \hline
+		Atrapado (sin aire incorporado) & 3,0 & 2,5 & 2,0 & 1,5 & 1,0 & 0,5 & 0,3 & 0,2 \\
+		Incorporado, exposición suave & 4,5 & 4,0 & 3,5 & 3,0 & 2,5 & 2,0 & 1,5 & 1,0 \\
+		Incorporado, moderada & 6,0 & 5,5 & 5,0 & 4,5 & 4,5 & 4,0 & 3,5 & 3,0 \\
+		Incorporado, severa & 7,5 & 7,0 & 6,0 & 6,0 & 5,5 & 5,0 & 4,5 & 4,0 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Paso 5: cemento}
+
+\begin{equation}
+	C = \frac{W}{a/c}, \qquad \text{bolsas} = \frac{C}{42.5} .
+\end{equation}
+
+Se avisa si $C < 250$\,kg/m$^3$ (cohesión) o $C > 550$\,kg/m$^3$ (retracción y calor de hidratación).
+
+\subsubsection{Paso 6: agregado grueso}
+
+El volumen de grueso seco y compactado por unidad de volumen de concreto, $b$, se interpola en la tabla 6.3.6 de
+ACI~211.1 con el módulo de finura de la arena, acotado a 2,40--3,00 (fuera de ese rango se usa el límite y se avisa):
+
+\begin{table}[H]
+	\centering
+	\caption{Volumen de agregado grueso $b$ (\ruta{YEFRI\_LERMA\_VOL\_GRUESO}).}
+	\label{tab:con-grueso}
+	\begin{tabular}{ccccc}
+		\hline
+		\textbf{TMA (mm)} & \textbf{MF 2,40} & \textbf{MF 2,60} & \textbf{MF 2,80} & \textbf{MF 3,00} \\ \hline
+		9,5 & 0,50 & 0,48 & 0,46 & 0,44 \\
+		12,5 & 0,59 & 0,57 & 0,55 & 0,53 \\
+		19 & 0,66 & 0,64 & 0,62 & 0,60 \\
+		25 & 0,71 & 0,69 & 0,67 & 0,65 \\
+		37,5 & 0,75 & 0,73 & 0,71 & 0,69 \\
+		50 & 0,78 & 0,76 & 0,74 & 0,72 \\
+		75 & 0,82 & 0,80 & 0,78 & 0,76 \\
+		150 & 0,87 & 0,85 & 0,83 & 0,81 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{equation}
+	G_{\text{seco}} = b \cdot \mathrm{PUC}, \qquad G_{\text{SSS}} = G_{\text{seco}} \left(1 + \frac{\text{abs}_g}{100}\right),
+\end{equation}
+
+\noindent donde PUC es el peso unitario compactado del grueso (kg/m$^3$) y $\text{abs}_g$ su absorción (\%).
+
+\subsubsection{Paso 7: agregado fino por volumen absoluto}
+
+El fino se obtiene con el balance de la sección~\ref{sec:con-balance}, llamando a
+\ruta{VolumenAbsolutoService.\allowbreak{}yefriLermaCalcular} con $W$, $a/c$, $\rho_c$, $G_{\text{SSS}}$, $\rho_g$, $\rho_f$ y el
+aire del paso 4. Como el grueso entra en condición SSS, se usa su densidad relativa SSS.
+
+\subsubsection{Interpolación}
+
+Todas las tablas se leen con \ruta{yefriLermaInterpolar}, interpolación lineal por tramos con valores extremos
+constantes fuera del rango:
+
+\begin{equation}
+	y(x) =
+	\begin{cases}
+		y_0 & x \le x_0,\\
+		y_{i-1} + \dfrac{x - x_{i-1}}{x_i - x_{i-1}} \left(y_i - y_{i-1}\right) & x_{i-1} < x \le x_i,\\
+		y_{n} & x > x_n.
+	\end{cases}
+\end{equation}
+
+\subsubsection{Resultado y proporción en peso}
+
+\ruta{Resultado} devuelve $f'_{cr}$ con su criterio, las relaciones $a/c$ de resistencia, de durabilidad y adoptada, el
+TMA de tabla, el agua, el aire, el cemento y las bolsas, $b$, el grueso seco y SSS, el fino SSS, los cinco volúmenes y
+la lista de avisos, que siempre termina recordando que es un cálculo de partida que debe verificarse con mezclas de
+prueba. \ruta{proporcionEnPeso()} da la proporción respecto del cemento y el agua por bolsa:
+
+\begin{equation}
+	1 : \frac{F_{\text{SSS}}}{C} : \frac{G_{\text{SSS}}}{C} \;\big/\; 42.5 \cdot (a/c)\ \text{L de agua por bolsa de 42,5 kg}.
+\end{equation}
+
+\subsubsection{Ejemplo de cálculo}
+
+Con los datos de la prueba \ruta{DisenoMezclaTest.\allowbreak{}ejemploFc28SinAire}: $f'_c = 28$\,MPa sin registro estadístico,
+asentamiento 87,5\,mm, TMA 19\,mm, MF 2,7, PUC 1600\,kg/m$^3$, $\rho_c = 3{,}15$, $\rho_f = \rho_g = 2{,}65$, absorción
+del grueso 1\,\%, exposición normal y sin aire incorporado.
+
+\begin{table}[H]
+	\centering
+	\caption{Diseño de la prueba \ruta{ejemploFc28SinAire} (las cifras marcadas con * se calcularon a partir del código).}
+	\label{tab:con-ejemplo-aci}
+	\begin{tabular}{L{4.6cm}L{5.4cm}L{3.2cm}}
+		\hline
+		\textbf{Paso} & \textbf{Cálculo} & \textbf{Resultado} \\ \hline
+		$f'_{cr}$ & $28 + 8{,}5$ & 36,5\,MPa \\
+		$a/c$ por resistencia & $0{,}47 - 0{,}05 \cdot (1{,}5/5)$ & 0,455 \\
+		Agua & tabla, 75--100\,mm y 19\,mm & 205\,kg/m$^3$ \\
+		Aire atrapado & tabla, 19\,mm & 2,0\,\% \\
+		Cemento & $205 / 0{,}455$ & 450,5\,kg/m$^3$ (10,6 bolsas)* \\
+		$b$ & entre MF 2,6 (0,64) y 2,8 (0,62) & 0,63 \\
+		Grueso seco y SSS & $0{,}63 \cdot 1600$; $\times 1{,}01$ & 1008 y 1018,1\,kg/m$^3$* \\
+		Volúmenes & agua, cemento, grueso, aire & 0,2050; 0,1430; 0,3842; 0,0200* \\
+		Fino & $V_f = 0{,}2478$; $\times 2650$ & 656,6\,kg/m$^3$* \\
+		Proporción & & 1 : 1,46 : 2,26 / 19,3\,L* \\
+		\hline
+	\end{tabular}
+\end{table}
+
+La prueba verifica $f'_{cr}$, $(a/c)_R$, el agua, el aire, el cemento, $b$, el grueso seco, que la suma de los cinco
+volúmenes sea 1 y que el fino esté entre 500 y 900\,kg/m$^3$.
+
+\subsubsection{Cemento frente a sulfatos}
+
+\ruta{yefriLermaAvisoCemento(exposicion, tipoMaterial)} compara el tipo del cemento elegido en la biblioteca con la
+exposición. Primero quita del tipo el prefijo «CEMENTO» y, si está, «TIPO» (así «CEMENTO TIPO IP» queda en «IP» y
+«CEMENTO» queda vacío).
+
+\begin{table}[H]
+	\centering
+	\caption{Verificación del tipo de cemento.}
+	\label{tab:con-sulfatos}
+	\begin{tabular}{L{3.4cm}L{3.8cm}L{6.4cm}}
+		\hline
+		\textbf{Exposición} & \textbf{Tipos aceptados} & \textbf{Aviso} \\ \hline
+		Sulfatos moderados & II, MS, V, HS & «se requiere tipo II o MS» si no es aceptado. \\
+		Sulfatos severos & V, HS & «se requiere tipo V o HS». \\
+		Sulfatos muy severos & V, HS & Siempre avisa: con V o HS, que además se requiere puzolana; si no, que se requiere
+		tipo V o HS más puzolana. \\
+		Otras & cualquiera & Sin aviso. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Un cemento genérico se informa como «sin tipo indicado». Si no se eligió un cemento y la exposición es de sulfatos, la
+pantalla pide elegirlo para poder verificarlo.
+
+\subsubsection{Flujo del asistente}
+
+\ruta{MezclasController}:
+
+\begin{enumerate}
+	\item «Diseñar mezcla» (\ruta{onDisenar}) abre el panel con los combos de agregado fino, agregado grueso y cemento
+	      llenos desde la biblioteca. La exposición empieza en «Normal» y la severidad en «Moderada» (habilitada solo
+	      si se marca «Aire incorporado»).
+	\item Elegir un agregado fino copia su módulo de finura y su densidad relativa; uno grueso, su tamaño máximo, su
+	      peso unitario compactado, su densidad relativa y su absorción; un cemento, su densidad relativa como densidad
+	      en g/cm$^3$. Los campos pueden escribirse a mano.
+	\item «Calcular diseño» (\ruta{onCalcularDiseno}) marca los campos obligatorios vacíos (todos salvo $s$ y $n$),
+	      redondea $n$ al entero más cercano, llama a \ruta{yefriLermaDisenar}, agrega el aviso de cemento y habilita
+	      «Usar en una mezcla».
+	\item «Usar en una mezcla» (\ruta{onUsarDiseno}) exige un proyecto activo y abre «Registrar dosificación» con el
+	      nombre «Diseño ACI $f'_c$ \textit{valor} MPa» (la resistencia con tres decimales), la referencia «Asistente
+	      ACI 211.1 + E.060», la $f'_c$, el cemento, el agua, el fino SSS y el grueso SSS. Si se eligieron agregados de la biblioteca, también los selecciona y copia
+	      su absorción y humedad; sin grueso de biblioteca, copia la absorción escrita en el asistente. Las observaciones
+	      reciben todos los avisos del diseño.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+\subsection{Mezclas, tanda y corrección por humedad}
+\label{sec:con-mezclas}
+
+\subsubsection{Registro de la dosificación}
+
+Una \ruta{Mezcla} guarda, por m$^3$, el cemento $C$, el agua de diseño $W$ y las masas SSS de fino $F$ y grueso $G$,
+además de la $f'_c$ especificada, la absorción y la humedad total de cada agregado, la referencia, las observaciones y
+el texto de los materiales elegidos («nombre \textbar\ informe: \dots\ \textbar\ fecha: \dots»).
+\ruta{MezclaService.\allowbreak{}yefriLermaGuardar} exige un proyecto existente, nombre, $f'_c$, $C$, $W$, $F$ y $G$ positivos y
+finitos, absorciones y humedades entre 0 y 100\,\%, y además que la corrección para 1\,m$^3$ sea posible (no puede
+quedar agua a agregar negativa). Las mezclas guardadas con un esquema anterior, sin las columnas de materiales, se leen
+con esos campos nulos (prueba \ruta{CompatibilidadMezclaTest}).
+
+\subsubsection{Corrección por humedad}
+
+\ruta{MezclaService.\allowbreak{}yefriLermaCalcular(Mezcla, V)} convierte la dosificación SSS a las cantidades de una tanda de
+volumen $V$ con los agregados en su humedad real. La humedad $w$ y la absorción $\text{abs}$ son porcentajes de la masa
+seca:
+
+\begin{align}
+	S_f &= \frac{F}{1 + \text{abs}_f/100}, \qquad S_g = \frac{G}{1 + \text{abs}_g/100} && \text{(masas secas)}, \\
+	F_h &= S_f \left(1 + \frac{w_f}{100}\right), \qquad G_h = S_g \left(1 + \frac{w_g}{100}\right) && \text{(masas húmedas)}, \\
+	W_{\text{agregar}} &= W - S_f\,\frac{w_f - \text{abs}_f}{100} - S_g\,\frac{w_g - \text{abs}_g}{100}
+	&& \text{(agua libre)}.
+\end{align}
+
+Las cantidades de la tanda son $C\,V$, $F_h\,V$, $G_h\,V$ y $W_{\text{agregar}}\,V$. La relación $a/c$ que se informa es
+la de diseño, $W/C$. El cálculo rechaza $V \le 0$, un agua a agregar negativa («El agua libre supera el agua de diseño»)
+y resultados no finitos.
+
+\begin{table}[H]
+	\centering
+	\caption{Ejemplo de \ruta{MezclaIntegracionTest.\allowbreak{}registraYCalculaConHumedadYEnsayo} ($V = 2$\,m$^3$).}
+	\label{tab:con-ejemplo-humedad}
+	\begin{tabular}{L{3cm}L{3.4cm}L{3.8cm}L{3cm}}
+		\hline
+		\textbf{Material} & \textbf{Diseño (por m$^3$)} & \textbf{Seco y húmedo (por m$^3$)} & \textbf{Tanda de 2\,m$^3$} \\ \hline
+		Cemento & 350\,kg & --- & 700\,kg \\
+		Fino ($\text{abs}=1$, $w=3$) & 808\,kg SSS & 800 y 824\,kg & 1648\,kg \\
+		Grueso ($\text{abs}=1$, $w=0{,}5$) & 1010\,kg SSS & 1000 y 1005\,kg & 2010\,kg \\
+		Agua & 180\,kg & $180 - 16 + 5 = 169$\,kg & 338\,kg \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Volumen de la tanda}
+
+El volumen se escribe en «Volumen del lote (m$^3$)» (1 por defecto). «Elegir elementos del modelo»
+(\ruta{onElegirElementos} y \ruta{onUsarSeleccion}) permite seleccionar elementos del proyecto y escribe la suma de sus
+volúmenes \textbf{brutos} ($l\,a\,h$); la propia pantalla advierte que esa suma no descuenta intersecciones y remite al
+metrado. Al seleccionar una mezcla, el panel de resultados muestra la tanda y, debajo, la evaluación E.060 de sus
+probetas (sección~\ref{sec:con-ensayos}).
+
+% ------------------------------------------------------------------------------
+\subsection{Probetas y evaluación de resistencia}
+\label{sec:con-ensayos}
+
+\subsubsection{Registro de probetas}
+
+\ruta{MezclaService.\allowbreak{}yefriLermaGuardarEnsayo} guarda un \ruta{Ensayo} si la mezcla existe, la identificación no está
+vacía, la fecha es una fecha ISO válida, la edad y la resistencia son positivas y el asentamiento no es negativo.
+
+\subsubsection{Criterios de aceptación}
+
+\ruta{service/EvaluacionResistencia.\allowbreak{}yefriLermaEvaluar(fc, resultados)} aplica los dos criterios de aceptación que el
+código atribuye a la E.060 (art.~5.6) y ACI~318. Con los resultados $x_1, \dots, x_n$ (se descartan los nulos, no
+finitos o no positivos):
+
+\begin{align}
+	\text{(a)} \quad & \frac{x_i + x_{i+1} + x_{i+2}}{3} \ge f'_c \qquad \text{para todo } i = 1, \dots, n-2, \\
+	\text{(b)} \quad & \min_i x_i \ge x_{\lim}, \qquad
+	x_{\lim} =
+	\begin{cases}
+		f'_c - 3.5 & f'_c \le 35\ \text{MPa},\\
+		0.9\, f'_c & f'_c > 35\ \text{MPa}.
+	\end{cases}
+\end{align}
+
+El resultado es \ruta{conforme()} solo si hay al menos tres resultados (\ruta{completo}) y se cumplen (a) y (b). Con
+menos de tres, el mensaje indica que falta el criterio de promedios y, si algún resultado ya está bajo $x_{\lim}$, lo
+advierte. El servicio calcula también el promedio, el mínimo, el menor promedio de tres consecutivos y, con $n \ge 2$, la
+desviación estándar muestral
+
+\begin{equation}
+	s = \sqrt{\frac{1}{n-1} \sum_{i=1}^{n} \left(x_i - \bar{x}\right)^2 } .
+\end{equation}
+
+\subsubsection{Qué resultados se evalúan}
+
+\ruta{MezclasController.\allowbreak{}yefriLermaEvaluacion} toma solo las probetas con edad de $28 \pm 0{,}5$ días y las ordena de la
+más antigua a la más reciente según el orden de registro (la lista del servicio viene del más reciente al más antiguo y
+el controlador la recorre al revés). Cada probeta cuenta como un resultado.
+
+\begin{importante}[Probetas y ensayos]
+	En la norma, un «ensayo» es el promedio de al menos dos probetas de la misma muestra a la edad de diseño. La
+	aplicación evalúa cada probeta registrada como un ensayo, por lo que el resultado es orientativo si se registran
+	probetas sueltas; así lo advierte el comentario de la clase.
+\end{importante}
+
+\begin{table}[H]
+	\centering
+	\caption{Casos de \ruta{DisenoMezclaTest.\allowbreak{}evaluacionDeResistencia}.}
+	\label{tab:con-ejemplo-evaluacion}
+	\begin{tabular}{cL{4.2cm}L{7.4cm}}
+		\hline
+		\textbf{$f'_c$} & \textbf{Resultados (MPa)} & \textbf{Evaluación} \\ \hline
+		21 & 23; 22; 21,5; 24 & Conforme. \\
+		21 & 21; 20,5; 20; 25 & No cumple (a): el primer promedio es 20,5. \\
+		21 & 30; 30; 17 & No cumple (b): $17 < 21 - 3{,}5 = 17{,}5$. \\
+		21 & 25; 24 & Incompleto: no conforme por tener menos de tres. \\
+		40 & 41 & Límite individual $0{,}9 \cdot 40 = 36$. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+% ------------------------------------------------------------------------------
+\subsection{Reporte PDF}
+\label{sec:con-pdf}
+
+«Guardar PDF» llama a \ruta{ReporteMezcla.\allowbreak{}yefriLermaGenerar(proyecto, mezcla, V, ensayos)}, que genera con OpenPDF
+(\ruta{com.lowagie.text}) un documento A4 con márgenes de 40\,pt y el siguiente contenido:
+
+\begin{enumerate}
+	\item título «Resumen de dosificación», proyecto, mezcla, referencia y materiales fino y grueso;
+	\item datos de diseño ingresados: $f'_c$, cemento, agua de diseño, fino y grueso SSS con su absorción y humedad, y
+	      observaciones;
+	\item cantidades corregidas para el volumen $V$ (\ruta{MezclaService.\allowbreak{}yefriLermaCalcular}): cemento, agua a añadir,
+	      fino y grueso húmedos y relación $a/c$ de diseño;
+	\item lista de ensayos físicos (identificación, fecha, edad, resistencia, asentamiento y observaciones);
+	\item una nota final que aclara que es un registro de la dosificación proporcionada por el usuario, que no
+	      constituye diseño ACI, aprobación ni verificación de conformidad, y que requiere revisión profesional y mezcla
+	      de prueba.
+\end{enumerate}
+
+Los números se escriben con tres decimales y punto decimal (\ruta{Locale.ROOT}). El PDF no incluye la evaluación E.060
+ni el detalle del asistente ACI (salvo lo que se haya copiado en la referencia y las observaciones).
+
+% ------------------------------------------------------------------------------
+\subsection{Pruebas automatizadas}
+\label{sec:con-pruebas}
+
+\begin{longtable}{L{4.6cm}L{9cm}}
+	\caption{Pruebas que cubren este capítulo (\ruta{src/test/java/com/concretolab}).} \label{tab:con-pruebas} \\
+	\hline
+	\textbf{Clase} & \textbf{Qué verifica} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Qué verifica} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{DisenoMezclaTest} & $f'_{cr}$ sin registro y con desviación (incluido el factor para 20 ensayos y el caso
+	$f'_c > 35$); ejemplo completo de 28\,MPa (tabla~\ref{tab:con-ejemplo-aci}); durabilidad que gobierna la relación
+	$a/c$; congelamiento que fuerza aire incorporado; rechazo fuera de tabla; evaluación de resistencia
+	(tabla~\ref{tab:con-ejemplo-evaluacion}); huso fino y módulo de finura (tabla~\ref{tab:con-ejemplo-granulometria}). \\
+	\ruta{PendientesCierreTest} & Catálogo de tipos de cemento NTP y aditivo sin perder los tipos anteriores; aviso de
+	cemento frente a sulfatos (tabla~\ref{tab:con-sulfatos}); además, las cuantías de acero del metrado. \\
+	\ruta{GranulometriaTest} & Porcentajes, acumulados, \% que pasa y balance de masas; rechazo de aberturas desordenadas
+	y masas imposibles. \\
+	\ruta{VolumenAbsolutoTest} & Balance de un metro cúbico (tabla~\ref{tab:con-ejemplo-balance}) y rechazo de un
+	volumen inviable. \\
+	\ruta{MezclaIntegracionTest} & Registro con base SQLite temporal, corrección por humedad
+	(tabla~\ref{tab:con-ejemplo-humedad}), ensayo y texto del PDF; materiales y granulometrías guardados y datos
+	inválidos rechazados. \\
+	\ruta{CompatibilidadMezclaTest} & Lectura de una mezcla creada con el esquema anterior de la tabla \ruta{mezclas}. \\
+\end{longtable}
+
+% ------------------------------------------------------------------------------
+\subsection{Supuestos y límites}
+\label{sec:con-limites}
+
+\begin{itemize}
+	\item \textbf{Alcance del diseño}: concreto de peso normal con agregado grueso angular y sin aditivos reductores de
+	      agua (las tablas de ACI~211.1 lo suponen). No cubre concreto liviano ni de alta resistencia: se rechaza
+	      $f'_{cr} > 45$\,MPa (35\,MPa con aire incorporado). Los aditivos registrados en la biblioteca no intervienen en
+	      ningún cálculo.
+	\item \textbf{Tablas e interpolación}: el agua se interpola entre los centros de los rangos de asentamiento, una
+	      elección del código que la tabla original no prescribe; el TMA se redondea al inmediato inferior de la tabla y
+	      el módulo de finura se acota a 2,40--3,00.
+	\item \textbf{$f'_{cr}$ sin registro estadístico para $f'_c > 35$\,MPa}: el código usa $f'_c + 9{,}8$; verifíquese
+	      contra la tabla 5.3 de la E.060 (véase el recuadro del paso 1).
+	\item \textbf{Durabilidad}: las relaciones $a/c$ máximas, las $f'_c$ mínimas y los rangos de sulfatos de la
+	      tabla~\ref{tab:con-exposicion} son los del código; el propio servicio pide verificarlos contra la edición
+	      vigente de la E.060 y de ACI~318. Solo se verifica el tipo de cemento frente a sulfatos, y solo si se elige un
+	      cemento de la biblioteca.
+	\item \textbf{Densidades}: la densidad del agua se toma como 1000\,kg/m$^3$ y la densidad del cemento se usa como
+	      densidad relativa. En el diseño, la absorción del fino no interviene (el fino se obtiene directamente en
+	      condición SSS).
+	\item \textbf{Humedad}: la corrección supone que la humedad total y la absorción son porcentajes de la masa seca y
+	      que las masas de diseño están en condición SSS. La proporción «L de agua por bolsa» usa la relación $a/c$ de
+	      diseño, no el agua corregida.
+	\item \textbf{Granulometría}: los porcentajes se calculan sobre la masa inicial; el módulo de finura exige seis
+	      tamices cualesquiera de la serie estándar, aunque el comentario del código dice que para agregado fino se exigen
+	      los de 0,15 a 4,75\,mm. Los límites de los husos son los del código; verifíquense contra la edición de la
+	      NTP~400.037 y de la ASTM~C33 que corresponda. El módulo de finura calculado no actualiza el material.
+	\item \textbf{Evaluación}: cada probeta de $28 \pm 0{,}5$ días cuenta como un ensayo; el orden es el de registro, no
+	      el de la fecha; la desviación estándar se calcula pero no se muestra en el mensaje.
+	\item \textbf{Volumen desde el modelo}: la suma de elementos usa volúmenes brutos; para un volumen sin cruces use el
+	      metrado neto del modelo.
+	\item \textbf{Reporte}: el PDF siempre declara que no constituye un diseño ACI, incluso si la dosificación provino
+	      del asistente, y no incluye la evaluación E.060.
+	\item \textbf{Biblioteca}: los materiales no se editan ni se eliminan desde la pantalla; las correcciones se
+	      registran como materiales nuevos.
+\end{itemize}
+
+\begin{nota}[Responsabilidad profesional]
+	Todos los resultados de este módulo son valores de partida o de control. La dosificación definitiva debe
+	validarse con mezclas de prueba y ensayos de laboratorio, y la conformidad la dictamina el profesional responsable.
+\end{nota}

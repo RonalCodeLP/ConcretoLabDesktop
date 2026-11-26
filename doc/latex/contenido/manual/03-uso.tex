@@ -1,0 +1,190 @@
+\section{Pantalla principal}
+\anclaayuda{inicio}
+\label{sec:m-inicio}
+
+\pasocaptura{1}{Partes de la ventana.}{manual/02-inicio}{%
+	\senal{InicioBarraMenu}{1} \senal{InicioPestanas}{2} \senal{InicioInicioEjemplo}{3}
+	\senal{InicioAyudaPantalla}{4} \senal{InicioBarraEstado}{5}}
+
+\begin{enumerate}[label=\protect\marca{\arabic*}, leftmargin=2.2em, itemsep=0pt]
+	\item Menú.
+	\item Pantallas.
+	\item Proyecto de ejemplo para practicar.
+	\item Ayuda de la pantalla (también \tecla{F1}).
+	\item Mensajes y proyecto activo.
+\end{enumerate}
+
+\pasocaptura{2}{Primer uso: recorrido de bienvenida. Marque \boton{No volver a mostrar al abrir} y cierre.}[0.8]{manual/01-bienvenida}{%
+	\senal{BienvenidaBienvenidaNoMostrar}{1} \senal{BienvenidaBienvenidaSiguiente}{2} \senal{BienvenidaBienvenidaCerrar}{3}}
+\pasocaptura{3}{Proyecto de ejemplo: clic en \boton{Agregar proyecto de ejemplo}.}{manual/02-inicio}{\senal{InicioInicioEjemplo}{1}}
+\pasocaptura{4}{Menú \menu{Ayuda}: manual, ayuda de la pantalla, bienvenida, ejemplo y Acerca de.}{manual/68-menu-ayuda}{}
+\pasocaptura{5}{\menu{Ayuda} $\rightarrow$ \menu{Acerca de ConcretoLab}: versión y carpeta de datos.}[0.6]{manual/69-acerca-de}{}
+\pasocaptura{6}{\menu{Ver} $\rightarrow$ \menu{Modo oscuro}.}{manual/70-modo-oscuro}{}
+
+% ==============================================================================
+\section{Modelo 3D y metrado}
+\anclaayuda{modelo}
+\label{sec:m-modelo}
+
+\subsection{Proyectos}
+
+\pasocaptura{1}{Clic en \boton{+ Proyecto}: proyecto vacío o importado de un plano.}{manual/50-modelo-menu-proyecto}{%
+	\senal{ModeloMenuProyectoModeloNuevoProyecto}{1}}
+\pasocaptura{2}{Proyecto vacío: escriba el nombre y clic en \boton{Crear}.}{manual/06b-modelo-nuevo-proyecto}{%
+	\senal{BModeloNuevoProyectoProyectoNombre}{1} \senal{BModeloNuevoProyectoProyectoCrear}{2}}
+\pasocaptura{3}{Desde un plano (DXF o DWG): elija las capas y las medidas, y guarde.}[0.75]{manual/57-modelo-importar-dxf}{}
+\pasocaptura{4}{Cambiar de proyecto: elíjalo en la lista. Borrarlo: \boton{Eliminar proyecto}.}{manual/03-modelo}{%
+	\senal{ModeloModeloProyecto}{1} \senal{ModeloModeloEliminarProyecto}{2}}
+
+\subsection{Elementos}
+
+\pasocaptura{1}{Clic en \boton{+ Elemento}.}{manual/03-modelo}{\senal{ModeloModeloNuevoElemento}{1}}
+\pasocaptura{2}{Elija el tipo, escriba las medidas y clic en \boton{Guardar}.}{manual/06c-modelo-nuevo-elemento}{%
+	\senal{CModeloNuevoElementoElementoTipo}{1} \senal{CModeloNuevoElementoElementoLargo}{2}
+	\senal{CModeloNuevoElementoElementoGuardar}{3}}
+\pasocaptura{3}{Editar: doble clic en el elemento (en la tabla o en el 3D).}{manual/06-modelo-editar-uno}{%
+	\senal{ModeloEditarUnoElementoLargo}{1} \senal{ModeloEditarUnoElementoMover}{2}}
+\pasocaptura{4}{Varios a la vez: elija el tipo, clic en \boton{Todos} y en \boton{Editar}.}{manual/04-modelo-filtro}{%
+	\senal{ModeloFiltroModeloFiltro}{1} \senal{ModeloFiltroModeloTodos}{2} \senal{ModeloFiltroModeloEditar}{3}}
+\pasocaptura{5}{Escriba la medida nueva y clic en \boton{Aplicar}.}{manual/05-modelo-editar-varios}{%
+	\senal{ModeloEditarVariosLoteLargo}{1} \senal{ModeloEditarVariosLoteAplicar}{2}}
+\pasocaptura{6}{Eliminar: elija el elemento, clic en \boton{Eliminar} y confirme.}{manual/58-modelo-eliminar}{}
+\pasocaptura{7}{Volver atrás: \boton{Deshacer} (\tecla{Ctrl}+\tecla{Z}).}{manual/03-modelo}{\senal{ModeloModeloDeshacer}{1}}
+
+\subsection{Generar elementos}
+
+\pasocaptura{1}{\boton{Crear plantilla rectangular}: escriba las medidas y clic en \boton{Crear elementos}.}{manual/51-modelo-plantilla}{%
+	\senal{ModeloPlantillaPlantillaSeparacionX}{1} \senal{ModeloPlantillaPlantillaLadoColumna}{2}}
+\pasocaptura{2}{\boton{Ejes, niveles y generación}: defina ejes y niveles, marque las intersecciones y genere.}[0.8]{manual/52-modelo-ejes}{}
+
+\subsection{Mover en 3D}
+
+\pasocaptura{1}{Elija una columna y clic en \boton{Mover en 3D}. Arrastre o escriba la posición, marque las vigas y clic en \boton{Revisar y guardar}.}{manual/53-modelo-mover}{%
+	\senal{ModeloMoverMovimiento}{1}}
+
+\subsection{Vista 3D}
+
+\pasocaptura{1}{Vistas: Isométrica, Planta, Frontal, Lateral, Ajustar, Cuadrícula y Ejes. Arrastre para girar, rueda para acercar.}{manual/59-modelo-visor}{%
+	\senal{ModeloVisorVisorBarra}{1}}
+
+\subsection{Metrado y cuantías}
+
+\pasocaptura{1}{Clic en \boton{Metrado}.}{manual/54-modelo-metrado}{\senal{ModeloMetradoModeloMetrado}{1}}
+\pasocaptura{2}{\boton{Cuantías de acero...}: cambie los kg/m³ y guarde.}[0.6]{manual/55-modelo-cuantias}{}
+
+\subsection{Exportar}
+
+\pasotexto{1}{\boton{Exportar IFC...}, \boton{Exportar DXF...}: elija dónde guardar.}
+\pasocaptura{2}{\boton{Exportar ETABS (experimental)...}: escriba el f'c y guarde.}[0.55]{manual/56-modelo-etabs}{}
+
+% ==============================================================================
+\section{Análisis sísmico}
+\anclaayuda{sismo}
+\label{sec:m-sismo}
+
+\pasocaptura{1}{Elija el proyecto, el distrito y el uso.}{manual/08-sismo-asistente}{%
+	\senal{SismoAsistenteSismoProyecto}{1} \senal{SismoAsistenteSismoBuscar}{2} \senal{SismoAsistenteSismoUso}{3}}
+\pasocaptura{2}{Elija el suelo y el sistema. Revise la tabla de pisos.}{manual/08b-sismo-pasos}{%
+	\senal{BSismoPasosSismoSuelo}{1} \senal{BSismoPasosSismoSistema}{2} \senal{BSismoPasosSismoPisos}{3}}
+\pasocaptura{3}{Opcional: \boton{Opciones avanzadas} (versión de la norma, Vs30, f'c, rigidez, losa, CT).}{manual/09-sismo-avanzado}{%
+	\senal{SismoAvanzadoSismoVersion}{1} \senal{SismoAvanzadoSismoFc}{2} \senal{SismoAvanzadoSismoRigidez}{3}}
+\pasocaptura{4}{Clic en \boton{Calcular análisis sísmico}.}{manual/08b-sismo-pasos}{\senal{BSismoPasosSismoCalcular}{1}}
+\pasocaptura{5}{Resultado y verificaciones. Informe: \boton{Exportar PDF}.}{manual/10-sismo-resultado}{%
+	\senal{SismoResultadoSismoPestanas}{1} \senal{SismoResultadoSismoExportar}{2}}
+
+\subsection{Pestañas de resultados}
+
+\pasocaptura{1}{\boton{Simulación 3D}: animación de cada modo.}{manual/11-sismo-pestana-02-simulaciond}{}
+\pasocaptura{2}{\boton{Pisos}: peso, masa y rigidez por piso.}{manual/11-sismo-pestana-03-pisos}{}
+\pasocaptura{3}{\boton{Modos}: periodos y masa participante.}{manual/11-sismo-pestana-04-modos}{}
+\pasocaptura{4}{\boton{Estático}: fuerzas y cortantes por piso.}{manual/11-sismo-pestana-05-estatico}{}
+\pasocaptura{5}{\boton{Espectral}: cortantes del análisis modal espectral.}{manual/11-sismo-pestana-06-espectral}{}
+\pasocaptura{6}{\boton{Derivas}: derivas por piso frente al límite.}{manual/11-sismo-pestana-07-derivas}{}
+\pasocaptura{7}{\boton{Espectro}: espectro de diseño.}{manual/11-sismo-pestana-08-espectro}{}
+
+\subsection{Si no cumple}
+
+\pasocaptura{1}{Clic en \boton{Cómo corregir}.}{manual/12-sismo-no-cumple}{\senal{SismoNoCumpleSismoCorregir}{1}}
+\pasocaptura{2}{Clic en \boton{Ir al modelo 3D y precargar el cambio}.}[0.6]{manual/12b-sismo-como-corregir}{\senal{BSismoComoCorregirIrModelo}{1}}
+\pasocaptura{3}{Clic en \boton{Aplicar} y vuelva a calcular.}{manual/12c-modelo-correccion}{\senal{CModeloCorreccionLoteAplicar}{1}}
+\pasocaptura{4}{Viga suelta: clic en \boton{Ver en el modelo 3D} y corríjala.}{manual/12d-sismo-incompleto}{\senal{DSismoIncompletoSismoVerModelo}{1}}
+
+\subsection{Simulación temporal}
+\label{sec:m-tiempo-historia}
+
+\pasocaptura{1}{Pestaña \boton{Simulación temporal}: clic en \boton{Generar y simular}, o importe acelerogramas y clic en \boton{Simular registros importados}.}{manual/60-temporal-inicio}{%
+	\senal{TemporalInicioTemporalGenerar}{1} \senal{TemporalInicioTemporalImportar}{2} \senal{TemporalInicioTemporalSimularImportados}{3}}
+\pasocaptura{2}{Resultado. \boton{Reproducir} para ver la animación.}{manual/61-temporal-resultado}{%
+	\senal{TemporalResultadoTemporalBanner}{1} \senal{TemporalResultadoTemporalPestanas}{2}}
+\pasocaptura{3}{\boton{Gráficas}.}{manual/62-temporal-pestana-1}{}
+\pasocaptura{4}{\boton{Resultados por registro}.}{manual/62-temporal-pestana-2}{}
+\pasocaptura{5}{\boton{Espectros}.}{manual/62-temporal-pestana-3}{}
+
+% ==============================================================================
+\section{Materiales y ensayos}
+\anclaayuda{materiales}
+\label{sec:m-materiales}
+
+\pasocaptura{1}{Lista de materiales. Clic en uno para ver su detalle.}{manual/20-materiales}{%
+	\senal{MaterialesMaterialesTabla}{1} \senal{MaterialesMaterialesDetalle}{2}}
+\pasocaptura{2}{Nuevo material: elija el tipo, llene los datos y guarde.}{manual/21-materiales-nuevo}{%
+	\senal{MaterialesNuevoMaterialTipo}{1} \senal{MaterialesNuevoMaterialNombre}{2}}
+
+% ==============================================================================
+\section{Granulometría}
+\anclaayuda{granulometria}
+\label{sec:m-granulometria}
+
+\pasocaptura{1}{Elija el agregado, escriba las masas, clic en \boton{Calcular resultados} y en \boton{Guardar ensayo}.}{manual/22-granulometria}{%
+	\senal{GranulometriaGranMaterial}{1} \senal{GranulometriaGranMediciones}{2}
+	\senal{GranulometriaGranCalcular}{3} \senal{GranulometriaGranGuardar}{4}}
+\pasocaptura{2}{Ensayo anterior: elíjalo en \boton{Ensayo guardado}.}{manual/22-granulometria}{\senal{GranulometriaGranHistorial}{1}}
+
+% ==============================================================================
+\section{Balance de volúmenes}
+\anclaayuda{balance}
+\label{sec:m-balance}
+
+\pasocaptura{1}{Escriba los datos. Para pasarlo a una mezcla: \boton{Usar en una mezcla}.}{manual/23-balance}{%
+	\senal{BalanceBalanceAgua}{1} \senal{BalanceBalanceResultado}{2} \senal{BalanceBalanceUsar}{3}}
+
+% ==============================================================================
+\section{Mezclas y probetas}
+\anclaayuda{mezclas}
+\label{sec:m-mezclas}
+
+\pasocaptura{1}{Elija la mezcla, escriba el volumen y clic en \boton{Calcular lote}. Informe: \boton{Guardar PDF}.}{manual/24-mezclas}{%
+	\senal{MezclasMezclasTabla}{1} \senal{MezclasMezclasVolumen}{2} \senal{MezclasMezclasCalcular}{3}
+	\senal{MezclasMezclasPdf}{4}}
+\pasocaptura{2}{Volumen desde el modelo: \boton{Elegir elementos del modelo}, márquelos y clic en \boton{Usar selección}.}{manual/64-mezclas-elementos}{%
+	\senal{MezclasElementosMezclaElementos}{1}}
+\pasocaptura{3}{Registrar una mezcla: llene la dosificación y guarde.}{manual/63-mezclas-nueva}{%
+	\senal{MezclasNuevaMezclaNombre}{1} \senal{MezclasNuevaMezclaCemento}{2} \senal{MezclasNuevaMezclaFino}{3}}
+\pasocaptura{4}{Diseñar una mezcla: llene los datos y clic en \boton{Usar en una mezcla}.}{manual/25-mezclas-disenar}{%
+	\senal{MezclasDisenarDisenoFc}{1} \senal{MezclasDisenarDisenoExposicion}{2} \senal{MezclasDisenarDisenoUsar}{3}}
+\pasocaptura{5}{Probetas: clic en \boton{Registrar ensayo}, llene los datos y guarde.}{manual/26-mezclas-probeta}{%
+	\senal{MezclasProbetaProbetaId}{1} \senal{MezclasProbetaProbetaResistencia}{2}}
+\pasocaptura{6}{Las probetas y su evaluación aparecen en la tabla de ensayos.}{manual/24-mezclas}{%
+	\senal{MezclasMezclasEnsayos}{1}}
+
+% ==============================================================================
+\section{Datos y copias}
+\anclaayuda{datos}
+\label{sec:m-datos}
+
+\pasocaptura{1}{Clic en \boton{Crear copia ahora}. Volver a una copia: elíjala y clic en \boton{Restaurar}.}{manual/30-datos}{%
+	\senal{DatosDatosCrearCopia}{1} \senal{DatosDatosCopias}{2} \senal{DatosDatosRestaurar}{3}}
+\pasocaptura{2}{Borrar una copia: elíjala, clic en \boton{Eliminar copia} y confirme.}{manual/67-datos-eliminar-copia}{}
+\pasocaptura{3}{Llevar un proyecto a otra PC: elíjalo y clic en \boton{Exportar…}. En la otra PC: \boton{Importar…}.}{manual/65-datos-exportar-importar}{%
+	\senal{DatosExportarImportarDatosProyecto}{1} \senal{DatosExportarImportarDatosExportar}{2}
+	\senal{DatosExportarImportarDatosImportar}{3}}
+\pasocaptura{4}{Opcional: contraseña del archivo. Clic en \boton{Continuar}.}{manual/66-datos-exportar-clave}{%
+	\senal{DatosExportarClaveDatosProteger}{1} \senal{DatosExportarClaveDatosConfirmar}{2}}
+\pasocaptura{5}{\boton{Opciones avanzadas}: carpetas y registro de cambios.}{manual/31-datos-avanzado}{%
+	\senal{DatosAvanzadoDatosRuta}{1} \senal{DatosAvanzadoDatosBitacora}{2}}
+
+% ==============================================================================
+\section{Ayuda}
+
+\pasocaptura{1}{Pulse \tecla{F1} o \menu{Ayuda} $\rightarrow$ \menu{Manual de usuario}. Busque con \boton{Buscar en el manual}.}{manual/40-ayuda}{%
+	\senal{AyudaAyudaIndice}{1} \senal{AyudaAyudaBuscar}{2}}

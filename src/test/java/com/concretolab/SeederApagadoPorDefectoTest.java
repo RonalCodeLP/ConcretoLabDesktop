@@ -13,10 +13,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** Sin tocar app.seeder.enabled (apagado en application.properties) no se carga ningún dato de demostración. */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class SeederApagadoPorDefectoTest {
-
     @DynamicPropertySource
     static void baseTemporal(DynamicPropertyRegistry registro) throws Exception {
         File db = Files.createTempFile("seeder-apagado", ".db").toFile();

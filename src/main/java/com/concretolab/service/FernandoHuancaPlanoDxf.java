@@ -20,16 +20,15 @@ public class FernandoHuancaPlanoDxf {
                         int pisos, double altoPiso, double ladoColumna, double anchoViga,
                         double altoViga, double ladoZapata, double altoZapata) {}
 
-    /** Metros por unidad según $INSUNITS del DXF; NaN si no hay unidad declarada (0) o es una que la app no convierte. */
     public static double fernandoHuancaMetrosPorUnidad(String insunits) {
         if (insunits == null) return Double.NaN;
         return switch (insunits.strip()) {
-            case "1" -> 0.0254;   // pulgadas
-            case "2" -> 0.3048;   // pies
-            case "4" -> 0.001;    // milímetros
-            case "5" -> 0.01;     // centímetros
-            case "6" -> 1.0;      // metros
-            case "14" -> 0.1;     // decímetros
+            case "1" -> 0.0254;
+            case "2" -> 0.3048;
+            case "4" -> 0.001;
+            case "5" -> 0.01;
+            case "6" -> 1.0;
+            case "14" -> 0.1;
             default -> Double.NaN;
         };
     }
@@ -42,7 +41,6 @@ public class FernandoHuancaPlanoDxf {
         };
     }
 
-    /** Copia los elementos multiplicando todas sus dimensiones y coordenadas por {@code factor}. */
     public static List<Elemento> fernandoHuancaEscalar(List<Elemento> elementos, double factor) {
         var copia = new ArrayList<Elemento>(elementos.size());
         for (var e : elementos) {
@@ -55,10 +53,6 @@ public class FernandoHuancaPlanoDxf {
         return copia;
     }
 
-    /**
-     * Lee el DXF con la codificación que le corresponde: UTF-8 desde AutoCAD 2007 (AC1021) y Windows-1252 en versiones
-     * anteriores. Así las capas con tilde o eñe («COLUMNAS_ÁREA») no se corrompen.
-     */
     static String fernandoHuancaLeerTexto(Path archivo) throws IOException {
         byte[] bytes = Files.readAllBytes(archivo);
         var m = java.util.regex.Pattern.compile("\\$ACADVER\\s+1\\s+(AC\\d+)").matcher(new String(bytes, StandardCharsets.ISO_8859_1));
@@ -72,11 +66,6 @@ public class FernandoHuancaPlanoDxf {
         }
     }
 
-    /**
-     * Busca el conversor DWG→DXF (dwgread.exe de LibreDWG) sin depender de la carpeta de compilación: la propiedad
-     * {@code concretolab.tools}, la variable CONCRETOLAB_TOOLS, la carpeta «tools» junto a la aplicación o a la carpeta de
-     * trabajo, {@code ~/.concretolab/tools}, {@code target/} (solo desarrollo) y el PATH.
-     */
     public static Optional<Path> fernandoHuancaLocalizarDwgread() {
         var carpetas = new ArrayList<Path>();
         for (String ruta : new String[]{System.getProperty("concretolab.tools"), System.getenv("CONCRETOLAB_TOOLS")})
@@ -85,7 +74,7 @@ public class FernandoHuancaPlanoDxf {
             var codigo = Path.of(FernandoHuancaPlanoDxf.class.getProtectionDomain().getCodeSource().getLocation().toURI());
             Path base = Files.isRegularFile(codigo) ? codigo.getParent() : codigo;
             if (base != null) { carpetas.add(base.resolve("tools")); carpetas.add(base.resolve("app").resolve("tools")); if (base.getParent() != null) carpetas.add(base.getParent().resolve("tools")); }
-        } catch (Exception ignorada) { /* sin ubicación del código: se siguen probando las demás */ }
+        } catch (Exception ignorada) {  }
         carpetas.add(Path.of(System.getProperty("user.dir"), "tools"));
         carpetas.add(Path.of(System.getProperty("user.home"), ".concretolab", "tools"));
         carpetas.add(Path.of(System.getProperty("user.dir"), "target"));
@@ -103,7 +92,7 @@ public class FernandoHuancaPlanoDxf {
                         if (Files.isRegularFile(interno)) return Optional.of(interno);
                     }
                 }
-            } catch (IOException | java.nio.file.InvalidPathException ignorada) { /* carpeta ilegible: siguiente */ }
+            } catch (IOException | java.nio.file.InvalidPathException ignorada) {  }
         }
         return Optional.empty();
     }
@@ -120,7 +109,7 @@ public class FernandoHuancaPlanoDxf {
                 if (!proceso.waitFor(45, java.util.concurrent.TimeUnit.SECONDS))
                     throw new IOException("La conversión DWG excedió 45 segundos.");
                 if (proceso.exitValue() != 0 || Files.size(convertido) == 0)
-                    throw new IOException("LibreDWG no pudo convertir el archivo. Exporta una copia en DXF ASCII desde AutoCAD.");
+                    throw new IOException("LibreDWG no pudo convertir el archivo. Exporte una copia en DXF ASCII desde AutoCAD.");
                 return fernandoHuancaLeer(convertido);
             } finally {
                 if (proceso.isAlive()) {
@@ -143,7 +132,6 @@ public class FernandoHuancaPlanoDxf {
         var verticesX = new ArrayList<String>();
         var verticesY = new ArrayList<String>();
         var curvas = new ArrayList<String>();
-        // LibreDWG para Windows puede emitir CR CR LF. Conserva las líneas vacías de valores DXF.
         String contenido = fernandoHuancaLeerTexto(archivo).replace("\r\r\n","\r\n");
         try (var lector = new java.io.BufferedReader(new java.io.StringReader(contenido))) {
             String codigo;
@@ -158,7 +146,6 @@ public class FernandoHuancaPlanoDxf {
                         try {
                             entidad = fernandoHuancaEntidad(tipo, grupos, verticesX, verticesY, curvas);
                         } catch (IllegalArgumentException ex) {
-                            // Inventaría la entidad, pero una capa estructural seleccionada la rechazará.
                             entidad = new Entidad(tipo + " inválida", grupos.getOrDefault(8,"0"), null, null);
                         }
                         entidades.add(entidad);
@@ -194,7 +181,7 @@ public class FernandoHuancaPlanoDxf {
                 }
             }
         } catch (NumberFormatException ex) {
-            throw new IllegalArgumentException("DXF ASCII inválido. Exporta desde AutoCAD como DXF de texto.", ex);
+            throw new IllegalArgumentException("DXF ASCII inválido. Exporte desde AutoCAD como DXF de texto.", ex);
         }
         if (!eof || entidades.isEmpty()) throw new IllegalArgumentException("El DXF no contiene entidades de dibujo completas.");
         var modelo = new ArrayList<Elemento>();
@@ -255,7 +242,6 @@ public class FernandoHuancaPlanoDxf {
             case "LINE" -> new Entidad(tipo, capa, fernandoHuancaPunto(grupos, 0), fernandoHuancaPunto(grupos, 1));
             case "POINT" -> new Entidad(tipo, capa, fernandoHuancaPunto(grupos, 0), null);
             case "LWPOLYLINE" -> fernandoHuancaPolilinea(capa, grupos, xs, ys, curvas);
-            // Bloque insertado (columna dibujada como bloque): se usa su punto de inserción como centro.
             case "INSERT" -> new Entidad("BLOQUE", capa, fernandoHuancaPunto(grupos, 0), null);
             case "CIRCLE" -> {
                 double r = fernandoHuancaNumero(grupos.get(40));
@@ -267,7 +253,6 @@ public class FernandoHuancaPlanoDxf {
         };
     }
 
-    /** Polilínea ligera: rectángulo (4 vértices, o 5 con el primero repetido) o viga (2 vértices abiertos, como LINE). */
     private static Entidad fernandoHuancaPolilinea(String capa, Map<Integer, String> grupos,
                                     List<String> xs, List<String> ys, List<String> curvas) {
         var tx = new ArrayList<>(xs);
@@ -326,7 +311,7 @@ public class FernandoHuancaPlanoDxf {
         if (d.pisos < 1 || d.pisos > 12 || d.altoPiso <= d.altoViga ||
                 Arrays.stream(new double[]{d.escala,d.altoPiso,d.anchoViga,d.altoViga,d.altoZapata})
                         .anyMatch(n -> !Double.isFinite(n) || n <= 0))
-            throw new IllegalArgumentException("Usa dimensiones positivas en metros y entre 1 y 12 pisos.");
+            throw new IllegalArgumentException("Use dimensiones positivas en metros y entre 1 y 12 pisos.");
         var huellasColumnas = fernandoHuancaHuellas(plano,d.columnas,d.escala,d.ladoColumna);
         var columnas = huellasColumnas.keySet().stream().toList();
         var zapatas = d.zapatas.isBlank() ? Map.<Punto,Huella>of() : fernandoHuancaHuellas(plano,d.zapatas,d.escala,d.ladoZapata);
@@ -381,15 +366,10 @@ public class FernandoHuancaPlanoDxf {
         return List.copyOf(resultado);
     }
 
-    /** Capas opcionales de losas (rectángulos) y muros (líneas) con sus espesores en metros; una capa vacía no se importa. */
     public record Extra(String losas, String muros, double espesorLosa, double espesorMuro) {
         public static final Extra NINGUNA = new Extra("", "", Double.NaN, Double.NaN);
     }
 
-    /**
-     * Igual que {@link #fernandoHuancaConvertir(Plano, Datos)} y además agrega, en cada piso, las losas (rectángulos de la capa
-     * de losas, con su cara superior al nivel del piso) y los muros (líneas paralelas a X o Y de la capa de muros, de piso a piso).
-     */
     public List<Elemento> fernandoHuancaConvertir(Plano plano, Datos d, Extra extra) {
         var base = fernandoHuancaConvertir(plano, d);
         boolean hayLosas = extra != null && extra.losas() != null && !extra.losas().isBlank();
@@ -398,7 +378,7 @@ public class FernandoHuancaPlanoDxf {
         var resultado = new ArrayList<>(base);
         if (hayLosas) {
             if (!Double.isFinite(extra.espesorLosa()) || extra.espesorLosa() <= 0 || extra.espesorLosa() > d.altoPiso)
-                throw new IllegalArgumentException("Ingresa un espesor de losa positivo (menor que la altura de piso).");
+                throw new IllegalArgumentException("Ingrese un espesor de losa positivo (menor que la altura de piso).");
             var contornos = new ArrayList<Huella>();
             for (var e : fernandoHuancaCapa(plano, extra.losas(), "RECTÁNGULO")) {
                 var a = fernandoHuancaPlanta(e.inicio, d.escala);
@@ -412,7 +392,7 @@ public class FernandoHuancaPlanoDxf {
         }
         if (hayMuros) {
             if (!Double.isFinite(extra.espesorMuro()) || extra.espesorMuro() <= 0)
-                throw new IllegalArgumentException("Ingresa un espesor de muro positivo.");
+                throw new IllegalArgumentException("Ingrese un espesor de muro positivo.");
             var tramos = new ArrayList<Punto[]>();
             for (var e : fernandoHuancaCapa(plano, extra.muros(), "LINE")) {
                 var a = fernandoHuancaPlanta(e.inicio, d.escala);
@@ -454,7 +434,7 @@ public class FernandoHuancaPlanoDxf {
             var a=fernandoHuancaPlanta(e.inicio,escala);
             Huella h;
             if(e.fin==null){
-                if(!Double.isFinite(lado)||lado<=0)throw new IllegalArgumentException("Ingresa el lado para los puntos de la capa "+capa+".");
+                if(!Double.isFinite(lado)||lado<=0)throw new IllegalArgumentException("Ingrese el lado para los puntos de la capa "+capa+".");
                 h=new Huella(a,lado,lado);
             } else {
                 var b=fernandoHuancaPlanta(e.fin,escala);
@@ -469,13 +449,9 @@ public class FernandoHuancaPlanoDxf {
     private static Punto fernandoHuancaPlanta(Punto p,double escala) {
         double x=p.x*escala,y=p.y*escala;
         if(Math.abs(p.z*escala)>1e-6 || !Double.isFinite(x) || !Double.isFinite(y))
-            throw new IllegalArgumentException("Usa una planta XY en Z=0 y coordenadas finitas.");
+            throw new IllegalArgumentException("Use una planta XY en Z=0 y coordenadas finitas.");
         return new Punto(x,y,0);
     }
-    /**
-     * Columna a la que se ancla el extremo de una viga: la que contiene el punto en su huella (con 5 cm de holgura) o,
-     * si no, la de centro más cercano a menos de 30 cm cuando es claramente la más próxima.
-     */
     private static Punto fernandoHuancaColumna(List<Punto> columnas,Map<Punto,Huella> huellas,Punto p) {
         var dentro=columnas.stream().filter(c->{
             var h=huellas.get(c);

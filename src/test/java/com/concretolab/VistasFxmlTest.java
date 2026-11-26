@@ -23,15 +23,9 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.support.DependencyInjectionTestExecutionListener;
 
-/**
- * Prueba de humo: carga cada vista FXML con los controladores de Spring y llama a refrescar(), primero sin proyecto
- * y luego con un proyecto que tiene la plantilla rectangular. Detecta fx:id sin campo, controladores que no se pueden
- * construir y errores al cargar datos. Se omite sola si no hay entorno gráfico.
- */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestExecutionListeners(DependencyInjectionTestExecutionListener.class)
 class VistasFxmlTest {
-
     private static final List<String> VISTAS = List.of(
             "main-view", "inicio-view", "modelo-view", "sismo-view", "tiempo-historia-view",
             "materiales-view", "granulometria-view", "balance-view", "mezclas-view", "datos-view");
@@ -77,7 +71,6 @@ class VistasFxmlTest {
                 SismoE030Test.entrada(SismoE030Test.porticos(2, 5, 4, 3, 0.4, 0.3, 0.5), 2, norma));
         ejecutarEnFx(() -> th.walterQuispesayhuaConfigurar(resultado, norma));
         assertThat(th.walterQuispesayhuaUltimo()).isEmpty();
-        // Flujo completo: generar y simular 7 sintéticos en segundo plano, con gráficas y animación listas.
         ejecutarEnFx(() -> th.walterQuispesayhuaConfigurar(resultado, norma));
         var generar = th.getClass().getDeclaredMethod("onGenerar");
         generar.setAccessible(true);
@@ -134,7 +127,6 @@ class VistasFxmlTest {
         try {
             Platform.startup(() -> { });
         } catch (IllegalStateException yaIniciado) {
-            // Otra prueba ya arrancó el toolkit.
         } catch (Throwable sinPantalla) {
             assumeTrue(false, "Sin entorno gráfico para JavaFX: " + sinPantalla);
         }

@@ -19,21 +19,17 @@ import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-/** Configuracion visual comun de las tablas de las vistas CRUD. */
 public final class Tablas {
-
     public static final Locale FERNANDO_HUANCA_LOCALE = Locale.forLanguageTag("es-PE");
     public static final NumberFormat FERNANDO_HUANCA_MONEDA = NumberFormat.getCurrencyInstance(FERNANDO_HUANCA_LOCALE);
 
     private Tablas() {
     }
 
-    /** Estilo base, columnas ajustadas al ancho, estado vacio y doble clic para editar. */
     public static <T> void fernandoHuancaConfigurar(TableView<T> tabla, String textoVacio, Consumer<T> alDobleClic) {
         fernandoHuancaConfigurar(tabla, Feather.INBOX, "Sin resultados", textoVacio, alDobleClic);
     }
 
-    /** Igual que {@link #fernandoHuancaConfigurar(TableView, String, Consumer)} con icono y titulo propios para el estado vacio. */
     public static <T> void fernandoHuancaConfigurar(TableView<T> tabla, Ikon iconoVacio, String tituloVacio, String textoVacio,
                                       Consumer<T> alDobleClic) {
         tabla.getStyleClass().add("tabla");
@@ -60,7 +56,6 @@ public final class Tablas {
         });
     }
 
-    /** Celda "#12" en gris. */
     public static <T> Callback<TableColumn<T, String>, TableCell<T, String>> fernandoHuancaCeldaId() {
         return col -> new TableCell<>() {
             {
@@ -75,7 +70,6 @@ public final class Tablas {
         };
     }
 
-    /** Celda con avatar de iniciales seguido del texto. */
     public static <T> Callback<TableColumn<T, String>, TableCell<T, String>> fernandoHuancaCeldaAvatar() {
         return col -> new TableCell<>() {
             private final Label iniciales = new Label();
@@ -102,7 +96,6 @@ public final class Tablas {
         };
     }
 
-    /** Celda con el texto dentro de una "pastilla" de color. */
     public static <T> Callback<TableColumn<T, String>, TableCell<T, String>> fernandoHuancaCeldaChip(String textoVacio) {
         return col -> new TableCell<>() {
             private final Label chip = new Label();
@@ -125,7 +118,6 @@ public final class Tablas {
         };
     }
 
-    /** Celda de importe alineada a la derecha. */
     public static <T> Callback<TableColumn<T, BigDecimal>, TableCell<T, BigDecimal>> fernandoHuancaCeldaMoneda() {
         return col -> new TableCell<>() {
             {
@@ -140,7 +132,6 @@ public final class Tablas {
         };
     }
 
-    /** Texto gris para valores opcionales vacios. */
     public static <T> Callback<TableColumn<T, String>, TableCell<T, String>> fernandoHuancaCeldaOpcional() {
         return col -> new TableCell<>() {
             @Override
@@ -153,7 +144,6 @@ public final class Tablas {
         };
     }
 
-    /** Hasta dos iniciales en mayuscula: "Maria Quispe Rojas" → "MQ". */
     public static String fernandoHuancaIniciales(String texto) {
         String[] partes = texto.trim().split("\\s+");
         StringBuilder sb = new StringBuilder();

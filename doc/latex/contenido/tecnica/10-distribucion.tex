@@ -1,0 +1,430 @@
+% ------------------------------------------------------------------------------
+\section{Compilación y distribución}
+\label{sec:dis-distribucion}
+% ------------------------------------------------------------------------------
+
+Este capítulo explica cómo se compila ConcretoLab en una computadora de desarrollo, cómo se genera el instalador para
+Windows que recibe el cliente, cómo se prueba ese instalador y cómo se compila esta documentación. Todos los scripts
+están en la raíz del repositorio, salvo los de la documentación (\ruta{doc/latex}).
+
+\begin{table}[H]
+	\centering
+	\caption{Scripts de compilación, distribución y documentación.}
+	\label{tab:dis-scripts}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Script} & \textbf{Para qué} \\ \hline
+		\ruta{INICIAR\_CONCRETOLAB.bat} & Compilar (sin pruebas) y abrir la aplicación en la computadora de desarrollo. \\
+		\ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1} & Crear la carpeta portable y el instalador \ruta{.exe} con su huella
+		SHA-256. \\
+		\ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1} & Instalar, probar con UI Automation y desinstalar. \\
+		\ruta{doc/latex/compilar.ps1} & Compilar los tres PDF de la documentación. \\
+		\ruta{doc/latex/herramientas/} \ruta{capturar-instalador.ps1} & Tomar las capturas reales de la guía de
+		instalación. \\ \hline
+	\end{tabular}
+\end{table}
+
+\begin{nota}[Codificación de los scripts]
+Los \ruta{.ps1} se guardan en \textbf{UTF-8 con BOM}: Windows PowerShell 5.1 lee sin BOM como ANSI y rompe las tildes
+de los mensajes. El \ruta{.bat} evita las tildes en sus mensajes.
+\end{nota}
+
+\subsection{\ruta{INICIAR\_CONCRETOLAB.bat}}
+
+Es el atajo del equipo para probar la aplicación con un doble clic. Sus pasos son:
+
+\begin{enumerate}
+	\item Se ubica en la carpeta del script (\ruta{cd /d \textquotedbl{}\%\textasciitilde{}dp0\textquotedbl{}}).
+	\item \textbf{Java:} usa \ruta{JAVA\_HOME}; si no está definida, toma la carpeta
+	      \ruta{C:\textbackslash Program Files\textbackslash Eclipse Adoptium\textbackslash jdk-17*}. Comprueba con
+	      \ruta{java -version} que funciona.
+	\item \textbf{Maven:} \ruta{mvn} del \ruta{PATH} o, si no hay, el \ruta{mvn.cmd} que encuentre bajo
+	      \ruta{\%USERPROFILE\%\textbackslash .m2\textbackslash wrapper\textbackslash dists}.
+	\item \textbf{Compila} en silencio y sin conexión: \ruta{mvn -q -o -DskipTests package}. Si falla (faltan
+	      dependencias), repite con conexión mostrando la salida.
+	\item Busca \ruta{target\textbackslash concretolab-desktop-*.jar} y lo abre con \ruta{javaw}, agregando las opciones
+	      de la variable \ruta{CONCRETOLAB\_JAVA\_OPTS}. Ante cualquier error hace \ruta{pause} para que se pueda leer.
+\end{enumerate}
+
+\begin{advertencia}[Abre los datos reales]
+Sin \ruta{CONCRETOLAB\_JAVA\_OPTS}, la aplicación usa \ruta{\%USERPROFILE\%\textbackslash .concretolab}. Para probar
+sin tocar esos datos: \ruta{set CONCRETOLAB\_JAVA\_OPTS=-Dconcretolab.datos=C:\textbackslash ruta\textbackslash de\textbackslash prueba}
+y luego ejecute el \ruta{.bat} en la misma consola.
+\end{advertencia}
+
+A mano, el equivalente es \ruta{mvn package} y \ruta{java -jar target/concretolab-desktop-0.1.0.jar}. El JAR lo arma
+\ruta{spring-boot-maven-plugin} con \ruta{com.concretolab.Launcher} como clase principal.
+
+\subsection{\ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1}}
+\label{sec:dis-crear}
+
+Genera, en \ruta{dist\textbackslash}, la aplicación con su propio entorno Java recortado: el cliente no instala Java
+ni Maven.
+
+\begin{table}[H]
+	\centering
+	\caption{Resultado de \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1}.}
+	\label{tab:dis-resultado}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Archivo} & \textbf{Contenido} \\ \hline
+		\ruta{dist\textbackslash ConcretoLab-<versión>.exe} & Instalador para el cliente (unos 107~MB en la versión
+		0.1.0). \\
+		\ruta{dist\textbackslash ConcretoLab-<versión>.exe.} \ruta{sha256.txt} & Huella SHA-256 del instalador, en la
+		forma \ruta{<HASH>  ConcretoLab-<versión>.exe} (ASCII). \\
+		\ruta{dist\textbackslash ConcretoLab\textbackslash} & Carpeta portable: \ruta{ConcretoLab.exe}, \ruta{app\textbackslash}
+		(el JAR y \ruta{ConcretoLab.cfg}) y \ruta{runtime\textbackslash} (Java recortado). Se copia completa. \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Parámetros}
+
+\begin{itemize}
+	\item \ruta{-SinInstalador}: solo crea la carpeta portable.
+	\item \ruta{-ConDatosDemostracion}: agrega \ruta{-{}-java-options -Dapp.seeder.enabled=true}, de modo que la aplicación
+	      distribuida carga los datos de demostración.
+	\item \ruta{-Verificar}: abre la versión portable con una carpeta de datos temporal y comprueba que arranca
+	      (sección~\ref{sec:dis-verificar}).
+	\item \ruta{-Verbose}: además de los mensajes de PowerShell, pasa \ruta{-{}-verbose} a \ruta{jpackage} al crear el
+	      instalador.
+\end{itemize}
+
+\subsubsection{Herramientas que busca}
+
+\begin{longtable}{L{2.2cm}L{12.6cm}}
+	\caption{Búsqueda de herramientas en la computadora que construye.} \label{tab:dis-herramientas} \\
+	\hline
+	\textbf{Herramienta} & \textbf{Dónde la busca, en orden} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Herramienta} & \textbf{Dónde la busca, en orden} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	JDK (\ruta{Buscar-Jdk}) & \ruta{JAVA\_HOME}; luego las carpetas \ruta{jdk*} (de mayor a menor) de
+	\ruta{Program Files\textbackslash Eclipse Adoptium}, \ruta{Java}, \ruta{Microsoft}, \ruta{Amazon Corretto} y
+	\ruta{Zulu}. Exige que tenga \ruta{bin\textbackslash jpackage.exe} y \ruta{bin\textbackslash jlink.exe}; si no
+	encuentra ninguno, se detiene. Fija \ruta{JAVA\_HOME} y lo pone primero en el \ruta{PATH}. \\
+	Maven (\ruta{Buscar-Maven}) & \ruta{mvn.cmd} o \ruta{mvn} del \ruta{PATH}; luego el \ruta{mvn.cmd} más reciente bajo
+	\ruta{\%USERPROFILE\%\textbackslash .m2\textbackslash wrapper\textbackslash dists}. \\
+	WiX (\ruta{Buscar-Wix}) & \ruta{candle.exe} del \ruta{PATH}; luego
+	\ruta{\%LOCALAPPDATA\%\textbackslash ConcretoLab-herramientas\textbackslash wix314}; luego
+	\ruta{Program Files (x86)\textbackslash WiX Toolset v3*\textbackslash bin}. Exige \ruta{candle.exe} y
+	\ruta{light.exe}. Si no lo encuentra, \textbf{no falla}: avisa y crea solo la carpeta portable. \\
+\end{longtable}
+
+La versión se lee de \ruta{pom.xml} (\ruta{project.version}): es el único lugar donde se cambia.
+
+\subsubsection{Compilación en una carpeta aparte}
+
+El script copia \ruta{pom.xml} y \ruta{src} a \ruta{\%TEMP\%\textbackslash concretolab-construccion} (la vacía antes)
+y compila allí con \ruta{mvn -o -B -q -ntp package -Dmaven.test.skip=true}; si falla sin conexión, reintenta con
+conexión. Así \textbf{no toca \ruta{target\textbackslash}} ni choca con un ConcretoLab abierto desde
+\ruta{target\textbackslash *.jar}, que mantendría el JAR bloqueado. Las pruebas no se ejecutan ni se compilan
+(\ruta{maven.test.skip}); se corren aparte con \ruta{mvn test}.
+
+\subsubsection{Entorno Java recortado (\ruta{jlink})}
+
+\ruta{jlink} crea \ruta{runtime} con solo los módulos que usan JavaFX, Spring, Hibernate, Flyway, OpenPDF y el
+controlador SQLite:
+
+\begin{verbatim}
+java.base, java.desktop, java.logging, java.management, java.naming,
+java.prefs, java.scripting, java.sql, java.xml, java.instrument,
+java.security.jgss, java.security.sasl, java.net.http,
+jdk.unsupported, jdk.crypto.ec, jdk.localedata
+\end{verbatim}
+
+con \ruta{-{}-strip-debug}, \ruta{-{}-no-header-files}, \ruta{-{}-no-man-pages} y \ruta{-{}-compress=2}. Si una
+dependencia nueva necesita otro módulo del JDK, la aplicación instalada fallará al arrancar aunque funcione con
+\ruta{java -jar}: hay que agregarlo a esta lista. JavaFX no es un módulo del JDK: viaja dentro del JAR de Spring Boot.
+
+\subsubsection{Carpeta portable (\ruta{app-image})}
+
+\ruta{jpackage} copia todo el contenido de \ruta{-{}-input}, por eso se usa una carpeta \ruta{entrada-jpackage} que solo
+contiene el JAR. Opciones comunes a la carpeta portable y al instalador:
+
+\begin{table}[H]
+	\centering
+	\caption{Opciones comunes de \ruta{jpackage}.}
+	\label{tab:dis-jpackage-comunes}
+	\begin{tabular}{L{4.6cm}L{10.2cm}}
+		\hline
+		\textbf{Opción} & \textbf{Valor} \\ \hline
+		\ruta{-{}-name} & \ruta{ConcretoLab} \\
+		\ruta{-{}-app-version} & La del \ruta{pom.xml}. \\
+		\ruta{-{}-main-jar} & \ruta{concretolab-desktop-<versión>.jar} \\
+		\ruta{-{}-main-class} & \ruta{org.\allowbreak{}springframework.boot.loader.launch.JarLauncher} (el lanzador de Spring Boot,
+		que a su vez llama a \ruta{Launcher}). \\
+		\ruta{-{}-runtime-image} & El \ruta{runtime} de \ruta{jlink}. \\
+		\ruta{-{}-icon} & \ruta{src\textbackslash main\textbackslash jpackage\textbackslash ConcretoLab.ico} \\
+		\ruta{-{}-vendor}, \ruta{-{}-copyright} & \ruta{Equipo ConcretoLab} \\
+		\ruta{-{}-description} & «ConcretoLab: concreto, modelo 3D y análisis sísmico preliminar». \\ \hline
+	\end{tabular}
+\end{table}
+
+El lanzador \ruta{ConcretoLab.exe} que genera \ruta{jpackage} arranca la aplicación en un \textbf{proceso hijo}; los
+scripts que buscan la ventana miran el proceso lanzado y sus hijos.
+
+\subsubsection{Instalador (\ruta{exe})}
+
+Con WiX disponible, el script define la variable \ruta{CONCRETOLAB\_RECURSOS\_INSTALADOR} con la ruta de
+\ruta{src\textbackslash main\textbackslash jpackage} (la usa \ruta{main.wxs} para encontrar las imágenes) y ejecuta
+\ruta{jpackage -{}-type exe} con estas opciones adicionales:
+
+\begin{longtable}{L{4.6cm}L{10.2cm}}
+	\caption{Opciones del instalador.} \label{tab:dis-jpackage-exe} \\
+	\hline
+	\textbf{Opción} & \textbf{Efecto} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Opción} & \textbf{Efecto} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{-{}-win-per-user-install} & Instalación solo para el usuario, sin permisos de administrador, en
+	\ruta{\%LOCALAPPDATA\%\textbackslash ConcretoLab}. \\
+	\ruta{-{}-win-dir-chooser} & Muestra la pantalla para elegir la carpeta de instalación. \\
+	\ruta{-{}-win-menu}, \ruta{-{}-win-menu-group ConcretoLab} & Acceso en el menú Inicio, dentro de la carpeta
+	«ConcretoLab». \\
+	\ruta{-{}-win-shortcut}, \ruta{-{}-win-shortcut-prompt} & Acceso en el escritorio, con una casilla para elegirlo
+	(la pantalla modificada en \ruta{ShortcutPromptDlg.wxs}). \\
+	\ruta{-{}-win-upgrade-uuid} & \ruta{9b8e382a-8824-4473-a7a5-6689aaeee51b}. Es el identificador fijo del producto:
+	permite que el instalador de una versión nueva reemplace a la anterior. \textbf{No debe cambiarse.} \\
+	\ruta{-{}-resource-dir} & \ruta{src\textbackslash main\textbackslash jpackage}: los archivos de esa carpeta
+	reemplazan a los recursos por defecto de \ruta{jpackage} con el mismo nombre. \\
+	\ruta{-{}-temp} & \ruta{jpackage-instalador} dentro de la carpeta de construcción (deja ahí los \ruta{.wxs} y
+	\ruta{.wxl} que usó, útil para depurar). \\
+\end{longtable}
+
+Al terminar calcula el SHA-256 con \ruta{Get-FileHash} y lo guarda en \ruta{<instalador>.sha256.txt}. El
+instalador \ruta{.exe} pasa sus argumentos a Windows Installer, así que \ruta{/qn} instala en silencio y
+\ruta{/l*v archivo} deja un registro detallado. Desinstalar desde «Aplicaciones instaladas» no borra la carpeta de
+datos del usuario.
+
+\subsubsection{Verificación rápida (\ruta{-Verificar})}
+\label{sec:dis-verificar}
+
+\begin{enumerate}
+	\item Crea \ruta{\%TEMP\%\textbackslash concretolab-verificacion-<guid>\textbackslash datos}.
+	\item Abre \ruta{dist\textbackslash ConcretoLab\textbackslash ConcretoLab.exe} con
+	      \ruta{JAVA\_TOOL\_OPTIONS=-Dconcretolab.datos=<esa carpeta>}: \textbf{nunca} toca la carpeta real.
+	\item Espera hasta 120~s a que el lanzador o su hijo muestren la ventana «ConcretoLab Desktop» y exista
+	      \ruta{concretolab.db}.
+	\item Cierra el árbol de procesos (\ruta{taskkill /T /F}) y comprueba que la ventana apareció, que la base existe y
+	      que empieza con \ruta{SQLite format 3}, es decir, que abrió sin pedir contraseña y sin cifrar.
+	\item Si todo está bien, borra la carpeta temporal.
+\end{enumerate}
+
+Verifica la carpeta portable, no el instalador; para el instalador está \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1}.
+
+\subsection{Recursos del instalador (\ruta{src/main/jpackage})}
+
+\ruta{jpackage} (JDK~17) genera el instalador con WiX a partir de plantillas propias. Los archivos de
+\ruta{-{}-resource-dir} con el mismo nombre que una plantilla la reemplazan; los \ruta{.wxl} se agregan.
+
+\begin{longtable}{L{4.6cm}L{10.2cm}}
+	\caption{Archivos de \ruta{src/main/jpackage}.} \label{tab:dis-recursos} \\
+	\hline
+	\textbf{Archivo} & \textbf{Qué es y qué cambia} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Archivo} & \textbf{Qué es y qué cambia} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{main.wxs} & Copia del \ruta{main.wxs} de \ruta{jpackage} del JDK~17 con dos cambios marcados con comentarios
+	«ConcretoLab»: \ruta{JpProductLanguage=3082} (español) y las variables \ruta{WixUIBannerBmp} y \ruta{WixUIDialogBmp},
+	que apuntan a \ruta{\$(env.CONCRETOLAB\_RECURSOS\_INSTALADOR)\textbackslash banner.bmp} y
+	\ruta{\ldots\textbackslash dialogo.bmp}. \\
+	\ruta{ShortcutPromptDlg.wxs} & Copia modificada del diálogo de accesos directos: se quitó la casilla del menú Inicio
+	(ese acceso se crea siempre) y queda solo «Crear un acceso directo en el escritorio». Sus textos usan
+	identificadores \ruta{CL\_}. \\
+	\ruta{InstallDirNotEmptyDlg.wxs} & Copia modificada del aviso «la carpeta ya existe», con textos \ruta{CL\_} en
+	español. \\
+	\ruta{MsiInstallerStrings\_es.wxl} & Textos en español (\ruta{Culture=\textquotedbl{}es-es\textquotedbl{}}, \ruta{Codepage=\textquotedbl{}1252\textquotedbl{}}):
+	\ruta{CL\_InstallDirExiste}, \ruta{CL\_InstallDirNotEmptyDlg\_Title}, \ruta{CL\_ShortcutPromptDlg\_Title},
+	\ruta{CL\_ShortcutPromptDlgTitle}, \ruta{CL\_ShortcutPromptDlgDescription} y \ruta{CL\_EscritorioEtiqueta}. Como
+	\ruta{jpackage} pone primero la cultura \ruta{es-es}, los diálogos estándar de WiX también salen en español. \\
+	\ruta{banner.bmp} & Franja superior del asistente, 493~$\times$~58 píxeles, 24 bits. \\
+	\ruta{dialogo.bmp} & Fondo de las pantallas de bienvenida y final, 493~$\times$~312 píxeles, 24 bits. \\
+	\ruta{ConcretoLab.ico} & Ícono del ejecutable, del instalador y de los accesos directos (\ruta{-{}-icon}). \\
+\end{longtable}
+
+\begin{importante}[Por qué los identificadores \ruta{CL\_}]
+El \ruta{jpackage} del JDK~17 \textbf{siempre} agrega su propio archivo en inglés, \ruta{MsiInstallerStrings\_en.wxl},
+además de los \ruta{.wxl} de \ruta{-{}-resource-dir}. Si \ruta{MsiInstallerStrings\_es.wxl} volviera a definir un
+identificador que ya existe en el inglés (por ejemplo \ruta{ShortcutPromptDlgTitle}), el enlazador de WiX,
+\ruta{light.exe}, se detiene con el error \textbf{LGHT0100} (cadena duplicada). Por eso los diálogos modificados usan
+identificadores nuevos con prefijo \ruta{CL\_} y el \ruta{.wxl} español solo define esos. Por la misma razón, no nombre
+ningún recurso propio como \ruta{\ldots\_en.wxl}.
+\end{importante}
+
+\begin{advertencia}[Plantillas atadas al JDK~17]
+\ruta{main.wxs} y los dos diálogos son copias de las plantillas del JDK~17. Si se construye con otra versión de
+\ruta{jpackage}, compare esas copias con las plantillas nuevas antes de distribuir: un cambio en las variables que
+\ruta{jpackage} espera puede romper el instalador.
+\end{advertencia}
+
+\subsection{WiX Toolset 3.14}
+
+\ruta{jpackage} necesita WiX~3.x (\ruta{candle.exe} y \ruta{light.exe}) para crear el \ruta{.exe}. En la computadora
+del equipo están los binarios de WiX~3.14.1 (\ruta{candle.exe} versión 3.14.1.8722), sin instalador, en
+\ruta{\%LOCALAPPDATA\%\textbackslash ConcretoLab-herramientas\textbackslash wix314}; junto a esa carpeta está el ZIP
+del que salieron, \ruta{wix314-binaries.zip}. \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1} los encuentra ahí sin tocar el
+\ruta{PATH} del sistema. En otra computadora basta con descomprimir los binarios en esa misma ruta o instalar WiX~3.x
+en \ruta{Program Files (x86)}. WiX~4 o posterior no sirve para el \ruta{jpackage} del JDK~17.
+
+\subsection{Prueba del instalador: \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1}}
+
+Hace una prueba de punta a punta del instalador en la propia computadora, manejando la aplicación con
+\textbf{UI Automation} de Windows (\ruta{System.Windows.Automation}) como lo haría una persona: busca botones por su
+texto, despliega el selector de proyectos y elige filas de tablas. Parámetros: \ruta{-Instalador} (por defecto el
+\ruta{.exe} de \ruta{dist} con la versión del \ruta{pom.xml}) y \ruta{-DejarInstalado}.
+
+\begin{importante}[No se ejecuta si ya está instalado]
+Si encuentra «ConcretoLab» en las claves \ruta{Uninstall} del registro (usuario o máquina), se detiene: así nunca
+desinstala una instalación real.
+\end{importante}
+
+\begin{longtable}{L{1.0cm}L{13.8cm}}
+	\caption{Qué comprueba \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1}.} \label{tab:dis-probar} \\
+	\hline
+	\textbf{Fase} & \textbf{Comprobaciones} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Fase} & \textbf{Comprobaciones} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	1 & Instalación silenciosa (\ruta{/qn /l*v instalacion.log}, hasta 10 minutos); que quede registrada en
+	«Aplicaciones instaladas»; que exista \ruta{ConcretoLab.exe} en la carpeta instalada; que incluya su Java
+	(\ruta{runtime\textbackslash bin\textbackslash java.dll}); los accesos del menú Inicio
+	(\ruta{Programas\textbackslash ConcretoLab\textbackslash ConcretoLab.lnk}) y del escritorio (en modo silencioso se
+	crea siempre). \\
+	2 & Primera apertura con \ruta{JAVA\_TOOL\_OPTIONS=-Dconcretolab.datos=<carpeta temporal>}: la ventana principal
+	aparece sin pedir contraseña; se crea \ruta{concretolab.db} con cabecera SQLite; se crea el proyecto «Obra de prueba
+	del instalador» (\menu{Modelo 3D y metrado > + Proyecto > Crear proyecto vacío\ldots}); la aplicación se cierra con
+	el botón de la ventana. \\
+	3 & Segunda apertura: el proyecto sigue; «Crear copia ahora» genera un \ruta{*-manual.db}; se crea un segundo
+	proyecto; se elige la copia «Manual», «Restaurar la seleccionada\ldots» y «Restaurar y cerrar»; la aplicación se
+	cierra sola en menos de 60~s. \\
+	4 & Tercera apertura: solo está el primer proyecto (volvieron los datos de la copia) y existe una copia
+	\ruta{*-previa-restauracion.db}. \\
+	Final & Salvo \ruta{-DejarInstalado}, desinstala con \ruta{msiexec /x <código> /qn} y comprueba que se quitó el
+	registro, que no quedan accesos y que la carpeta de datos sigue intacta. \\
+\end{longtable}
+
+Cada comprobación se imprime como \ruta{[OK]} o \ruta{[FALLA]}; al final muestra «TODO CORRECTO» o el número de
+fallas, la ruta del registro de Windows Installer y la de los datos temporales (que se pueden borrar).
+
+\subsection{Capturas de la guía: \ruta{capturar-instalador.ps1}}
+
+\ruta{doc\textbackslash latex\textbackslash herramientas\textbackslash capturar-instalador.ps1} toma las capturas
+reales de la «Guía de instalación» y las guarda en \ruta{doc\textbackslash latex\textbackslash img\textbackslash guia}
+con números y recuadros dibujados sobre lo que hay que pulsar:
+
+\begin{enumerate}
+	\item el ícono del instalador (\ruta{00-icono-instalador.png});
+	\item el aviso de SmartScreen (\ruta{01} y \ruta{02}): copia el instalador a una carpeta temporal, le agrega la marca
+	      \ruta{Zone.Identifier} de «descargado de internet», lo abre, captura el aviso y lo cierra con «No ejecutar»
+	      (\textbf{nunca} lo salta). Si SmartScreen no aparece, por ejemplo porque está desactivado, avisa y la guía lo
+	      explica solo con texto;
+	\item cada pantalla del asistente (\ruta{03} a \ruta{08}), tapando la ruta de instalación con
+	      \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash \ldots} para no mostrar el nombre del
+	      usuario;
+	\item la primera apertura de ConcretoLab (\ruta{09-primera-apertura.png}) con una carpeta de datos temporal.
+\end{enumerate}
+
+Al final desinstala ConcretoLab. Igual que la prueba del instalador, no se ejecuta si ya está instalado.
+
+\subsection{Firma de código y SmartScreen}
+
+\begin{advertencia}[El instalador no está firmado]
+Ni \ruta{ConcretoLab-<versión>.exe} ni \ruta{ConcretoLab.exe} llevan firma digital (no hay ningún paso con
+\ruta{signtool}). Por eso Windows SmartScreen muestra «Windows protegió su PC» al abrir un instalador descargado: el
+usuario debe pulsar «Más información» y luego «Ejecutar de todas formas». Para evitar el aviso hace falta un
+certificado de firma de código y firmar el \ruta{.exe} antes de distribuirlo.
+\end{advertencia}
+
+Mientras tanto, la integridad se comprueba con la huella: el cliente ejecuta
+\ruta{Get-FileHash .\textbackslash ConcretoLab-Setup.exe} y compara el resultado con el
+\ruta{.sha256.txt}.
+
+\subsection{Publicación del instalador}
+
+El script deja el instalador con nombre fijo, \ruta{dist/ConcretoLab-Setup.exe}, y su huella en
+\ruta{dist/ConcretoLab-Setup.exe.sha256.txt}. Con un nombre fijo, el enlace
+\ruta{\enlacedescarga} siempre descarga la última versión publicada, y la guía de instalación no cambia de una versión a
+otra. El archivo pesa más de 100~MB, por lo que no puede guardarse dentro del repositorio: se publica como
+\emph{Release} de GitHub, que admite archivos de hasta 2~GB. Pasos para cada versión:
+
+\begin{enumerate}
+	\item Ejecutar \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1 -Verificar} y \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1}.
+	\item En GitHub, abrir \textit{Releases} $\rightarrow$ \textit{Draft a new release}, crear la etiqueta
+	      \ruta{v<versión>} (por ejemplo \ruta{v0.1.0}) y escribir las notas de la versión.
+	\item Adjuntar \ruta{ConcretoLab-Setup.exe} y \ruta{ConcretoLab-Setup.exe.sha256.txt} y pulsar
+	      \textit{Publish release}.
+	\item Comprobar el enlace directo en una ventana privada del navegador.
+\end{enumerate}
+
+Para que el enlace funcione sin iniciar sesión en GitHub, el repositorio debe ser público.
+
+\subsection{Compilar esta documentación}
+
+Las fuentes están en \ruta{doc\textbackslash latex}:
+
+\begin{table}[H]
+	\centering
+	\caption{Organización de \ruta{doc/latex}.}
+	\label{tab:dis-latex}
+	\begin{tabular}{L{5.4cm}L{9.4cm}}
+		\hline
+		\textbf{Ruta} & \textbf{Contenido} \\ \hline
+		\ruta{guia-instalacion.tex}, \ruta{manual-usuario.tex}, \ruta{documentacion-tecnica.tex} & Documentos
+		principales: datos de portada e \ruta{\textbackslash input} de los capítulos. \\
+		\ruta{comun/datos.tex} & Datos comunes (versión, equipo); se carga \textbf{antes} de la plantilla. \\
+		\ruta{comun/concretolab.tex} & Estilo común: portada, colores, \ruta{\textbackslash ruta}, \ruta{\textbackslash paso},
+		\ruta{\textbackslash boton}, recuadros \ruta{nota}, \ruta{importante}, \ruta{advertencia} y \ruta{consejo}. \\
+		\ruta{contenido/guia}, \ruta{contenido/manual}, \ruta{contenido/tecnica} & Un archivo por capítulo. \\
+		\ruta{template.tex} y \ruta{src/} & Núcleo de la plantilla. \\
+		\ruta{img/guia}, \ruta{img/marca} & Capturas de la guía e íconos de ConcretoLab. \\
+		\ruta{herramientas/} & \ruta{capturar-instalador.ps1}. \\
+		\ruta{build/} & Archivos intermedios (excluidos en \ruta{.gitignore}). \\ \hline
+	\end{tabular}
+\end{table}
+
+\ruta{compilar.ps1} necesita \ruta{pdflatex} en el \ruta{PATH} (MiKTeX o TeX Live). Sin argumentos compila los tres
+documentos; con \ruta{guia}, \ruta{manual} o \ruta{tecnica}, solo uno:
+
+\begin{verbatim}
+cd doc\latex
+.\compilar.ps1            # los tres
+.\compilar.ps1 tecnica    # solo la documentacion tecnica
+\end{verbatim}
+
+Cada documento se compila \textbf{tres veces} con
+\ruta{pdflatex -interaction=nonstopmode -halt-on-error -output-directory=build} (índice, referencias cruzadas y
+números de página definitivos). La salida de cada pasada queda en \ruta{build\textbackslash <documento>.salida.txt};
+MiKTeX escribe avisos en la salida de error, por eso el script revisa el código de salida y no esos mensajes. Si una
+pasada falla, muestra las primeras líneas del registro que empiezan con \ruta{!}. Al terminar copia el PDF a
+\ruta{doc\textbackslash} (\ruta{Guia\_de\_instalacion\_ConcretoLab.pdf}, \ruta{Manual\_de\_usuario\_ConcretoLab.pdf} y
+\ruta{Documentacion\_tecnica\_ConcretoLab.pdf}) e informa el número de páginas.
+
+\subsubsection{Plantilla y licencia}
+
+Los documentos usan \textbf{Template-Informe} de Pablo Pizarro R. (Facultad de Ciencias Físicas y Matemáticas,
+Universidad de Chile), versión 7.2.3, con \textbf{licencia MIT}. \ruta{doc/latex/LICENCIA-PLANTILLA.md} reproduce el
+permiso de la licencia y lista los cambios del equipo:
+
+\begin{itemize}
+	\item portada y logo de ConcretoLab (\ruta{comun/concretolab.tex}) en lugar de los originales; no se incluye
+	      \ruta{img/departamentos/logo\_upeu.pdf};
+	\item reparación de textos con codificación dañada (UTF-8 codificado dos veces) en \ruta{template.tex} y \ruta{src/};
+	\item en \ruta{src/cfg/init.tex} y \ruta{src/env/environments.tex}, las opciones \ruta{bookmarksopen} y
+	      \ruta{numbered} del paquete \ruta{bookmark} se escriben con valores literales, porque las versiones actuales
+	      del paquete no aceptan macros ahí.
+\end{itemize}
+
+La licencia MIT exige conservar el aviso de copyright y el permiso en las copias: no borre los encabezados de
+\ruta{template.tex} ni \ruta{LICENCIA-PLANTILLA.md}.

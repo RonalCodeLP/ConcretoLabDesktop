@@ -1,6 +1,5 @@
 package com.concretolab.service;
 
-/** Balance de volúmenes para un metro cúbico, con parámetros elegidos por el profesional. */
 public final class VolumenAbsolutoService {
  private VolumenAbsolutoService(){}
  public record Datos(double agua,double relacionAguaCemento,double densidadCemento,double gruesoSss,double densidadGruesoSss,double densidadFinoSss,double airePorcentaje){}

@@ -17,29 +17,17 @@ import java.util.OptionalInt;
 
 import org.springframework.stereotype.Service;
 
-/**
- * Consulta de la zonificacion sismica por distrito de la Norma E.030 (2026), Anexo II.
- *
- * <p>Los datos se leen una sola vez, de forma perezosa, desde el recurso
- * {@code /data/zonificacion-e030-2026.csv} (UTF-8, separador {@code ;}, cabecera
- * {@code departamento;provincia;distrito;zona}). Los nombres se conservan tal como los escribe la
- * norma y en su mismo orden; las comparaciones ignoran tildes, mayusculas y espacios sobrantes.</p>
- */
 @Service
 public class ZonificacionService {
-
     private static final String FERNANDO_HUANCA_RECURSO = "/data/zonificacion-e030-2026.csv";
     private static final String FERNANDO_HUANCA_FUENTE = "E.030 2026 (R.M. 183-2026-VIVIENDA), Anexo II";
 
-    /** Un distrito con su zona sismica (1 a 4). */
     public record Ubicacion(String departamento, String provincia, String distrito, int zona) {
     }
 
-    /** Fila indexada con los nombres normalizados para busqueda. */
     private record Fila(Ubicacion ubicacion, String distritoNorm, String provinciaNorm) {
     }
 
-    /** Datos ya cargados e indexados (inmutables). */
     private record Datos(
             List<Fila> filas,
             List<String> departamentos,
@@ -50,12 +38,10 @@ public class ZonificacionService {
 
     private volatile Datos datos;
 
-    /** Departamentos en el orden de la norma. */
     public List<String> fernandoHuancaDepartamentos() {
         return fernandoHuancaCargar().departamentos();
     }
 
-    /** Provincias del departamento indicado; lista vacia si no existe. */
     public List<String> fernandoHuancaProvincias(String departamento) {
         Datos d = fernandoHuancaCargar();
         String dep = d.departamentoPorClave().get(clave(departamento));
@@ -65,7 +51,6 @@ public class ZonificacionService {
         return List.copyOf(d.arbol().get(dep).keySet());
     }
 
-    /** Distritos de la provincia indicada; lista vacia si el departamento o la provincia no existen. */
     public List<String> fernandoHuancaDistritos(String departamento, String provincia) {
         List<Ubicacion> lista = fernandoHuancaUbicaciones(departamento, provincia);
         List<String> nombres = new ArrayList<>(lista.size());
@@ -75,7 +60,6 @@ public class ZonificacionService {
         return Collections.unmodifiableList(nombres);
     }
 
-    /** Zona sismica (1 a 4) del distrito, o vacio si no se encuentra. */
     public OptionalInt fernandoHuancaZona(String departamento, String provincia, String distrito) {
         String buscado = clave(distrito);
         if (buscado.isEmpty()) {
@@ -89,12 +73,6 @@ public class ZonificacionService {
         return OptionalInt.empty();
     }
 
-    /**
-     * Busca por nombre de distrito o de provincia (sin tildes ni mayusculas) para autocompletar.
-     * Primero van los distritos cuyo nombre empieza por el texto, luego las provincias que empiezan
-     * por el texto, despues los distritos que lo contienen y al final las provincias que lo contienen;
-     * dentro de cada grupo se respeta el orden de la norma.
-     */
     public List<Ubicacion> fernandoHuancaBuscar(String texto, int limite) {
         String q = clave(texto);
         if (q.isEmpty() || limite <= 0) {
@@ -125,17 +103,13 @@ public class ZonificacionService {
         return resultado;
     }
 
-    /** Numero total de distritos cargados. */
     public int fernandoHuancaTotalDistritos() {
         return fernandoHuancaCargar().filas().size();
     }
 
-    /** Referencia normativa de los datos. */
     public String fernandoHuancaFuente() {
         return FERNANDO_HUANCA_FUENTE;
     }
-
-    // ------------------------------------------------------------------ internos
 
     private List<Ubicacion> fernandoHuancaUbicaciones(String departamento, String provincia) {
         Datos d = fernandoHuancaCargar();
@@ -183,7 +157,7 @@ public class ZonificacionService {
                     linea = linea.substring(1);
                 }
                 if (linea.isBlank() || numero == 1) {
-                    continue; // cabecera o linea vacia
+                    continue;
                 }
                 String[] c = linea.split(";", -1);
                 if (c.length != 4) {
@@ -213,7 +187,6 @@ public class ZonificacionService {
             throw new UncheckedIOException("Error leyendo " + FERNANDO_HUANCA_RECURSO, e);
         }
 
-        // Congelar las listas
         Map<String, Map<String, List<Ubicacion>>> congelado = new LinkedHashMap<>();
         arbol.forEach((dep, provs) -> {
             Map<String, List<Ubicacion>> m = new LinkedHashMap<>();
@@ -225,7 +198,6 @@ public class ZonificacionService {
                 Collections.unmodifiableMap(congelado));
     }
 
-    /** Normaliza un nombre: sin tildes, en mayusculas y con espacios simples. */
     private static String clave(String s) {
         if (s == null) {
             return "";

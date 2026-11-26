@@ -1,0 +1,986 @@
+% ------------------------------------------------------------------------------
+\section{Modelo 3D, metrado e intercambio}
+\label{sec:mod}
+% ------------------------------------------------------------------------------
+
+Este capítulo describe cómo ConcretoLab representa la geometría del edificio, cómo la genera (a mano, con plantillas,
+por ejes y niveles o desde un plano CAD), cómo la edita y la mueve, cómo calcula el metrado sin doble conteo y cómo la
+intercambia con otros programas (DXF, IFC y ETABS). Todo lo que se afirma aquí se obtuvo del código fuente; cuando un
+valor depende de una norma o de un formato externo y no se ha podido comprobar, se indica expresamente.
+
+% ------------------------------------------------------------------------------
+\subsection{Modelo geométrico y proyectos}
+\label{sec:mod-modelo}
+
+\subsubsection{La entidad \texorpdfstring{\ruta{Elemento}}{Elemento}}
+
+Cada pieza del edificio es un \textbf{prisma recto alineado con los ejes globales} (entidad JPA \ruta{model/Elemento},
+tabla \ruta{elementos}). Los ejes X e Y son horizontales y Z es vertical. Las coordenadas $(x, y, z)$ guardadas son las
+del \textbf{centro} del prisma, y las tres medidas se miden a lo largo de los ejes, no de la dirección «natural» del
+elemento.
+
+\begin{table}[H]
+	\centering
+	\caption{Campos de \ruta{Elemento}.}
+	\label{tab:mod-elemento}
+	\begin{tabular}{L{2.6cm}L{2.4cm}L{8.6cm}}
+		\hline
+		\textbf{Campo} & \textbf{Tipo} & \textbf{Significado} \\ \hline
+		\ruta{id} & \ruta{Long} & Identificador autonumérico. \\
+		\ruta{proyectoId} & \ruta{Long} & Proyecto al que pertenece (obligatorio). \\
+		\ruta{tipo} & \ruta{String} & \ruta{ZAPATA}, \ruta{COLUMNA}, \ruta{VIGA}, \ruta{LOSA} o \ruta{MURO}. \\
+		\ruta{nombre} & \ruta{String} & Marca del elemento (obligatoria, no se exige que sea única). \\
+		\ruta{largo} & \ruta{double} & Medida a lo largo de X (m). \\
+		\ruta{ancho} & \ruta{double} & Medida a lo largo de Y (m). \\
+		\ruta{altura} & \ruta{double} & Medida a lo largo de Z (m). \\
+		\ruta{x}, \ruta{y}, \ruta{z} & \ruta{double} & Coordenadas del centro (m). \\
+		\hline
+	\end{tabular}
+\end{table}
+
+De esta convención se derivan los límites del prisma y su volumen bruto, que devuelve \ruta{Elemento.volumen()}:
+
+\begin{align}
+	x^{\pm} &= x \pm \tfrac{l}{2}, & y^{\pm} &= y \pm \tfrac{a}{2}, & z^{\pm} &= z \pm \tfrac{h}{2},
+	\label{eq:mod-limites} \\
+	V_{\text{bruto}} &= l \, a \, h ,
+\end{align}
+
+\noindent donde $l$ es el largo, $a$ el ancho y $h$ la altura. Por lo tanto, una viga en dirección X tiene su luz en
+\ruta{largo}, mientras que una viga en dirección Y la tiene en \ruta{ancho}. Varias partes del código deducen la
+dirección de una viga comparando ambas medidas (véase la sección~\ref{sec:mod-limites}).
+
+\begin{importante}[Medidas según los ejes globales]
+	Al editar una viga, recuerde que «Largo eje X» es su longitud solo si la viga va en X. El aviso de vigas sueltas
+	(sección~\ref{sec:mod-sueltas}) lo recuerda en su mensaje, porque el error más frecuente es fijar la misma medida a
+	vigas de ambas direcciones.
+\end{importante}
+
+\subsubsection{Validación al guardar}
+
+\ruta{YefriLermaProyectoService.\allowbreak{}yefriLermaGuardar(Elemento)} rechaza el elemento si el proyecto no existe, si el tipo
+no es uno de los cinco admitidos, si el nombre está vacío, si alguna medida no es un número finito mayor que cero, si el
+volumen no es finito o si alguna coordenada no es finita. Todas las vías de creación (formulario, plantilla, cuadrícula
+e importación DXF) terminan llamando a este método.
+
+\ruta{yefriLermaGuardarVarios(List<Elemento>)} guarda una lista dentro de una única transacción (\ruta{@Transactional}):
+si un elemento no es válido, la excepción revierte la transacción y \textbf{no se guarda ninguno}. Es la base de la
+edición en lote y del deshacer (sección~\ref{sec:mod-pantalla}).
+
+\subsubsection{Proyectos}
+
+\begin{itemize}
+	\item \ruta{yefriLermaCrearProyecto(nombre, ubicacion)} exige un nombre de 1 a 120 caracteres (tras recortar
+	      espacios) y una ubicación de hasta 200, y registra \ruta{PROYECTO\_CREADO} en la bitácora.
+	\item \ruta{yefriLermaEliminarProyecto(id)} borra, en este orden, los ensayos de cada mezcla, las mezclas, los
+	      elementos (cada uno con sus vínculos viga--columna, mediante \ruta{yefriLermaEliminar}), la cuadrícula, el
+	      expediente y el proyecto, y registra \ruta{PROYECTO\_ELIMINADO}.
+	\item \ruta{yefriLermaGuardarPlano(id, nombre, candidatos)} guarda los elementos importados de un plano CAD en un
+	      proyecto nuevo (si \ruta{id} es nulo) o en uno existente, que debe estar \textbf{vacío}.
+\end{itemize}
+
+\subsubsection{Plantilla rectangular}
+
+\ruta{yefriLermaCrearPlantilla(proyectoId, Plantilla)} crea un pórtico de un vano por dirección: cuatro zapatas, cuatro
+columnas y cuatro vigas. Con separaciones $S_x$, $S_y$, zapata $l_z \times a_z \times h_z$, columna cuadrada de lado
+$b_c$ y altura $H_c$, y viga $b_v \times h_v$, las posiciones son:
+
+\begin{align}
+	x_i &\in \left\{-\tfrac{S_x}{2},\, \tfrac{S_x}{2}\right\}, \qquad y_j \in \left\{-\tfrac{S_y}{2},\, \tfrac{S_y}{2}\right\}, \\
+	z_{\text{zapata}} &= \tfrac{h_z}{2}, \qquad z_{\text{columna}} = h_z + \tfrac{H_c}{2}, \qquad
+	z_{\text{viga}} = h_z + H_c - \tfrac{h_v}{2}, \\
+	\text{VX}_{1,2} &: \; (S_x - b_c) \times b_v \times h_v \text{ con centro en } (0,\, y_j,\, z_{\text{viga}}), \\
+	\text{VY}_{1,2} &: \; b_v \times (S_y - b_c) \times h_v \text{ con centro en } (x_i,\, 0,\, z_{\text{viga}}).
+\end{align}
+
+La base de las zapatas queda en $z = 0$. El método exige todas las medidas positivas, $S_x > b_c$, $S_y > b_c$,
+$h_v \le H_c$ y $b_v \le b_c$.
+
+\subsubsection{Escenarios de laboratorio}
+
+\ruta{yefriLermaPrepararEscenarios()} crea, si no existen ya con ese nombre, los tres proyectos de
+\ruta{YEFRI\_LERMA\_ESCENARIOS}, pensados para comparar respuestas dinámicas. Todos usan una planta de $3 \times 2$ ejes
+con $x \in \{-5, 0, 5\}$\,m e $y \in \{-2, 2\}$\,m, zapatas de $2 \times 2 \times 0{,}65$\,m solo en el primer nivel,
+columnas que arrancan en $z = 0{,}65$\,m y vigas de $0{,}30 \times 0{,}50$\,m.
+
+\begin{table}[H]
+	\centering
+	\caption{Escenarios de laboratorio que crea \ruta{yefriLermaPrepararEscenarios}.}
+	\label{tab:mod-escenarios}
+	\begin{tabular}{L{5.2cm}cL{6.6cm}}
+		\hline
+		\textbf{Nombre} & \textbf{Pisos} & \textbf{Altura y columna por piso} \\ \hline
+		LAB, 4 pisos, pórtico regular & 4 & 3,10\,m; columnas de 0,45\,m \\
+		LAB, 3 pisos, planta baja flexible & 3 & piso 1: 4,50\,m y columnas de 0,30\,m; demás: 3,10\,m y 0,45\,m \\
+		LAB, 3 pisos, referencia regular & 3 & 3,10\,m; columnas de 0,45\,m \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\begin{nota}[Sin llamada desde la interfaz]
+	En el código revisado, \ruta{yefriLermaPrepararEscenarios} solo se invoca desde la prueba
+	\ruta{ProyectoIntegracionTest}; ninguna clase de \ruta{src/main} la llama. Los nombres reales usan un punto medio
+	como separador («LAB · 4 pisos · pórtico regular»).
+\end{nota}
+
+% ------------------------------------------------------------------------------
+\subsection{Ejes, niveles y generación}
+\label{sec:mod-cuadricula}
+
+El diálogo «Ejes, niveles y generación» (\ruta{ui/EditorCuadricula}) y el servicio \ruta{service/CuadriculaService}
+generan zapatas, columnas y vigas sobre una cuadrícula. La definición (\ruta{Definicion}) tiene un origen
+$(x_0, y_0)$, una lista de separaciones en X, otra en Y y una lista de niveles $N_0 < N_1 < \dots < N_m$. Las
+coordenadas de los ejes salen de \ruta{walterQuispesayhuaCoordenadas}:
+
+\begin{equation}
+	X_0 = x_0, \qquad X_i = X_{i-1} + s^{x}_{i} \quad (i = 1, \dots, n_x - 1),
+\end{equation}
+
+\noindent y análogamente para $Y_j$. El primer nivel $N_0$ es la cara superior de las zapatas.
+
+\begin{table}[H]
+	\centering
+	\caption{Validaciones de \ruta{walterQuispesayhuaValidarDefinicion} y de la generación.}
+	\label{tab:mod-cuadricula-limites}
+	\begin{tabular}{L{5.2cm}L{8.4cm}}
+		\hline
+		\textbf{Dato} & \textbf{Regla} \\ \hline
+		Origen & Números finitos. \\
+		Separaciones X e Y & De 1 a 19 valores por dirección (2 a 20 ejes), todos positivos y finitos. \\
+		Niveles & De 2 a 20 valores, finitos y estrictamente crecientes. \\
+		Medidas de zapata, columna y viga & Positivas y finitas. \\
+		Ancho de viga & $b_v \le b_c$ si se generan vigas. \\
+		Peralte de viga & $h_v \le N_k - N_{k-1}$ en cada piso si se generan vigas. \\
+		Luz libre & $X_{i+1} - X_i - b_c > 0$ (y lo mismo en Y). \\
+		Cantidad & Como máximo 2000 elementos por operación. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Elementos generados}
+
+Para cada intersección $(i, j)$ seleccionada, con marca «$i{+}1$-$j{+}1$», \ruta{walterQuispesayhuaGenerar} produce:
+
+\begin{align}
+	\text{Zapata} &: \; l_z \times a_z \times h_z, \quad (X_i,\, Y_j,\, N_0 - \tfrac{h_z}{2}), \\
+	\text{Columna del piso } k &: \; b_c \times b_c \times H_k, \quad (X_i,\, Y_j,\, N_{k-1} + \tfrac{H_k}{2}),
+	\qquad H_k = N_k - N_{k-1}, \\
+	\text{Viga X del piso } k &: \; (X_{i+1} - X_i - b_c) \times b_v \times h_v, \quad
+	\left(\tfrac{X_i + X_{i+1}}{2},\, Y_j,\, N_k - \tfrac{h_v}{2}\right), \\
+	\text{Viga Y del piso } k &: \; b_v \times (Y_{j+1} - Y_j - b_c) \times h_v, \quad
+	\left(X_i,\, \tfrac{Y_j + Y_{j+1}}{2},\, N_k - \tfrac{h_v}{2}\right).
+\end{align}
+
+Una viga X solo se genera si están seleccionadas sus dos intersecciones y el tramo $(i,j) \rightarrow (i{+}1,j)$; igual
+para Y. Los nombres son \ruta{Z-}, \ruta{C-piso-}, \ruta{VX-piso-} y \ruta{VY-piso-} seguidos de la marca. La cota
+superior de las vigas coincide con el nivel y sus caras extremas tocan las caras de las columnas, de modo que el
+metrado y el análisis sísmico las reconocen como unidas.
+
+El tope de 2000 elementos se comprueba antes de generar, con la cota superior
+
+\begin{equation}
+	n_{\max} = n_p \left( [\text{zapatas}] + (m) \left( [\text{columnas}] + [\text{vigas X}] + [\text{vigas Y}] \right) \right) \le 2000,
+\end{equation}
+
+\noindent donde $n_p$ es el número de intersecciones elegidas, $m$ el número de pisos y $[\cdot]$ vale 1 si la opción
+está marcada y 0 si no.
+
+\subsubsection{Superposiciones y vista previa}
+
+\ruta{walterQuispesayhuaPrevisualizar} compara cada elemento nuevo con los existentes y con los demás nuevos. Dos
+prismas $A$ y $B$ se consideran superpuestos si se solapan estrictamente en los tres ejes:
+
+\begin{equation}
+	\lvert x_A - x_B \rvert < \tfrac{l_A + l_B}{2} - \varepsilon, \quad
+	\lvert y_A - y_B \rvert < \tfrac{a_A + a_B}{2} - \varepsilon, \quad
+	\lvert z_A - z_B \rvert < \tfrac{h_A + h_B}{2} - \varepsilon, \qquad \varepsilon = 10^{-9}\ \text{m}.
+	\label{eq:mod-superposicion}
+\end{equation}
+
+Las superposiciones \textbf{no impiden} crear los elementos: se listan en la vista previa para que usted decida.
+
+\subsubsection{Flujo del diálogo}
+
+\begin{enumerate}
+	\item El diálogo carga la cuadrícula guardada del proyecto o, si no hay, valores por defecto (separaciones X
+	      «5; 5», Y «4», niveles «0; 3»; zapata $1{,}5 \times 1{,}5 \times 0{,}5$\,m, columna de 0,4\,m, viga
+	      $0{,}3 \times 0{,}5$\,m). Los valores se separan con punto y coma y admiten coma decimal.
+	\item «Actualizar cuadrícula» valida la definición, crea una casilla por intersección y por tramo (todas marcadas) y
+	      dibuja la planta con los elementos existentes en gris.
+	\item «Revisar elementos» exige que la cuadrícula dibujada coincida con la escrita, genera la vista previa (planta
+	      con los nuevos en azul, lista con medidas y centros, y superposiciones) y pide confirmación.
+	\item «Crear elementos» llama a \ruta{walterQuispesayhuaCrear}, que guarda la cuadrícula
+	      (\ruta{CuadriculaProyecto}, con las listas unidas por «; ») y luego cada elemento en la misma transacción.
+	\item «Guardar ejes y niveles» guarda solo la cuadrícula. Los ejes guardados sirven luego como referencias al mover
+	      elementos (sección~\ref{sec:mod-movimiento}).
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+\subsection{Movimiento en 3D y vínculos viga--columna}
+\label{sec:mod-movimiento}
+
+El botón «Mover en 3D» abre \ruta{ui/EditorMovimiento}, que usa \ruta{service/MovimientoElementoService}. El servicio
+trabaja con instantáneas inmutables (\ruta{Estado}: id, proyecto, tipo, nombre, medidas y \ruta{Posicion}) en lugar de
+entidades, para poder comprobar que nada cambió entre la vista previa y el guardado.
+
+\subsubsection{Concurrencia optimista}
+
+Antes de cualquier operación, \ruta{walterQuispesayhuaComprobarActual(Estado)} relee el elemento de la base y exige
+que su estado actual sea \textbf{exactamente igual} al de la instantánea; si no, lanza
+\ruta{IllegalStateException} («El elemento cambió desde que comenzó la edición»). Lo mismo se aplica a cada viga
+arrastrada por el movimiento y, al deshacer, a cada elemento que el movimiento dejó guardado.
+
+\subsubsection{Sugerencias de alineación}
+
+Si el proyecto tiene una cuadrícula guardada, \ruta{walterQuispesayhuaSugerencias} ofrece, como botones opcionales,
+alinear el centro con el eje X o Y más cercano y alinear un nivel. Para columnas se alinea la base
+($z - h/2$); para los demás tipos, la cara superior ($z + h/2$). Solo se sugiere una referencia $r$ que cumpla
+
+\begin{equation}
+	10^{-6} < \lvert r - v \rvert \le 0{,}25\ \text{m},
+\end{equation}
+
+\noindent donde $v$ es el valor actual; entre varias, la más cercana.
+
+\subsubsection{Advertencias}
+
+\ruta{walterQuispesayhuaAdvertencias} produce dos clases de aviso, que no bloquean el guardado:
+
+\begin{itemize}
+	\item \textbf{Superposición}: la posición propuesta cumple la ecuación~\eqref{eq:mod-superposicion} con otro
+	      elemento (aquí $\varepsilon = 10^{-6}$\,m).
+	\item \textbf{Separación}: el elemento movido es una columna que en su posición original estaba en contacto con una
+	      viga o zapata y en la propuesta ya no. El contacto admite tocarse:
+	      $\lvert x_A - x_B \rvert \le \tfrac{l_A + l_B}{2} + \varepsilon$ en los tres ejes.
+\end{itemize}
+
+\subsubsection{Vigas vinculadas a una columna}
+
+Al mover una \textbf{columna}, \ruta{walterQuispesayhuaCandidatos} lista las vigas que ya tienen un vínculo guardado
+(\ruta{VinculoGeometrico}, pares columna--viga) o que tocan la columna por uno de sus extremos. El extremo conectado
+lo calcula \ruta{walterQuispesayhuaExtremoConectado}. Sea $\tau = 10^{-6}$\,m, sea la viga de dirección X si
+$l > a$ (si $l = a$ no se considera viga), $c$ y $v$ las coordenadas de columna y viga a lo largo del eje de la viga,
+$w_c$ el lado de la columna en ese eje y $L$ la longitud de la viga. Entonces:
+
+\begin{align}
+	\text{condiciones previas} &: \; \lvert z_c - z_v \rvert \le \tfrac{h_c + h_v}{2} + \tau
+	\quad \text{y} \quad \lvert p_c - p_v \rvert \le \tau , \\
+	e &=
+	\begin{cases}
+		+1 & \text{si } \left\lvert \left(c + \tfrac{w_c}{2}\right) - \left(v - \tfrac{L}{2}\right) \right\rvert \le \tau ,\\[2pt]
+		-1 & \text{si } \left\lvert \left(c - \tfrac{w_c}{2}\right) - \left(v + \tfrac{L}{2}\right) \right\rvert \le \tau ,\\[2pt]
+		0 & \text{en otro caso,}
+	\end{cases}
+\end{align}
+
+\noindent donde $p$ es la coordenada perpendicular (Y para una viga en X). Con $e = +1$ la columna está en el inicio de
+la viga (el extremo de menor coordenada) y con $e = -1$, en el final. Es decir, el eje de la viga debe pasar por el
+centro de la columna y su cara extrema debe coincidir con la cara de la columna.
+
+El usuario marca qué vínculos quiere guardar. Para cada viga marcada, \ruta{walterQuispesayhuaAjustarViga} mantiene fijo
+el extremo lejano y lleva el otro a la cara de la columna en su nueva posición $c'$:
+
+\begin{align}
+	f &= v + e \, \tfrac{L}{2}, \qquad m = c' + e \, \tfrac{w_c}{2}, \\
+	L' &= e \, (f - m), \qquad v' = \tfrac{f + m}{2},
+\end{align}
+
+\noindent con $e = \pm 1$ el extremo conectado. Si $L' \le 10^{-6}$\,m, el movimiento se rechaza («dejaría sin
+longitud a la viga»). Una viga vinculada solo puede reajustarse si la columna se mueve \textbf{sobre el eje de la
+viga}: $z$ no puede cambiar y tampoco la coordenada perpendicular.
+
+\subsubsection{Operación, guardado y deshacer}
+
+\ruta{walterQuispesayhuaPreparar} arma un registro \ruta{Operacion} con la vista previa, las listas de estados
+anteriores y propuestos (el elemento y sus vigas ajustadas) y los conjuntos de vínculos antes y después; añade avisos
+de superposición de las vigas reajustadas.
+
+\begin{itemize}
+	\item \ruta{walterQuispesayhuaGuardar(Operacion)} vuelve a preparar la operación con los mismos datos y exige que
+	      el resultado sea igual al recibido; si no, lanza «El modelo cambió. Revise nuevamente la vista previa». Luego
+	      aplica cada estado propuesto y reemplaza los vínculos de la columna.
+	\item \ruta{walterQuispesayhuaDeshacer(Operacion)} exige que los vínculos actuales sean los que dejó la operación y
+	      que cada elemento siga como quedó; entonces restaura los estados anteriores y los vínculos previos. Si algo
+	      cambió, lanza «Los vínculos cambiaron; no se puede deshacer este movimiento» o el error de concurrencia.
+\end{itemize}
+
+\subsubsection{Interacción en el editor}
+
+El panel muestra campos X, Y, Z (centro, en metros, con coma decimal), un selector de eje y las casillas de vínculo.
+Al arrastrar con el botón principal el elemento que se mueve, el visor convierte el desplazamiento horizontal del ratón
+$\Delta u$ (píxeles) en metros a lo largo del eje elegido:
+
+\begin{equation}
+	\Delta = \Delta u \cdot \frac{D}{1200} \cdot \frac{1}{65},
+\end{equation}
+
+\noindent donde $D$ es la distancia actual de la cámara y 65 la escala del visor en píxeles por metro. Cada cambio en
+los campos, las casillas o el arrastre recalcula la operación y la muestra en el visor (incluidas las vigas
+reajustadas). «Revisar y guardar» muestra el centro anterior y el propuesto, el volumen, los avisos y los cambios de
+cada viga, y guarda tras la confirmación. Mientras dura el movimiento, el controlador deshabilita el resto de la
+edición.
+
+% ------------------------------------------------------------------------------
+\subsection{Edición en la pantalla del modelo}
+\label{sec:mod-pantalla}
+
+\ruta{controller/ModeloController} reúne la lógica de interacción de la pantalla «Modelo 3D y metrado».
+
+\subsubsection{Filtro por tipo y selección múltiple}
+
+La tabla usa una \ruta{FilteredList} sobre todos los elementos del proyecto y una \ruta{SortedList} para ordenar por
+columnas; la selección es múltiple. El combo de filtro ofrece las opciones de \ruta{YEFRI\_LERMA\_FILTROS}: «Todos los
+tipos», «Solo zapatas», «Solo columnas», «Solo vigas», «Solo losas» y «Solo muros». Cambiar el filtro limpia la
+selección. «Todos» selecciona todas las filas visibles. La etiqueta de selección muestra «$N$ en la lista» o «$N$
+seleccionados».
+
+\subsubsection{Edición de uno o varios elementos}
+
+«Editar» con una fila abre el panel «Editar elemento» (tipo, nombre, medidas y centro); con varias, el panel «Editar
+$N$ elementos». En el segundo, cada medida (largo, ancho, altura) se interpreta con
+\ruta{yefriLermaLeerAjuste(String)}:
+
+\begin{table}[H]
+	\centering
+	\caption{Interpretación de cada campo del panel de lote.}
+	\label{tab:mod-lote}
+	\begin{tabular}{L{3.4cm}L{4.4cm}L{5.8cm}}
+		\hline
+		\textbf{Texto} & \textbf{Ajuste} & \textbf{Nueva medida} \\ \hline
+		vacío & ninguno (\ruta{null}) & se conserva la actual \\
+		\ruta{0,50} & fijo & $m' = 0{,}50$ \\
+		\ruta{+0,05} & relativo & $m' = m + 0{,}05$ \\
+		\ruta{-0,05} & relativo & $m' = m - 0{,}05$ \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\ruta{yefriLermaAplicarAjustes} devuelve copias (no toca los originales), redondea cada medida a $10^{-4}$\,m
+($m' \leftarrow \operatorname{round}(10^4 m') / 10^4$) y rechaza el lote entero si alguna medida queda nula o
+negativa. Debe llenarse al menos un campo. El guardado usa \ruta{yefriLermaGuardarVarios}, de modo que el lote se
+guarda completo o no se guarda.
+
+Desde el análisis sísmico, \ruta{yefriLermaPrecargarCorreccion} abre este mismo panel con las columnas recomendadas:
+precarga una medida fija si todas quedan iguales y, si no, el mayor de los incrementos (por ejemplo «+0,05»), en cada
+caso para el largo y el ancho. No guarda nada hasta que usted pulse «Aplicar».
+
+\subsubsection{Aviso de vigas que se sueltan}
+\label{sec:mod-sueltas}
+
+Antes de guardar una edición (de uno o de varios elementos), \ruta{yefriLermaConfirmarSiSueltaVigas} llama a
+\ruta{yefriLermaVigasQueSeSueltan(actuales, cambiados)}. Este método evalúa
+\ruta{FernandoHuancaAnalisisSismico.\allowbreak{}fernandoHuancaConexionVigas} sobre el modelo actual y sobre el modelo con los
+cambios aplicados, y devuelve las vigas que \textbf{antes} unían al menos dos columnas y \textbf{después} no. Si la lista
+no está vacía se pide confirmación («Guardar igual»); el cambio se puede deshacer. Si el proyecto no tiene columnas o
+vigas (el análisis lanza \ruta{IllegalArgumentException}), no hay aviso.
+
+El criterio de conexión es el del análisis sísmico, con tolerancia $T = 0{,}05$\,m. Los pisos son las cotas superiores
+de las vigas agrupadas (valores a menos de $T$ del primero del grupo se promedian) que quedan por encima de la base de
+las columnas. Una viga de dirección X (si $l \ge a$), con centro $(x_v, y_v)$, longitud $L$ y cota superior en el piso
+$s$, «toca» la columna $c$ si
+
+\begin{gather}
+	\lvert y_c - y_v \rvert \le \tfrac{a_c}{2} + T, \qquad
+	x_v - \tfrac{L}{2} - \tfrac{l_c}{2} - T \le x_c \le x_v + \tfrac{L}{2} + \tfrac{l_c}{2} + T, \\
+	z^{-}_c + T < z_s \le z^{+}_c + T,
+\end{gather}
+
+\noindent y análogamente en Y. Una viga que toca menos de dos columnas se informa como «suelta».
+
+\subsubsection{Historial de deshacer}
+
+El controlador mantiene una pila (\ruta{ArrayDeque}) de pasos de tipo sellado \ruta{YefriLermaPaso}, con un máximo de
+\ruta{YEFRI\_LERMA\_MAXIMO\_DESHACER} $= 20$ pasos (al pasar del máximo se descarta el más antiguo):
+
+\begin{itemize}
+	\item \ruta{YefriLermaPasoEdicion}: copias de los elementos antes y después de editar uno o varios.
+	\item \ruta{YefriLermaPasoMovimiento}: la \ruta{Operacion} de un movimiento en 3D.
+\end{itemize}
+
+«Deshacer» y el atajo \textbf{Ctrl+Z} (acelerador de la escena registrado en \ruta{initialize}) sacan el paso más
+reciente. El atajo solo actúa si la tabla está en la escena (la pantalla se está viendo), si no hay un movimiento en
+curso y si no hay un panel o diálogo abierto (\ruta{Notificador.\allowbreak{}fernandoHuancaHayVentanaAbierta()}).
+
+\begin{itemize}
+	\item Para una edición, \ruta{yefriLermaDeshacerEdicion} compara cada elemento guardado con el estado «después» del
+	      paso (\ruta{yefriLermaMismoEstado}: tipo y nombre iguales, medidas y coordenadas con diferencia menor que
+	      $10^{-9}$). Si alguno ya no existe o cambió por otro camino, \textbf{rechaza} el deshacer completo; si no,
+	      vuelve a guardar los estados «antes» con \ruta{yefriLermaGuardarVarios}.
+	\item Para un movimiento, delega en \ruta{MovimientoElementoService.\allowbreak{}walterQuispesayhuaDeshacer}.
+	\item El paso se retira de la pila antes de intentarlo: si se rechaza, se muestra el motivo y el paso
+	      \textbf{se descarta} (la prueba \ruta{noDeshaceSiElElementoCambioDespuesPorOtroCamino} lo verifica).
+\end{itemize}
+
+El historial se vacía al cambiar de proyecto, al eliminar el proyecto y al volver a la pantalla si algún paso es de
+otro proyecto. Crear elementos (formulario, plantilla, cuadrícula o DXF) y eliminarlos \textbf{no} se registra en el
+historial.
+
+\subsubsection{Clics en el visor y en la tabla}
+
+\begin{table}[H]
+	\centering
+	\caption{Acciones del ratón sobre la selección (\ruta{yefriLermaClicEn3d}, \ruta{yefriLermaEditarDesde3d} y \ruta{yefriLermaDobleClicFila}).}
+	\label{tab:mod-clics}
+	\begin{tabular}{L{4.2cm}L{9.4cm}}
+		\hline
+		\textbf{Acción} & \textbf{Efecto} \\ \hline
+		Clic en 3D & Selecciona solo ese elemento. Si ya era parte de una selección múltiple, espera 480\,ms
+		(450\,ms de doble clic más 30\,ms) antes de hacerlo, por si llega un segundo clic. \\
+		Ctrl+clic en 3D & Agrega o quita el elemento de la selección; si el filtro lo oculta, el filtro pasa a «Todos los
+		tipos». También cuentan Shift y Cmd. \\
+		Doble clic en 3D & Si el elemento es parte de una selección múltiple, abre «Editar $N$ elementos» con todos; si
+		no, lo selecciona y abre «Editar elemento», que incluye el botón «Mover en 3D». \\
+		Doble clic en una fila & Igual que en 3D. Como el primer clic deja seleccionada solo esa fila, el controlador
+		recuerda la selección previa en el evento \ruta{MOUSE\_PRESSED}. \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Globo del metrado}
+
+\ruta{yefriLermaActualizarMetrado} pone en el botón el texto «Metrado $\cdot$ $V$ m$^3$», con el volumen neto a dos
+decimales, y prepara el resumen completo con \ruta{yefriLermaResumenMetrado}. «Metrado» abre o cierra un
+\ruta{Popover} de AtlantaFX anclado al botón con ese resumen; el globo también se cierra cada vez que el metrado se
+recalcula, para no mostrar cifras viejas.
+«Cuantías de acero\dots» abre el diálogo descrito en la sección~\ref{sec:mod-metrado}.
+
+% ------------------------------------------------------------------------------
+\subsection{Visor 3D}
+\label{sec:mod-visor}
+
+\ruta{ui/ErickDelgadoVisor3D} dibuja cada elemento como un \ruta{Box} de JavaFX dentro de una \ruta{SubScene} con
+antialiasing, cámara en perspectiva (planos de recorte 1 y 30\,000), una luz ambiente y tres puntuales. JavaFX tiene el
+eje Y hacia abajo, por lo que el visor transforma las coordenadas del modelo así:
+
+\begin{align}
+	(X, Y, Z)_{\text{JavaFX}} &= k \, (x,\; -z,\; y), \qquad k = 65\ \text{px/m}, \\
+	(\text{ancho}, \text{alto}, \text{profundidad})_{\text{Box}} &= k\,(l,\; h,\; a).
+\end{align}
+
+\begin{table}[H]
+	\centering
+	\caption{Colores del visor.}
+	\label{tab:mod-colores}
+	\begin{tabular}{L{4cm}L{3.2cm}L{6.4cm}}
+		\hline
+		\textbf{Elemento} & \textbf{Color} & \textbf{Observación} \\ \hline
+		Zapata & \ruta{\#78716c} & \\
+		Columna & \ruta{\#3b82f6} & \\
+		Viga & \ruta{\#14b8a6} & también cualquier tipo no previsto \\
+		Losa & \ruta{\#94a3b8} & translúcida (opacidad 0,35) \\
+		Muro & \ruta{\#f59e0b} & \\
+		Seleccionado & \ruta{\#f59e0b} & con brillo especular mayor \\
+		Ejes X, Y, Z & \ruta{\#ef4444}, \ruta{\#22c55e}, \ruta{\#3b82f6} & \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\subsubsection{Navegación y vistas}
+
+\begin{itemize}
+	\item \textbf{Girar}: arrastre con el botón principal; el ángulo vertical cambia $0{,}5^\circ$ por píxel y queda
+	      entre $-10^\circ$ y $90^\circ$.
+	\item \textbf{Desplazar}: arrastre con el botón secundario o central, o con Shift; el desplazamiento se escala por
+	      $D/1200$.
+	\item \textbf{Acercar}: la rueda multiplica la distancia $D$ por 0,9 o la divide entre 0,9, dentro de
+	      $[150,\ 9000]$.
+	\item \textbf{Vistas} (animadas en 350\,ms por el camino angular más corto): Isométrica ($25^\circ$, $-35^\circ$),
+	      Planta ($90^\circ$, $0^\circ$), Frontal ($0^\circ$, $0^\circ$) y Lateral ($0^\circ$, $-90^\circ$).
+	      «Ajustar» vuelve a la isométrica y reencuadra. «Cuadrícula» y «Ejes» muestran u ocultan el suelo y los ejes.
+\end{itemize}
+
+Al cargar datos (no al seleccionar), \ruta{erickDelgadoConstruirReferencias} dibuja un suelo con líneas cada
+$p = \max\!\left(1, \lceil \max(\Delta x, \Delta y) / 40 \rceil\right)$ metros, con 2\,m de margen, situado en la cota
+más baja del modelo, y centra el modelo. La distancia de encuadre supone un campo de visión vertical de $30^\circ$:
+
+\begin{equation}
+	D = \max\!\left(500,\; \frac{r}{\sin(15^\circ)} \cdot 1{,}1\right), \qquad
+	r = \tfrac{1}{2} \sqrt{w^2 + d^2 + \left(k \, H\right)^2},
+\end{equation}
+
+\noindent donde $w$ y $d$ son el ancho y el fondo del suelo en píxeles y $H$ la altura total del modelo.
+
+\subsubsection{Selección y modo de movimiento}
+
+\ruta{erickDelgadoMostrar(lista, resaltado, alClic, alDobleClic, reencuadrar)} redibuja las cajas, resalta las que
+cumplen el predicado (selección múltiple) e instala los manejadores. Un clic se ignora si hay un movimiento en curso,
+si el ratón se movió desde que se presionó o si no es el botón principal. El doble clic se detecta \textbf{por id del
+elemento y por tiempo} (450\,ms, \ruta{ERICK\_DELGADO\_DOBLE\_CLIC\_MS}), no por nodo, porque las cajas se recrean al
+cambiar la selección; un clic con Ctrl nunca inicia un doble clic. El callback \ruta{AlClic} recibe el elemento y si se
+pidió agregar.
+
+\ruta{erickDelgadoIniciarMovimiento(id, alArrastrar)} activa el arrastre del elemento indicado,
+\ruta{erickDelgadoPrevisualizar} mueve o redimensiona cajas sin tocar la base de datos y
+\ruta{erickDelgadoMostrarReferencias} dibuja en naranja los ejes de la cuadrícula en cada nivel (necesita al menos dos
+ejes por dirección).
+
+% ------------------------------------------------------------------------------
+\subsection{Metrado neto}
+\label{sec:mod-metrado}
+
+\ruta{service/MetradoNeto} calcula el concreto \textbf{sin doble conteo}: donde dos prismas se cruzan, el volumen común
+se asigna una sola vez al elemento de mayor prioridad.
+
+\subsubsection{Orden de prioridad}
+
+Los elementos se ordenan de forma estable por tipo: zapata, columna, viga, muro, losa y, al final, cualquier tipo no
+previsto. A igual tipo gana el que aparece antes en la lista (el orden de la lista no afecta a los tipos distintos).
+
+\subsubsection{Volumen neto de cada elemento}
+
+Sea $B_1, \dots, B_n$ la secuencia de cajas en ese orden. El volumen neto del elemento $k$ es su volumen menos la
+parte ya ocupada por los anteriores:
+
+\begin{equation}
+	V_{\text{neto}}(k) = \max\!\left(0,\; V(B_k) - V\!\left( \bigcup_{j<k} \left( B_k \cap B_j \right) \right)\right),
+	\label{eq:mod-neto}
+\end{equation}
+
+\noindent y la intersección de dos cajas es otra caja, $[\max(x^-_A, x^-_B),\, \min(x^+_A, x^+_B)]$ en cada eje (nula
+si algún intervalo queda vacío). La suma de los netos es el volumen de la unión de todos los prismas, y el volumen
+«descontado» es $V_{\text{bruto}} - V_{\text{neto}}$.
+
+\subsubsection{Unión de cajas por compresión de coordenadas}
+
+El volumen de la unión de la ecuación~\eqref{eq:mod-neto} se calcula de forma exacta en
+\ruta{yefriLermaVolumenUnion}. Se ordenan sin repetir todas las coordenadas límite de las cajas
+($X_0 < X_1 < \dots$, igual en Y y Z), lo que divide el espacio en celdas. Cada celda se cuenta una vez si su centro
+cae estrictamente dentro de alguna caja:
+
+\begin{gather}
+	V\!\left(\textstyle\bigcup_m C_m\right) = \sum_{i}\sum_{j}\sum_{k} (X_{i+1}-X_i)(Y_{j+1}-Y_j)(Z_{k+1}-Z_k)\;
+	\mathbf{1}\!\left[ \exists\, m : (\bar{x}_i, \bar{y}_j, \bar{z}_k) \in \operatorname{int} C_m \right], \\
+	\bar{x}_i = \tfrac{X_i + X_{i+1}}{2}, \qquad \bar{y}_j = \tfrac{Y_j + Y_{j+1}}{2}, \qquad \bar{z}_k = \tfrac{Z_k + Z_{k+1}}{2}.
+\end{gather}
+
+Con una sola caja se devuelve su volumen directamente. Con $m$ cajas hay hasta $(2m-1)^3$ celdas y cada una se compara
+con hasta $m$ cajas; como solo intervienen las intersecciones de un elemento con los anteriores, $m$ suele ser pequeño.
+
+\subsubsection{Encofrado y acero}
+
+\begin{table}[H]
+	\centering
+	\caption{Superficie de encofrado por tipo (\ruta{yefriLermaSuperficieEncofrado}).}
+	\label{tab:mod-encofrado}
+	\begin{tabular}{L{2.6cm}L{4.6cm}L{6.4cm}}
+		\hline
+		\textbf{Tipo} & \textbf{Fórmula} & \textbf{Caras consideradas} \\ \hline
+		Columna, zapata & $2(l + a)\,h$ & perímetro por altura \\
+		Viga & $\max(l,a)\,\left(\min(l,a) + 2h\right)$ & fondo y dos costados \\
+		Muro & $2\max(l,a)\,h$ & dos caras \\
+		Losa & $l\,a$ & fondo \\
+		Otro & 0 & \\
+		\hline
+	\end{tabular}
+\end{table}
+
+El encofrado se calcula con las medidas brutas, \textbf{sin descontar} los contactos entre elementos. El acero se
+estima por tipo con una cuantía en kg por m$^3$ de concreto aplicada al volumen \textbf{neto}:
+
+\begin{equation}
+	A_t = q_t \sum_{k \in t} V_{\text{neto}}(k) .
+\end{equation}
+
+\begin{table}[H]
+	\centering
+	\caption{Cuantías referenciales de \ruta{yefriLermaCuantiasReferenciales} (kg/m$^3$).}
+	\label{tab:mod-cuantias}
+	\begin{tabular}{L{3cm}c}
+		\hline
+		\textbf{Tipo} & \textbf{$q_t$} \\ \hline
+		Zapata & 60 \\
+		Columna & 150 \\
+		Viga & 120 \\
+		Muro & 70 \\
+		Losa & 80 \\
+		Otro & 0 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+\ruta{service/CuantiasAcero} permite cambiarlas. Se guardan en \ruta{cuantias-acero.properties} dentro de la carpeta de
+datos (\ruta{RespaldoDatos.\allowbreak{}erickDelgadoCarpetaDatos()}). Al guardar, cada valor debe ser finito y estar entre 0 y
+\ruta{YEFRI\_LERMA\_MAXIMO} $= 400$\,kg/m$^3$; si no, no se escribe nada. Al leer, cualquier valor ausente, ilegible o
+fuera de rango se reemplaza por el referencial de su tipo, y un archivo inexistente equivale a los referenciales. El
+resumen indica «cuantías típicas» o «cuantías propias» según coincidan o no con las referenciales.
+
+\subsubsection{Ejemplo verificado}
+
+La prueba \ruta{MetradoNetoTest.\allowbreak{}descuentaLosCrucesUnaSolaVezSegunPrioridad} usa una columna, una viga que nace en ella y
+una losa que cubre ambas, pasadas en orden inverso a la prioridad.
+
+\begin{table}[H]
+	\centering
+	\caption{Metrado neto del ejemplo de prueba (m$^3$).}
+	\label{tab:mod-ejemplo-metrado}
+	\begin{tabular}{L{2.2cm}L{5.4cm}ccL{2.6cm}}
+		\hline
+		\textbf{Elemento} & \textbf{Centro; medidas (m)} & \textbf{Bruto} & \textbf{Neto} & \textbf{Descuento} \\ \hline
+		Columna & $(0;\,0;\,1{,}5)$; $0{,}4 \times 0{,}4 \times 3{,}0$ & 0,480 & 0,480 & ninguno \\
+		Viga & $(1{,}0;\,0;\,2{,}75)$; $2{,}4 \times 0{,}3 \times 0{,}5$ & 0,360 & 0,300 & cruce con la columna: 0,060 \\
+		Losa & $(1{,}0;\,1{,}0;\,2{,}9)$; $4{,}0 \times 4{,}0 \times 0{,}2$ & 3,200 & 3,048 &
+		$0{,}032 + 0{,}144 - 0{,}024 = 0{,}152$ \\
+		\hline
+		\textbf{Total} & & 4,040 & 3,828 & 0,212 \\
+		\hline
+	\end{tabular}
+\end{table}
+
+El término $-0{,}024$ es el cruce triple columna--viga--losa, que la unión cuenta una sola vez.
+
+% ------------------------------------------------------------------------------
+\subsection{Importación de planos DXF y DWG}
+\label{sec:mod-dxf}
+
+\subsubsection{Lector DXF}
+
+\ruta{service/FernandoHuancaPlanoDxf.\allowbreak{}fernandoHuancaLeer(Path)} lee DXF de texto (ASCII) por pares
+código--valor:
+
+\begin{itemize}
+	\item Rechaza archivos de más de 10\,MB y archivos truncados, sin \ruta{EOF} o sin entidades.
+	\item Elige la codificación por \ruta{\$ACADVER}: UTF-8 desde \ruta{AC1021} (AutoCAD 2007) y Windows-1252 en las
+	      versiones anteriores, para no corromper nombres de capa con tildes o eñes. Sustituye los saltos de línea
+	      \ruta{CR CR LF} que puede emitir LibreDWG.
+	\item De la sección \ruta{HEADER} solo toma \ruta{\$INSUNITS} (código 70). De \ruta{ENTITIES} toma cada entidad con su
+	      capa (código 8). Para cada código guarda el \textbf{primer} valor, salvo los vértices de
+	      \ruta{LWPOLYLINE} (10, 20) y sus abultamientos (42), que se acumulan.
+	\item Una entidad del espacio papel (código 67 igual a 1, o código 410 distinto de \ruta{Model}) se marca como
+	      \ruta{PRESENTACIÓN} y se ignora. Una entidad con coordenadas ausentes o no finitas se inventaría como
+	      «\textit{tipo} inválida».
+\end{itemize}
+
+\begin{table}[H]
+	\centering
+	\caption{Entidades reconocidas por \ruta{fernandoHuancaEntidad}.}
+	\label{tab:mod-dxf-entidades}
+	\begin{tabular}{L{3cm}L{3cm}L{7.6cm}}
+		\hline
+		\textbf{DXF} & \textbf{Tipo interno} & \textbf{Interpretación} \\ \hline
+		\ruta{LINE} & \ruta{LINE} & Inicio (10, 20, 30) y fin (11, 21, 31). \\
+		\ruta{POINT} & \ruta{POINT} & Centro; requiere un lado indicado por el usuario. \\
+		\ruta{INSERT} & \ruta{BLOQUE} & Punto de inserción como centro; requiere un lado. El bloque no se expande. \\
+		\ruta{CIRCLE} & \ruta{CÍRCULO} & Cuadrado circunscrito de lado $2r$. \\
+		\ruta{LWPOLYLINE} de 2 vértices & \ruta{LINE} & Abierta y sin abultamientos; $z$ = elevación (código 38). \\
+		\ruta{LWPOLYLINE} de 4 vértices & \ruta{RECTÁNGULO} & Cerrada (bit 1 del código 70, o 5 vértices con el
+		último igual al primero), sin abultamientos, normal $(0,0,1)$, vértices distintos y lados paralelos a X e Y. \\
+		Otra \ruta{LWPOLYLINE} & \ruta{LWPOLYLINE} & No compatible con capas estructurales. \\
+		\ruta{3DFACE} en capa \ruta{CL3D\_\textit{TIPO}\_\textit{n}} & --- & Cara de un prisma exportado por
+		ConcretoLab (ver abajo). \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Si el archivo contiene caras \ruta{3DFACE} en capas \ruta{CL3D\_(COLUMNA|VIGA|ZAPATA|LOSA|MURO)\_\textit{n}}, el lector
+reconstruye el modelo 3D completo: para cada capa exige 8 vértices distintos y 6 caras que contengan las del prisma
+envolvente; si no, rechaza el archivo («Prisma incompleto o deformado»). El elemento recuperado tiene centro y medidas
+del prisma envolvente y el tipo del nombre de la capa.
+
+\subsubsection{Unidades}
+
+\begin{table}[H]
+	\centering
+	\caption{Conversión de \ruta{\$INSUNITS} (\ruta{fernandoHuancaMetrosPorUnidad}).}
+	\label{tab:mod-dxf-unidades}
+	\begin{tabular}{cL{3.6cm}c}
+		\hline
+		\textbf{Código} & \textbf{Unidad} & \textbf{m por unidad} \\ \hline
+		1 & pulgadas & 0,0254 \\
+		2 & pies & 0,3048 \\
+		4 & milímetros & 0,001 \\
+		5 & centímetros & 0,01 \\
+		6 & metros & 1 \\
+		14 & decímetros & 0,1 \\
+		otro o ausente & sin unidad declarada & --- \\
+		\hline
+	\end{tabular}
+\end{table}
+
+Si no hay unidad declarada, \ruta{DeteccionCapasDxf.\allowbreak{}erickDelgadoUnidad} la estima por la mayor extensión $E$ del
+dibujo (puntos, bloques, rectángulos, círculos y líneas): milímetros si $E > 2000$, centímetros si $E > 200$ y metros en
+otro caso. El valor sugerido se coloca en el campo «Metros por unidad DXF», que el usuario puede cambiar. Para un modelo
+\ruta{CL3D} recuperado se usa la unidad declarada o, si falta, se asumen metros.
+
+\subsubsection{Detección de capas}
+
+\ruta{service/DeteccionCapasDxf} sugiere una capa por rol a partir de su nombre. \ruta{erickDelgadoPalabras} quita las
+tildes (normalización NFD), pasa a mayúsculas y divide el nombre en palabras por cualquier carácter no alfanumérico.
+\ruta{erickDelgadoPuntaje} asigna a cada capa el mejor puntaje entre sus palabras $p$ y las claves $q$ del rol:
+
+\begin{equation}
+	\text{puntaje} =
+	\begin{cases}
+		3 & p = q,\\
+		2 & \lvert q \rvert \ge 4 \text{ y } \left( p \text{ empieza por } q \text{, o } q \text{ empieza por } p \text{ con } \lvert p \rvert \ge 4 \right),\\
+		1 & \lvert q \rvert \ge 5 \text{ y } p \text{ contiene } q,\\
+		0 & \text{en otro caso.}
+	\end{cases}
+\end{equation}
+
+\begin{longtable}{L{2.2cm}L{7cm}L{4.4cm}}
+	\caption{Roles, palabras clave y entidades admitidas.} \label{tab:mod-dxf-roles} \\
+	\hline
+	\textbf{Rol} & \textbf{Palabras clave} & \textbf{Entidades de la capa} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Rol} & \textbf{Palabras clave} & \textbf{Entidades de la capa} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Columnas & COLUMNA, COLUMNAS, COL, COLS, COLUMN, COLUMNS, PILAR, PILARES & puntos, bloques, rectángulos,
+	círculos \\
+	Vigas & VIGA, VIGAS, VG, BEAM, BEAMS, VIG & líneas \\
+	Zapatas & ZAPATA, ZAPATAS, ZAP, CIMENTACION, CIMIENTO, CIMIENTOS, FOOTING, FOOTINGS, FOUNDATION & puntos, bloques,
+	rectángulos, círculos \\
+	Losas & LOSA, LOSAS, ALIGERADO, ALIGERADOS, SLAB, SLABS, TECHO & rectángulos \\
+	Muros & MURO, MUROS, PLACA, PLACAS, WALL, WALLS, MUR, ALBANILERIA & líneas \\
+	Ejes & EJE, EJES, GRID, GRIDS, AXIS, AXES, TRAZO & líneas (solo diagnóstico) \\
+\end{longtable}
+
+Solo compiten las capas \textbf{compatibles}: con 1 a 200 entidades, todas de los tipos admitidos. La capa de zapatas
+no puede ser la misma que la de otro rol ya elegido. \ruta{erickDelgadoDiagnosticar} arma el inventario que ve el
+usuario: cada capa con el conteo de entidades por tipo y el rol detectado, más avisos (entidades ignoradas, capas que
+parecen de losas o muros pero no son importables, capas con más de 200 entidades, entidades inválidas, círculos
+convertidos en secciones cuadradas, bloques usados como punto, espacio papel y unidad estimada).
+
+\subsubsection{Conversión de la planta en edificio}
+
+\ruta{fernandoHuancaConvertir(Plano, Datos)} repite una planta en altura. Todas las coordenadas se multiplican por la
+escala $s$ (m por unidad) y deben estar en $z = 0$.
+
+\begin{enumerate}
+	\item \textbf{Datos}: de 1 a 12 pisos, altura de piso $h$ mayor que el peralte de viga $h_v$, y escala, altura,
+	      ancho y peralte de viga y espesor de zapata positivos.
+	\item \textbf{Huellas de columna} (\ruta{fernandoHuancaHuellas}): un rectángulo o círculo da su centro y medidas; un
+	      punto o bloque da un cuadrado del lado indicado. Se exigen al menos 4 columnas, sin centros duplicados y a más
+	      de 0,05\,m entre sí. Las huellas de zapata (capa opcional) se obtienen igual, con su propio lado.
+	\item \textbf{Anclaje de vigas} (\ruta{fernandoHuancaColumna}): cada extremo $p$ de una línea de la capa de vigas
+	      se asigna a la única columna cuya huella, ampliada 0,05\,m, lo contiene:
+	      \begin{equation}
+	      	\lvert p_x - c_x \rvert \le \tfrac{l_c}{2} + 0{,}05, \qquad \lvert p_y - c_y \rvert \le \tfrac{a_c}{2} + 0{,}05 .
+	      \end{equation}
+	      Si no hay una sola, se toma la de centro más cercano $d_1$ siempre que $d_1 \le 0{,}30$\,m y que la segunda
+	      esté al menos a $1{,}5\,d_1$. Si no, se rechaza el plano.
+	\item \textbf{Validación de vigas}: extremos en columnas distintas, viga paralela a X o a Y (tolerancia
+	      $10^{-6}$), luz libre mayor que el ancho de viga y sin vigas duplicadas. Toda columna debe tener al menos una
+	      viga y el conjunto debe ser \textbf{conexo} (se recorre el grafo columna--viga desde la primera columna).
+	\item \textbf{Generación} por piso $k = 1, \dots, n$, con $w_a$ y $w_b$ los lados de las columnas extremas a lo
+	      largo del eje de la viga:
+	      \begin{align}
+	      	L &= \lVert b - a \rVert - \tfrac{w_a + w_b}{2}, \\
+	      	x_v &= \tfrac{a_x + b_x}{2} + \operatorname{sgn}(b_x - a_x)\, \tfrac{w_a - w_b}{4}
+	      	\quad \text{(igual en } y\text{)},
+	      \end{align}
+	      de modo que la viga va de cara a cara de columna. Las cotas son: zapatas con centro en $-h_z/2$ (cara superior
+	      en 0), columnas con centro en $k h - h/2$ y altura $h$, vigas con centro en $k h - h_v/2$.
+\end{enumerate}
+
+La variante \ruta{fernandoHuancaConvertir(Plano, Datos, Extra)} agrega en cada piso las \textbf{losas} (rectángulos
+de su capa, espesor $e \le h$, centro en $k h - e/2$) y los \textbf{muros} (líneas paralelas a X o Y más largas que su
+espesor, de piso a piso, centro en $k h - h/2$). Los muros conservan la longitud de la línea dibujada, sin recortarse
+en las columnas; el metrado neto resuelve el cruce. Cada capa estructural admite como máximo 200 entidades y solo los
+tipos previstos. Los elementos se nombran \ruta{DXF-\textit{TIPO}-\textit{n}}.
+
+\subsubsection{DWG y RVT}
+
+Para un DWG, \ruta{fernandoHuancaLocalizarDwgread} busca \ruta{dwgread.exe} (LibreDWG) en este orden: la propiedad
+\ruta{concretolab.tools}, la variable \ruta{CONCRETOLAB\_TOOLS}, las carpetas \ruta{tools} junto al código de la
+aplicación, \ruta{tools} en la carpeta de trabajo, \ruta{\textasciitilde/.concretolab/tools}, \ruta{target} (solo
+desarrollo) y el \ruta{PATH}; también revisa subcarpetas cuyo nombre empiece por \ruta{libredwg}.
+\ruta{fernandoHuancaLeerDwg} ejecuta \ruta{dwgread -O DXF -o \textit{temporal} \textit{archivo}} con un límite de 45\,s,
+lee el DXF temporal y lo borra. Si no encuentra el conversor, la interfaz permite elegirlo. Un archivo RVT no se lee:
+se muestran instrucciones para exportarlo a DXF desde Revit.
+
+\subsubsection{Flujo de importación}
+
+\ruta{ui/ErickDelgadoImportacionDxf.\allowbreak{}erickDelgadoAbrir} (menú «+ Proyecto $\rightarrow$ Importar proyecto desde
+CAD\dots»):
+
+\begin{enumerate}
+	\item Selecciona un archivo \ruta{.dxf}, \ruta{.dxf.txt}, \ruta{.dwg} o \ruta{.rvt} y lo lee (el DWG se convierte en
+	      un hilo aparte con un diálogo de espera cancelable).
+	\item Si no hay un modelo \ruta{CL3D} y faltan capas compatibles de columnas o de vigas, o si el plano parece vial
+	      (capas \ruta{C-ROAD-CORR} y \ruta{C-ROAD-SECT-GRID}) sin capas COLUMNAS y VIGAS, solo muestra el inventario de
+	      capas.
+	\item Si no, abre «Importar planta estructural» con el inventario, los combos de capa precargados con la
+	      sugerencia, la escala sugerida, los siete datos de la planta (pisos, altura de piso, lado de columna, ancho y
+	      peralte de viga, lado y espesor de zapata) y las capas opcionales de losas y muros con sus espesores. Los
+	      campos que no aplican quedan deshabilitados.
+	\item «Revisar modelo» genera los candidatos sin guardar y muestra el conteo por tipo y el concreto neto y bruto
+	      (\ruta{MetradoNeto.\allowbreak{}yefriLermaCalcular}).
+	\item «Guardar en proyecto» llama a \ruta{yefriLermaGuardarPlano} en un proyecto nuevo o en uno existente vacío.
+\end{enumerate}
+
+Con el archivo de ejemplo \ruta{planta-estructural-ejemplo.dxf} aparece el botón «Completar valores del ejemplo», que
+carga escala 0,001 y los datos 3; 3; 0,40; 0,30; 0,50; 1,50; 0,50.
+
+% ------------------------------------------------------------------------------
+\subsection{Exportación}
+\label{sec:mod-exportacion}
+
+\subsubsection{DXF}
+
+\ruta{FernandoHuancaPlanoDxf.\allowbreak{}fernandoHuancaExportar} escribe un DXF ASCII (cabecera \ruta{AC1009}, sin
+\ruta{\$INSUNITS}) con cada elemento como seis caras \ruta{3DFACE} en la capa \ruta{CL3D\_\textit{TIPO}\_\textit{n}}.
+El color (código 62) es 5 para columnas, 4 para vigas, 30 para muros y 8 para el resto. Las coordenadas se escriben en
+metros. El archivo no puede superar 10\,MB, que es el límite del importador, y al reimportarlo se recupera el modelo
+exacto (prueba \ruta{PlanoDxfRobustezTest.\allowbreak{}exportarEImportarConservaElModeloExacto}).
+
+\subsubsection{IFC}
+
+\ruta{service/ExportadorIfc.\allowbreak{}erickDelgadoGenerar(nombre, elementos)} genera un archivo IFC2X3 en texto STEP
+(ISO 10303-21, \ruta{FILE\_DESCRIPTION} con \ruta{ViewDefinition [CoordinationView]}). La estructura espacial es
+proyecto $\rightarrow$ sitio $\rightarrow$ edificio $\rightarrow$ un único nivel «Nivel 0» en la cota 0, unidos con
+\ruta{IFCRELAGGREGATES}. Las unidades son SI (metro, m$^2$, m$^3$, radián) y hay un material «Concreto» asociado a
+todos los elementos con \ruta{IFCRELASSOCIATESMATERIAL}.
+
+\begin{table}[H]
+	\centering
+	\caption{Correspondencia de tipos en IFC.}
+	\label{tab:mod-ifc}
+	\begin{tabular}{L{2.6cm}L{6cm}}
+		\hline
+		\textbf{Tipo} & \textbf{Entidad IFC2X3} \\ \hline
+		Columna & \ruta{IFCCOLUMN} \\
+		Viga & \ruta{IFCBEAM} \\
+		Muro & \ruta{IFCWALLSTANDARDCASE} \\
+		Losa & \ruta{IFCSLAB} (\ruta{.FLOOR.}) \\
+		Zapata & \ruta{IFCFOOTING} (\ruta{.PAD\_FOOTING.}) \\
+		Otro & \ruta{IFCBUILDINGELEMENTPROXY} \\
+		\hline
+	\end{tabular}
+\end{table}
+
+La geometría de cada elemento es un \ruta{IFCEXTRUDEDAREASOLID}: un perfil rectangular de $l \times a$ centrado en el
+origen local, extruido en $+Z$ una longitud $h$, colocado en $(x, y, z - h/2)$ respecto del nivel. Las vigas también
+se extruyen en vertical: la forma es exacta, pero el eje de extrusión no sigue la dirección de la viga. Cada elemento
+lleva su nombre en \ruta{Name} y su tipo en \ruta{Description}. Los números se escriben con seis decimales y punto.
+
+Los identificadores globales son \textbf{reproducibles}: \ruta{erickDelgadoGuid(semilla)} toma el UUID basado en
+nombre de la semilla (\ruta{UUID.\allowbreak{}nameUUIDFromBytes}, MD5) y lo codifica en los 22 caracteres de IFC con el alfabeto
+\ruta{0-9A-Za-z\_\$}. Con $n$ el entero de 128 bits y $A$ el alfabeto:
+
+\begin{equation}
+	c_0 = A\!\left[\left\lfloor n / 2^{126} \right\rfloor \bmod 4\right], \qquad
+	c_{21-i} = A\!\left[\left\lfloor n / 2^{6i} \right\rfloor \bmod 64\right] \quad (i = 0, \dots, 20).
+\end{equation}
+
+Las semillas combinan el nombre del proyecto con un prefijo (\ruta{proyecto|}, \ruta{sitio|}, \ruta{edificio|},
+\ruta{nivel|}, \ruta{ra1|} a \ruta{ra3|}, \ruta{rc|}, \ruta{rm|}) y, para los elementos, el índice y el nombre
+(\ruta{el|\textit{proyecto}|\textit{i}|\textit{elemento}}). Los textos STEP duplican los apóstrofos y las barras
+invertidas y codifican cada carácter fuera de ASCII imprimible como
+\ruta{\textbackslash X2\textbackslash\textit{hhhh}\textbackslash X0\textbackslash}.
+
+\subsubsection{ETABS (experimental)}
+
+\ruta{service/ExportadorEtabs.\allowbreak{}erickDelgadoGenerar(nombre, fcMpa, elementos)} escribe un archivo de texto \ruta{.e2k}
+(cabecera de versión 9.7.4, unidades kN y m) y devuelve también una lista de avisos que la interfaz muestra al
+terminar. La resistencia $f'_c$ se pide al usuario (21\,MPa por defecto).
+
+\begin{enumerate}
+	\item \textbf{Pisos}: cotas superiores de vigas y losas redondeadas al milímetro (si no hay, las de columnas). La
+	      base es la cota inferior más baja de columnas y muros (si no hay, el primer piso menos 3\,m). Se descartan las
+	      cotas que no superan la base en más de 5\,mm. Los pisos se llaman \ruta{PISO1}, \ruta{PISO2}\dots; el más alto
+	      es \ruta{MASTERSTORY}.
+	\item \textbf{Puntos}: únicos en planta a 1\,mm.
+	\item \textbf{Columnas}: una línea por columna en su centro, asignada al piso donde termina, con sección
+	      \ruta{COL\textit{l}X\textit{a}} (cm). Las columnas que arrancan en la base reciben empotramiento
+	      (\ruta{UX UY UZ RX RY RZ}).
+	\item \textbf{Vigas}: cada extremo se ancla al centro de la columna cuya huella, ampliada 5\,cm, lo contiene (la más
+	      cercana); si no, se usa el extremo de la viga y se avisa. Sección \ruta{VIG\textit{b}X\textit{h}} (cm).
+	\item \textbf{Losas}: paneles de 4 puntos con propiedad \ruta{LOSA\textit{e}} (membrana).
+	      \textbf{Muros}: paneles con propiedad \ruta{MURO\textit{e}} (\ruta{ShellThin}) definidos con puntos repetidos,
+	      lo que se avisa.
+	\item \textbf{Zapatas}: no se exportan; se avisa de cuántas se omitieron.
+\end{enumerate}
+
+Una columna, viga, losa o muro cuya cota superior no coincide (a 5\,mm) con un piso reconocido se omite y se avisa.
+
+El material \ruta{CONCRETO} se define con peso unitario 23,5\,kN/m$^3$, coeficiente de Poisson 0,2, coeficiente
+térmico $9{,}9 \times 10^{-6}$ y
+
+\begin{equation}
+	E_c = 4700 \sqrt{f'_c} \ \text{MPa} \;\rightarrow\; 1000 \cdot 4700 \sqrt{f'_c}\ \text{kN/m}^2, \qquad
+	f'_c\ (\text{kN/m}^2) = 1000\, f'_c\ (\text{MPa}).
+\end{equation}
+
+\begin{advertencia}[Formato sin verificar]
+	El propio código marca este exportador como experimental: no se ha comprobado que ETABS importe el archivo. Revise
+	pisos, secciones y apoyos en ETABS antes de analizar.
+\end{advertencia}
+
+% ------------------------------------------------------------------------------
+\subsection{Pruebas automatizadas}
+\label{sec:mod-pruebas}
+
+\begin{longtable}{L{6.6cm}L{7.2cm}}
+	\caption{Pruebas que cubren este capítulo (\ruta{src/test/java/com/concretolab}).} \label{tab:mod-pruebas} \\
+	\hline
+	\textbf{Clase} & \textbf{Qué verifica} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Qué verifica} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{MetradoNetoTest} & Descuento de cruces una sola vez según prioridad (tabla~\ref{tab:mod-ejemplo-metrado});
+	elementos idénticos contados una vez; encofrado y acero de elementos separados. \\
+	\ruta{DxfDeteccionTest} & Bloques, círculos y polilíneas con vigas ancladas; rechazo de una viga que no cae en una
+	columna; sugerencia de capas y unidad estimada; nombres peruanos con tildes y abreviaturas; losas y muros por piso
+	sin duplicar cruces en el metrado. \\
+	\ruta{ImportacionDxfTest} & Secciones distintas leídas de los contornos; ida y vuelta de un modelo completo; pórtico
+	de dos vanos importado y analizado; planta en milímetros que el motor sísmico puede analizar. \\
+	\ruta{PlanoDxfRobustezTest} & Archivos dañados con mensaje claro; límite de 10\,MB; tildes y eñes según la versión;
+	conversión de unidades; escalado de un modelo en milímetros; exportar e importar sin pérdida; ubicación del
+	conversor DWG. \\
+	\ruta{ExportacionIfcEtabsTest} & Estructura IFC, referencias resueltas, GUID de 22 caracteres, codificación de la
+	ñ y GUID reproducibles; en ETABS, pisos, secciones, apoyos, avisos y validación de entradas. \\
+	\ruta{CuadriculaIntegracionTest} & Generación por ejes en un proyecto existente con detección de superposiciones;
+	rechazo de niveles y vanos inválidos sin guardar nada. \\
+	\ruta{MovimientoElementoIntegracionTest} & Vista previa con sugerencias y avisos sin guardar; guardar y deshacer
+	solo si el elemento no cambió; vínculo y reajuste de vigas (extremo inicial y final) y deshacer de la operación
+	completa. \\
+	\ruta{ModeloSeleccionMultipleTest} & Edición de varios elementos desde la tabla y desde el visor (clic, Ctrl+clic,
+	doble clic); deshacer de varios pasos en orden inverso; rechazo cuando el elemento cambió por otro camino; aviso de
+	vigas sueltas con posibilidad de deshacer. \\
+	\ruta{controller/EdicionLoteTest} & Lectura de campos vacíos, fijos e incrementos; aplicación solo de los campos
+	llenos; precarga de la recomendación sísmica; descripción de la selección. \\
+	\ruta{ui/VisorSeleccionTest} & Distinción entre clic, Ctrl+clic y doble clic en el visor y resaltado de la
+	selección múltiple. \\
+\end{longtable}
+
+% ------------------------------------------------------------------------------
+\subsection{Supuestos y límites}
+\label{sec:mod-limites}
+
+\begin{itemize}
+	\item \textbf{Geometría}: todos los elementos son prismas alineados con los ejes globales. No hay elementos inclinados,
+	      circulares ni de sección variable; un círculo del DXF se convierte en una sección cuadrada de lado igual al
+	      diámetro.
+	\item \textbf{Dirección de las vigas}: no se guarda; se deduce de las medidas, con criterios que no coinciden del
+	      todo. El análisis sísmico y el exportador ETABS consideran viga en X si $l \ge a$; el movimiento con vínculos
+	      exige $l > a$ (o $a > l$) y no trata como viga una de planta cuadrada; el encofrado usa $\max(l, a)$.
+	\item \textbf{Tolerancias}: la generación por cuadrícula usa $10^{-9}$\,m; el movimiento, $10^{-6}$\,m (y 0,25\,m
+	      para sugerir alineaciones); el criterio de vigas conectadas del análisis sísmico, 0,05\,m; la importación DXF,
+	      0,05\,m de holgura y 0,30\,m de radio de búsqueda; el exportador ETABS, 5\,mm en cotas y 5\,cm en huellas.
+	\item \textbf{Metrado}: es una estimación de anteproyecto. El encofrado no descuenta contactos ni distingue caras
+	      que no requieren molde; el acero es volumen neto por cuantía fija por tipo. La prioridad de asignación de los
+	      cruces es fija (zapata, columna, viga, muro, losa). La pantalla «Mezclas y ensayos» suma volúmenes
+	      \textbf{brutos} al elegir elementos del modelo; su propia interfaz advierte que no descuenta intersecciones.
+	\item \textbf{Deshacer}: solo cubre ediciones y movimientos (20 pasos); no cubre crear ni eliminar elementos,
+	      plantillas, generación por ejes ni importaciones, y un paso rechazado se pierde.
+	\item \textbf{Importación DXF}: solo DXF de texto, plantas en $z = 0$ que se repiten idénticas en todos los pisos (1
+	      a 12), un máximo de 200 entidades por capa estructural y 10\,MB por archivo. Los bloques no se expanden y no
+	      se leen ejes, textos ni cotas para generar elementos. El DWG depende de LibreDWG externo.
+	\item \textbf{IFC}: todos los elementos cuelgan de un único nivel en la cota 0 con coordenadas absolutas; no hay
+	      armadura ni propiedades (\ruta{Pset}). Los GUID de los elementos dependen de su posición en la lista, por lo que
+	      reordenar o borrar elementos cambia los GUID siguientes. No se ha comprobado el archivo con un validador IFC;
+	      en particular, \ruta{IFCWALLSTANDARDCASE} se exporta con un material simple y sin eje, cuando el esquema IFC2X3
+	      prevé para ese tipo un conjunto de capas de material (verifíquese contra la especificación).
+	\item \textbf{ETABS}: experimental y sin verificar; las zapatas se reemplazan por empotramientos y los muros usan
+	      paneles con puntos repetidos.
+	\item \textbf{Visor}: los muros y la selección usan el mismo color (\ruta{\#f59e0b}), por lo que un muro
+	      seleccionado solo se distingue por el brillo especular.
+	\item \textbf{Escenarios de laboratorio}: el método existe y está probado, pero no se encontró ninguna llamada desde
+	      la interfaz.
+\end{itemize}

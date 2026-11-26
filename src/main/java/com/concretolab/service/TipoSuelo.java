@@ -2,17 +2,6 @@ package com.concretolab.service;
 
 import com.concretolab.service.NormaE030.Suelo;
 
-/**
- * Tipo de suelo descrito en lenguaje simple para la pantalla sísmica guiada, con su perfil equivalente de la E.030 en cada versión.
- *
- * <p>Texto 2026 (R.M. 183-2026-VIVIENDA), Tabla 2 (p. 6 impresa) y Tabla 3 (p. 7): S0 roca (Vs30 ≥ 800 m/s), S1 muy rígidos
- * (550 a 800), S2 rígidos (350 a 550), S3 intermedios (200 a 350), S4 blandos (&lt; 200). S5 (suelos excepcionales: licuables,
- * colapsables, orgánicos, turba...) no tiene factor S: se prohíbe construir sin estudio específico, por eso no es una opción.
- *
- * <p>Versión 2018 (R.M. 355-2018-VIVIENDA): S0 roca dura (Vs30 &gt; 1500), S1 roca o suelos muy rígidos (500 a 1500),
- * S2 suelos intermedios (180 a 500), S3 suelos blandos (&lt; 180). Los nombres S2 y S3 NO significan lo mismo que en 2026:
- * el S2 de 2018 cubre los S2 y S3 de 2026, y el S3 de 2018 equivale al S4 de 2026.
- */
 public enum TipoSuelo {
     ROCA("Roca sana o muy dura",
             "Cerro de roca sana o poco fracturada, afloramiento rocoso donde se cimenta directamente sobre la roca.",
@@ -39,7 +28,6 @@ public enum TipoSuelo {
 
     public final String etiqueta;
     public final String descripcion;
-    /** Aviso para mostrar al usuario (cadena vacía si no hay). */
     public final String aviso;
     private final Suelo s2026, s2018;
     private final double vs30Min, vs30Max;
@@ -54,22 +42,16 @@ public enum TipoSuelo {
         this.aviso = aviso;
     }
 
-    /** Perfil equivalente en el texto 2026 (Tabla 2). */
     public Suelo suelo2026() { return s2026; }
 
-    /** Perfil equivalente en la versión 2018. */
     public Suelo suelo2018() { return s2018; }
 
-    /** Perfil según la versión elegida. */
     public Suelo suelo(NormaE030.Version v) { return v == NormaE030.Version.V2026 ? s2026 : s2018; }
 
-    /** Límite inferior de Vs30 en m/s (Tabla 3, 2026); NaN si es «no sé». */
     public double vs30Min() { return vs30Min; }
 
-    /** Límite superior de Vs30 en m/s (Tabla 3, 2026); infinito para roca; NaN si es «no sé». */
     public double vs30Max() { return vs30Max; }
 
-    /** Verdadero si el perfil es una suposición conservadora por falta de estudio de suelos. */
     public boolean esSuposicion() { return this == NO_SE; }
 
     @Override public String toString() { return etiqueta; }

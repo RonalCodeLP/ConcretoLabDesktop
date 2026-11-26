@@ -4,12 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Módulo de finura y verificación de husos granulométricos según NTP 400.037 / ASTM C33
- * (agregado fino y agregados gruesos tamaños Nº 57, 67 y 7).
- */
 public final class HusosGranulometricos {
-
     private HusosGranulometricos() { }
 
     public enum Huso {
@@ -23,7 +18,7 @@ public final class HusosGranulometricos {
             {19, 100, 100}, {12.5, 90, 100}, {9.5, 40, 70}, {4.75, 0, 15}, {2.36, 0, 5}});
 
         private final String etiqueta;
-        private final double[][] limites; // abertura mm, mínimo % pasa, máximo % pasa
+        private final double[][] limites;
 
         Huso(String etiqueta, double[][] limites) {
             this.etiqueta = etiqueta;
@@ -40,7 +35,6 @@ public final class HusosGranulometricos {
 
     private static final double[] YEFRI_LERMA_SERIE_MF = {0.15, 0.30, 0.60, 1.18, 2.36, 4.75, 9.5, 19.0, 37.5, 75.0, 150.0};
 
-    /** Módulo de finura: suma de % retenido acumulado en la serie estándar dividido entre 100. */
     public static Double yefriLermaModuloFinura(List<GranulometriaService.Fila> filas) {
         double suma = 0;
         int encontrados = 0;
@@ -53,7 +47,6 @@ public final class HusosGranulometricos {
                 }
             }
         }
-        // para agregado fino se exigen los tamices 0,15 a 4,75 mm
         return encontrados >= 6 ? suma / 100.0 : null;
     }
 

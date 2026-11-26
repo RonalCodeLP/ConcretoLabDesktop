@@ -1,0 +1,56 @@
+% ------------------------------------------------------------------------------
+\section{Solución de problemas}
+% ------------------------------------------------------------------------------
+
+\begin{longtable}{L{5.2cm}L{8.6cm}}
+	\caption{Problemas frecuentes al instalar y abrir ConcretoLab.} \label{tab:problemas} \\
+	\hline
+	\textbf{Lo que ve} & \textbf{Qué hacer} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Lo que ve} & \textbf{Qué hacer} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+
+	«Windows protegió su PC» y no encuentra cómo continuar. &
+	Pulse el texto \boton{Más información}: recién entonces aparece \boton{Ejecutar de todas formas}
+	(paso~2, página~\pageref{sec:smartscreen}). \\ \hline
+
+	El antivirus bloquea o pone en cuarentena el instalador. &
+	Ocurre a veces con programas sin firma digital. Restaure el archivo desde el antivirus o pida a soporte técnico que
+	lo permita, y vuelva a ejecutarlo. Si duda del archivo, compruebe su huella (anexo~\ref{sec:huella}). \\ \hline
+
+	«Otra instalación está en curso» o el asistente no avanza. &
+	Espere a que termine la otra instalación (por ejemplo, actualizaciones de Windows) o reinicie la computadora y vuelva a
+	empezar. \\ \hline
+
+	La carpeta de destino ya existe. &
+	El asistente pregunta si desea instalar ahí de todos modos: si es una instalación anterior de ConcretoLab, responda
+	\boton{Sí}. \\ \hline
+
+	No encuentra el programa después de instalar. &
+	Pulse la tecla \tecla{Windows}, escriba \textbf{ConcretoLab} y pulse \tecla{Enter}. \\ \hline
+
+	Al abrir, tarda en aparecer la ventana. &
+	Es normal que la primera vez tarde unos segundos más. Si no aparece después de un minuto, reinicie la computadora y
+	vuelva a intentarlo. \\ \hline
+
+	Pide una contraseña al abrir. &
+	Sus datos son de una versión anterior que usaba contraseña. Escríbala una sola vez (paso~3 de la sección «Abrir
+	ConcretoLab por primera vez»). Si no la recuerda, pulse \boton{Salir}: sus datos no se modifican. \\ \hline
+
+	«No se pudo convertir la base». &
+	Sus datos no se modificaron. Cierre otros programas que puedan estar usando la carpeta \ruta{.concretolab} (por ejemplo,
+	una copia en curso) y vuelva a abrir ConcretoLab. \\ \hline
+
+	Quiere llevar sus proyectos a otra computadora. &
+	Dentro del programa, use \menu{Datos y copias} \textgreater{} \boton{Exportar...} y en la otra computadora
+	\boton{Importar...}. Se explica en el Manual de usuario. \\ \hline
+
+	No tiene espacio suficiente en el disco. &
+	Libere al menos 300~MB (por ejemplo, vaciando la papelera) y vuelva a ejecutar el instalador. \\
+\end{longtable}
+
+Si el problema continúa, anote el mensaje exacto que aparece en pantalla y comuníquese con el equipo de ConcretoLab. Los
+registros técnicos de la carpeta \ruta{.concretolab\textbackslash logs} ayudan a encontrar la causa.

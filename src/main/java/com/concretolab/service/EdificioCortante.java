@@ -3,7 +3,6 @@ package com.concretolab.service;
 import com.concretolab.model.Elemento;
 import java.util.*;
 
-/** Diafragmas rígidos, masas iguales y una traslación horizontal por planta. */
 public final class EdificioCortante {
     private EdificioCortante() {}
     public record Nivel(double techo,double h,double k) {}
@@ -18,7 +17,7 @@ public final class EdificioCortante {
         }
     }
     public static Resultado yefriLermaSimular(List<Elemento> elementos,double modulo,boolean x,double masa,double amort,double dt,double[] registro){
-        if(!Double.isFinite(masa)||masa<=0)throw new IllegalArgumentException("Revisa la masa por piso.");
+        if(!Double.isFinite(masa)||masa<=0)throw new IllegalArgumentException("Revise la masa por piso.");
         var grupos=new TreeMap<Double,List<Elemento>>();
         for(var e:elementos)if("COLUMNA".equals(e.getTipo())){
             double techo=Math.rint((e.getZ()+e.getAltura()/2)*1e6)/1e6;

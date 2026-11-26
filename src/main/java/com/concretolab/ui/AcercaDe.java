@@ -10,9 +10,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Window;
 
-/** Diálogo «Acerca de»: versión, autoría del equipo, normas aplicadas, componentes de terceros y avisos. */
 public final class AcercaDe {
-
     private AcercaDe() { }
 
     public static final List<String> FERNANDO_HUANCA_AUTORES = List.of("Yefri Ronaldiño Lerma Pacompia", "Erick Mijael Delgado Lima", "Fernando André Huanca Huallpa", "Walter David Quispesayhua Quispe");
@@ -34,7 +32,6 @@ public final class AcercaDe {
             + "no está validado para diseñar ni construir obras. Los valores de demostración son ficticios. "
             + "Los límites y supuestos de cada módulo se indican en su pantalla y en el README.";
 
-    /** Texto plano del diálogo (útil para pruebas y para copiar). */
     public static String fernandoHuancaTexto(String version, String carpetaDatos) {
         var sb = new StringBuilder();
         sb.append("ConcretoLab Desktop ").append(version).append('\n');
@@ -54,7 +51,6 @@ public final class AcercaDe {
         dialogo.showAndWait();
     }
 
-    /** Arma el diálogo sin mostrarlo. */
     public static Dialog<Void> fernandoHuancaCrear(String version, String carpetaDatos) {
         var dialogo = new Dialog<Void>();
         dialogo.setTitle("Acerca de ConcretoLab Desktop");

@@ -22,10 +22,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** Con app.seeder.enabled=true se crea el proyecto DEMO completo, sin duplicarse al volver a sembrar. */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class SeederDemostracionTest {
-
     @DynamicPropertySource
     static void propiedades(DynamicPropertyRegistry registro) throws Exception {
         File db = Files.createTempFile("seeder-test", ".db").toFile();
@@ -47,7 +45,7 @@ class SeederDemostracionTest {
     @Test
     void creaElProyectoDemoCompletoAlIniciar() {
         Proyecto p = demo();
-        assertThat(proyectos.elementos(p.getId())).hasSize(12); // 4 zapatas, 4 columnas y 4 vigas
+        assertThat(proyectos.elementos(p.getId())).hasSize(12);
         assertThat(materiales.yefriLermaListar()).extracting("nombre").contains(MaterialSeeder.YEFRI_LERMA_ARENA, MaterialSeeder.YEFRI_LERMA_PIEDRA, MaterialSeeder.CEMENTO);
         var arena = materiales.yefriLermaListar().stream().filter(m -> MaterialSeeder.YEFRI_LERMA_ARENA.equals(m.getNombre())).findFirst().orElseThrow();
         assertThat(granulometrias.yefriLermaListar(arena.getId())).hasSize(1);
@@ -86,18 +84,18 @@ class SeederDemostracionTest {
     void losTresEdificiosSismicosDanEscenariosDistintos() {
         var regular = analizar(EdificiosSismicosSeeder.YEFRI_LERMA_REGULAR);
         assertThat(regular.pisos()).hasSize(3);
-        assertThat(regular.espectralX().cumple()).isTrue();      // cumple la deriva de 0,007
+        assertThat(regular.espectralX().cumple()).isTrue();
         assertThat(regular.estaticoX().cumple()).isTrue();
 
         var asimetrico = analizar(EdificiosSismicosSeeder.YEFRI_LERMA_ASIMETRICO);
         assertThat(asimetrico.pisos()).hasSize(4);
         assertThat(asimetrico.espectralY().cumple()).isFalse();
-        assertThat(asimetrico.estaticoY().razonTorsion()[0]).isGreaterThan(1.3); // torsión por la columna rígida de una esquina
+        assertThat(asimetrico.estaticoY().razonTorsion()[0]).isGreaterThan(1.3);
 
         var torre = analizar(EdificiosSismicosSeeder.YEFRI_LERMA_TORRE);
         assertThat(torre.pisos()).hasSize(6);
         assertThat(torre.espectralX().cumple()).isFalse();
-        assertThat(torre.espectralX().factorEscala()).isGreaterThan(1.0); // el cortante mínimo se activa
+        assertThat(torre.espectralX().factorEscala()).isGreaterThan(1.0);
     }
 
     @Test

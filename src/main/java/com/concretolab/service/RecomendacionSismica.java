@@ -8,42 +8,25 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Recomendación de mejora cuando la deriva no cumple: busca el menor aumento de la sección de las columnas, en pasos de
- * 5 cm y en la dirección que falla, que hace cumplir la deriva. Cada intento se vuelve a analizar con el mismo motor y los
- * mismos datos (peso propio incluido), así que la medida sale del cálculo y no de una regla aproximada. Es una sugerencia
- * de anteproyecto: el ingeniero decide la solución (columnas, vigas, placas…).
- */
 public final class RecomendacionSismica {
-
-    /** Paso del aumento (m): las secciones se trabajan en múltiplos de 5 cm. */
     public static final double FERNANDO_HUANCA_PASO = 0.05;
-    /** Aumento máximo que se prueba por dirección (m); más allá conviene otro sistema (placas, sistema dual). */
     public static final double FERNANDO_HUANCA_MAXIMO = 0.60;
-    /** A partir de este aumento (m) se sugiere además peraltar vigas o agregar placas. */
     static final double FERNANDO_HUANCA_AUMENTO_GRANDE = 0.30;
 
     private RecomendacionSismica() {
     }
 
-    /** Nueva sección de una columna (en m): largo es la medida en X y ancho la medida en Y. */
     public record Cambio(Elemento elemento, double largoNuevo, double anchoNuevo) {
     }
 
-    /**
-     * Resultado de la búsqueda. {@code aumentoX}/{@code aumentoY} se suman a la medida en X (largo) y en Y (ancho) de todas
-     * las columnas. {@code suficiente} es falso si ni con el aumento máximo se llega al límite.
-     */
     public record Recomendacion(boolean necesaria, boolean suficiente, double aumentoX, double aumentoY, List<Cambio> cambios,
                                 double derivaXAntes, double derivaYAntes, double derivaXDespues, double derivaYDespues, String texto) {
     }
 
-    /** Mayor deriva (estática o espectral) en X. */
     public static double fernandoHuancaDerivaX(Resultado r) {
         return Math.max(r.estaticoX().derivaMaxima(), r.espectralX().derivaMaxima());
     }
 
-    /** Mayor deriva (estática o espectral) en Y. */
     public static double fernandoHuancaDerivaY(Resultado r) {
         return Math.max(r.estaticoY().derivaMaxima(), r.espectralY().derivaMaxima());
     }
@@ -83,7 +66,6 @@ public final class RecomendacionSismica {
                 fernandoHuancaTexto(columnas, suficiente, ax, ay, dx0, dy0, dx, dy, lim));
     }
 
-    /** Misma entrada con las columnas agrandadas (copias: no toca los elementos originales). */
     static Entrada fernandoHuancaConAumento(Entrada e, double ax, double ay) {
         List<Elemento> lista = new ArrayList<>();
         for (Elemento o : e.elementos()) {
@@ -112,7 +94,6 @@ public final class RecomendacionSismica {
         return c;
     }
 
-    /** Redondea a milímetros para no arrastrar errores de coma flotante (0,40 + 0,05 = 0,45 y no 0,45000000000000001). */
     private static double fernandoHuancaRedondear(double v) {
         return Math.round(v * 1000) / 1000.0;
     }

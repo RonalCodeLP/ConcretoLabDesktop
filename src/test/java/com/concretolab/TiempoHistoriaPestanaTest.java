@@ -18,9 +18,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Lógica pura de la pestaña «Simulación temporal» (sin JavaFX ni Spring) y su sección del reporte PDF. */
 class TiempoHistoriaPestanaTest {
-
     private static FernandoHuancaAnalisisSismico.Entrada entrada;
     private static Resultado resultado;
     private static ResumenTiempoHistoria resumen;
@@ -45,11 +43,10 @@ class TiempoHistoriaPestanaTest {
         assertThat(resumen.verificacion().conjuntos()).isEqualTo(3);
         assertThat(resumen.periodoFundamental()).isGreaterThan(0);
         var filas = resumen.filasTabla();
-        assertThat(filas).hasSize(5); // 3 registros + promedio/máximo + límite
+        assertThat(filas).hasSize(5);
         assertThat(filas.get(0)).hasSize(ResumenTiempoHistoria.CABECERA.length);
         assertThat(filas.get(3)[0]).isIn("Promedio", "Máximo");
         assertThat(filas.get(4)[0]).startsWith("Límite 1,25×0,007 = 0,00875");
-        // con 3 conjuntos en el texto 2026 el resultado no es concluyente
         assertThat(resumen.veredicto()).isEqualTo("NO CONCLUYENTE");
         assertThat(resumen.pgaG(0)).isGreaterThan(0.01).isLessThan(5);
     }
@@ -73,7 +70,7 @@ class TiempoHistoriaPestanaTest {
             x[i] = i * 0.01;
             y[i] = Math.sin(i * 0.05) * 0.3;
         }
-        y[31_337] = -7.5; // pico negativo aislado
+        y[31_337] = -7.5;
         var d = ResumenSimulacion.walterQuispesayhuaDecimar(x, y, ResumenSimulacion.WALTER_QUISPESAYHUA_PUNTOS_MAXIMOS);
         assertThat(d[0].length).isLessThanOrEqualTo(2000).isEqualTo(d[1].length);
         double max = 0;
@@ -82,7 +79,6 @@ class TiempoHistoriaPestanaTest {
         assertThat(d[0][0]).isEqualTo(x[0]);
         assertThat(d[0][d[0].length - 1]).isEqualTo(x[n - 1]);
         for (int i = 1; i < d[0].length; i++) assertThat(d[0][i]).isGreaterThan(d[0][i - 1]);
-        // una serie corta no se modifica
         assertThat(ResumenSimulacion.walterQuispesayhuaDecimar(new double[]{0, 1, 2}, new double[]{1, 2, 3}, 2000)[1]).containsExactly(1, 2, 3);
         assertThatThrownBy(() -> ResumenSimulacion.walterQuispesayhuaDecimar(new double[1], new double[2], 10)).isInstanceOf(IllegalArgumentException.class);
     }
@@ -109,7 +105,7 @@ class TiempoHistoriaPestanaTest {
         assertThat(ResumenSimulacion.walterQuispesayhuaNivel(0.61 * lim)).isEqualTo(NivelDeriva.ALERTA);
         assertThat(ResumenSimulacion.walterQuispesayhuaNivel(lim)).isEqualTo(NivelDeriva.ALERTA);
         assertThat(ResumenSimulacion.walterQuispesayhuaNivel(1.01 * lim)).isEqualTo(NivelDeriva.EXCEDE);
-        assertThat(ResumenSimulacion.walterQuispesayhuaNivel(-2 * lim)).isEqualTo(NivelDeriva.EXCEDE); // usa el valor absoluto
+        assertThat(ResumenSimulacion.walterQuispesayhuaNivel(-2 * lim)).isEqualTo(NivelDeriva.EXCEDE);
     }
 
     @Test

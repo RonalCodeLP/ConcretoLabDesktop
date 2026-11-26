@@ -10,11 +10,10 @@
       fx:controller="com.concretolab.controller.GranulometriaController"
       styleClass="pagina">
 
-    <!-- ============ Cabecera ============ -->
     <HBox styleClass="pagina-cabecera">
         <VBox spacing="4.0" HBox.hgrow="ALWAYS">
             <Label text="Calculadora de granulometría" styleClass="pagina-titulo"/>
-            <Label text="Ingresa los datos medidos del tamizado. Cada línea representa un tamiz: abertura en mm y masa retenida en gramos."
+            <Label text="Ingrese los datos medidos del tamizado. Cada línea representa un tamiz: abertura en mm y masa retenida en gramos."
                    styleClass="pagina-subtitulo" wrapText="true"/>
         </VBox>
     </HBox>
@@ -22,7 +21,6 @@
     <ScrollPane fitToWidth="true" styleClass="pagina-scroll" VBox.vgrow="ALWAYS">
         <VBox styleClass="granulometria-contenido">
 
-            <!-- ============ Datos del ensayo ============ -->
             <VBox styleClass="tarjeta">
                 <HBox spacing="16.0">
                     <VBox styleClass="campo" HBox.hgrow="ALWAYS">
@@ -84,7 +82,6 @@
                 </HBox>
             </VBox>
 
-            <!-- ============ Resultados ============ -->
             <VBox styleClass="tarjeta">
                 <Label fx:id="lblResumen" text="El resultado se calculará al ingresar las mediciones."
                        styleClass="texto-resultado" wrapText="true"/>

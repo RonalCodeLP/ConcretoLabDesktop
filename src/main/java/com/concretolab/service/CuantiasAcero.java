@@ -11,12 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
-/**
- * Cuantías de acero (kg por m³ de concreto) que usa el metrado referencial. Se guardan en {@code cuantias-acero.properties}
- * dentro de la carpeta de datos del usuario; si no existe el archivo se usan las referenciales de {@link MetradoNeto}.
- */
 public final class CuantiasAcero {
-
     private CuantiasAcero() { }
 
     static final String YEFRI_LERMA_ARCHIVO = "cuantias-acero.properties";
@@ -26,7 +21,6 @@ public final class CuantiasAcero {
         return RespaldoDatos.erickDelgadoCarpetaDatos().resolve(YEFRI_LERMA_ARCHIVO);
     }
 
-    /** Lee las cuantías guardadas; ante cualquier valor ausente o inválido usa el referencial de ese tipo. */
     public static Map<String, Double> yefriLermaLeer(Path archivo) {
         var cuantias = new LinkedHashMap<>(MetradoNeto.yefriLermaCuantiasReferenciales());
         if (archivo == null || !Files.isRegularFile(archivo)) return cuantias;
@@ -43,7 +37,6 @@ public final class CuantiasAcero {
                 double d = Double.parseDouble(v.trim().replace(',', '.'));
                 if (Double.isFinite(d) && d >= 0 && d <= YEFRI_LERMA_MAXIMO) cuantias.put(tipo, d);
             } catch (NumberFormatException ignorada) {
-                // se conserva el referencial
             }
         }
         return cuantias;
@@ -53,7 +46,6 @@ public final class CuantiasAcero {
         return yefriLermaLeer(yefriLermaArchivo());
     }
 
-    /** Valida y guarda las cuantías. */
     public static void yefriLermaGuardar(Path archivo, Map<String, Double> cuantias) throws IOException {
         var p = new Properties();
         for (var e : cuantias.entrySet()) {

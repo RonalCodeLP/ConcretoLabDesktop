@@ -43,7 +43,6 @@ public class YefriLermaProyectoService {
         if(!Double.isFinite(e.getX())||!Double.isFinite(e.getY())||!Double.isFinite(e.getZ())) throw new IllegalArgumentException("Las posiciones deben ser números finitos.");
         return elementos.save(e);
     }
-    /** Guarda varios elementos a la vez: si uno no es valido no se guarda ninguno (edicion en lote). */
     @Transactional public List<Elemento> yefriLermaGuardarVarios(List<Elemento> lista){
         List<Elemento> r=new java.util.ArrayList<>();
         for(Elemento e:lista) r.add(yefriLermaGuardar(e));
@@ -71,7 +70,7 @@ public class YefriLermaProyectoService {
         Proyecto proyecto = id == null ? yefriLermaCrearProyecto(nombre, "") : proyectos.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El proyecto ya no existe."));
         if (!elementos(proyecto.getId()).isEmpty())
-            throw new IllegalArgumentException("Selecciona un proyecto vacío o crea uno para el DXF.");
+            throw new IllegalArgumentException("Seleccione un proyecto vacío o cree uno para el DXF.");
         for (Elemento candidato : candidatos) {
             candidato.setProyectoId(proyecto.getId());
             yefriLermaGuardar(candidato);

@@ -1,28 +1,4 @@
-﻿<#
- Crea la distribución de ConcretoLab para Windows.
-
- Resultado:
-   dist\ConcretoLab-<versión>.exe   instalador para el cliente (Java incluido; menú Inicio y opción de acceso directo en el
-                                    escritorio; se instala solo para el usuario, sin permisos de administrador).
-   dist\ConcretoLab\ConcretoLab.exe carpeta portable (la misma aplicación sin instalar).
-
- El cliente no necesita Java, Maven ni nada más: el instalador lleva un entorno Java recortado con jlink.
-
- Requisitos en la PC que construye (no en la del cliente):
-   - JDK 17 o superior con jpackage y jlink (se busca en JAVA_HOME y en Archivos de programa).
-   - Maven (en el PATH o el que deja el wrapper en %USERPROFILE%\.m2\wrapper).
-   - WiX Toolset 3.x para el instalador (en el PATH, en %LOCALAPPDATA%\ConcretoLab-herramientas\wix314 o en
-     Archivos de programa (x86)\WiX Toolset v3.*). Sin WiX solo se crea la carpeta portable.
-
- Parámetros:
-   -SinInstalador         solo crea la carpeta portable.
-   -ConDatosDemostracion  activa los datos de demostración en la primera ejecución.
-   -Verificar             abre la aplicación portable con una carpeta de datos TEMPORAL (nunca la real), comprueba que
-                          arranca sin pedir contraseña y que crea la base, y la cierra.
-
- Compila en una carpeta temporal aparte: no toca target\ ni un ConcretoLab que esté abierto desde target\*.jar.
-#>
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$SinInstalador,
     [switch]$ConDatosDemostracion,
@@ -31,7 +7,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $raizProyecto = Split-Path -Parent $MyInvocation.MyCommand.Path
-# Identificador fijo del producto: permite que una versión nueva del instalador reemplace a la anterior.
 $uuidActualizacion = '9b8e382a-8824-4473-a7a5-6689aaeee51b'
 
 function Buscar-Jdk {
@@ -87,12 +62,10 @@ $mvn = Buscar-Maven
 Write-Host "JDK:   $jdk"
 Write-Host "Maven: $mvn"
 
-# La versión sale del pom.xml: un solo lugar donde cambiarla.
 [xml]$pom = Get-Content (Join-Path $raizProyecto 'pom.xml') -Encoding UTF8
 $version = $pom.project.version
 $jar = "concretolab-desktop-$version.jar"
 
-# Carpeta de construcción aparte (fuera del proyecto): copia del pom y de src.
 $construccion = Join-Path ([System.IO.Path]::GetTempPath()) 'concretolab-construccion'
 Limpiar-Carpeta $construccion
 Copy-Item -LiteralPath (Join-Path $raizProyecto 'pom.xml') -Destination $construccion
@@ -100,7 +73,6 @@ Copy-Item -LiteralPath (Join-Path $raizProyecto 'src') -Destination $construccio
 
 Push-Location $construccion
 try {
-    # Las pruebas se ejecutan aparte (mvn test); el empaquetado no necesita sesión gráfica.
     & $mvn '-o' '-B' '-q' '-ntp' 'package' '-Dmaven.test.skip=true'
     if ($LASTEXITCODE -ne 0) {
         Write-Warning 'Falló el empaquetado sin conexión; se reintenta descargando lo que falte.'
@@ -111,14 +83,12 @@ try {
     Pop-Location
 }
 
-# Entorno Java recortado: los módulos que usan JavaFX, Spring, Hibernate, Flyway, OpenPDF y el driver SQLite.
 $runtime = Join-Path $construccion 'runtime'
 $modulos = 'java.base,java.desktop,java.logging,java.management,java.naming,java.prefs,java.scripting,java.sql,java.xml,' +
            'java.instrument,java.security.jgss,java.security.sasl,java.net.http,jdk.unsupported,jdk.crypto.ec,jdk.localedata'
 & jlink '--add-modules' $modulos '--strip-debug' '--no-header-files' '--no-man-pages' '--compress=2' '--output' $runtime
 if ($LASTEXITCODE -ne 0) { throw 'jlink no pudo crear el entorno Java recortado.' }
 
-# jpackage toma todo el contenido de --input: se usa una carpeta con solo el JAR ejecutable.
 $entrada = Join-Path $construccion 'entrada-jpackage'
 Limpiar-Carpeta $entrada
 Copy-Item (Join-Path $construccion "target\$jar") $entrada
@@ -157,19 +127,23 @@ if (-not $SinInstalador) {
     } else {
         Write-Host "WiX:   $wix"
         $env:Path = $wix + ';' + $env:Path
-        $instalador = Join-Path $destino "ConcretoLab-$version.exe"
-        # Textos del instalador en español y casilla solo para el acceso del escritorio (src\main\jpackage).
+        $env:CONCRETOLAB_RECURSOS_INSTALADOR = Join-Path $raizProyecto 'src\main\jpackage'
+        $generado = Join-Path $destino "ConcretoLab-$version.exe"
+        $instalador = Join-Path $destino 'ConcretoLab-Setup.exe'
         $detalle = @(); if ($PSBoundParameters['Verbose']) { $detalle = @('--verbose') }
-        if (Test-Path -LiteralPath $instalador) { Remove-Item -LiteralPath $instalador -Force }
+        foreach ($viejo in @($generado, $instalador, "$generado.sha256.txt", "$instalador.sha256.txt")) {
+            if (Test-Path -LiteralPath $viejo) { Remove-Item -LiteralPath $viejo -Force }
+        }
         & jpackage @comunes '--type' 'exe' '--temp' (Join-Path $construccion 'jpackage-instalador') `
             '--win-per-user-install' '--win-dir-chooser' `
             '--win-menu' '--win-menu-group' 'ConcretoLab' `
             '--win-shortcut' '--win-shortcut-prompt' `
             '--win-upgrade-uuid' $uuidActualizacion `
             '--resource-dir' (Join-Path $raizProyecto 'src\main\jpackage') @detalle
-        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $instalador)) { throw 'jpackage no pudo crear el instalador.' }
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $generado)) { throw 'jpackage no pudo crear el instalador.' }
+        Move-Item -LiteralPath $generado -Destination $instalador -Force
         $hash = (Get-FileHash -LiteralPath $instalador -Algorithm SHA256).Hash
-        Set-Content -LiteralPath "$instalador.sha256.txt" -Value "$hash  ConcretoLab-$version.exe" -Encoding ASCII
+        Set-Content -LiteralPath "$instalador.sha256.txt" -Value "$hash  ConcretoLab-Setup.exe" -Encoding ASCII
         $mbInst = [math]::Round((Get-Item -LiteralPath $instalador).Length / 1MB, 1)
         Write-Host "Instalador listo (${mbInst} MB): $instalador" -ForegroundColor Green
         Write-Host "SHA-256: $hash"
@@ -177,7 +151,6 @@ if (-not $SinInstalador) {
 }
 
 if ($Verificar) {
-    # Carpeta de datos temporal mediante JAVA_TOOL_OPTIONS: nunca se toca la carpeta real del usuario.
     $temporal = Join-Path ([System.IO.Path]::GetTempPath()) ('concretolab-verificacion-' + [guid]::NewGuid().ToString('N'))
     $datos = Join-Path $temporal 'datos'
     New-Item -ItemType Directory -Path $datos -Force | Out-Null
@@ -190,7 +163,6 @@ if ($Verificar) {
     $ventana = ''
     while ((Get-Date) -lt $limite -and -not $proceso.HasExited) {
         Start-Sleep -Seconds 2
-        # El lanzador de jpackage abre la aplicación en un proceso hijo: se mira la ventana de ambos.
         $ids = @($proceso.Id) + @(Get-CimInstance Win32_Process -Filter "ParentProcessId=$($proceso.Id)" | ForEach-Object { [int]$_.ProcessId })
         $ventana = ($ids | ForEach-Object { (Get-Process -Id $_ -ErrorAction SilentlyContinue).MainWindowTitle } | Where-Object { $_ } | Select-Object -First 1)
         if (-not $ventana) { $ventana = '' }

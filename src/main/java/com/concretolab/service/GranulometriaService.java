@@ -1,7 +1,6 @@
 package com.concretolab.service;
 import java.util.*;
 
-/** Cálculos aritméticos sobre mediciones de tamizado ingresadas por el usuario. */
 public final class GranulometriaService {
  private GranulometriaService(){}
  public record Tamiz(double aberturaMm,double retenidoG){}

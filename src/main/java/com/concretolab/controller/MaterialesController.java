@@ -34,7 +34,6 @@ import java.util.Locale;
 @Component
 @RequiredArgsConstructor
 public class MaterialesController implements Refrescable {
-
     private static final String YEFRI_LERMA_SIN_SELECCION = "Seleccione un material para ver sus datos de laboratorio.";
     private static final String YEFRI_LERMA_TIPO_POR_DEFECTO = "AGREGADO FINO";
     private static final String YEFRI_LERMA_NUMERO_INVALIDO = "Ingrese números válidos en los resultados de ensayo.";
@@ -66,7 +65,6 @@ public class MaterialesController implements Refrescable {
     @FXML private Paginador paginador;
 
     private final ObservableList<Material> datos = FXCollections.observableArrayList();
-    /** Lista completa del servicio; el paginador solo recorta lo que se muestra. */
     private List<Material> yefriLermaTodos = new ArrayList<>();
 
     @FXML
@@ -78,7 +76,6 @@ public class MaterialesController implements Refrescable {
         colEnsayo.setCellValueFactory(c -> new SimpleStringProperty(
                 yefriLermaTexto(c.getValue().getReferenciaEnsayo()) + " " + yefriLermaTexto(c.getValue().getFechaEnsayo())));
 
-        // Los materiales no se editan: cada registro nuevo conserva la trazabilidad de los anteriores.
         Tablas.fernandoHuancaConfigurar(tabla, "Aún no hay materiales registrados.", m -> { });
         tabla.setItems(datos);
 
@@ -91,7 +88,6 @@ public class MaterialesController implements Refrescable {
                 txtDensidadRelativa, txtAbsorcion, txtHumedad, txtModuloFinura, txtTamanoMaximo,
                 txtPesoUnitario, txtObservaciones);
         cmbTipo.valueProperty().addListener((obs, a, b) -> Formularios.fernandoHuancaLimpiarError(cmbTipo));
-        // Lista única de tipos (la misma que valida el servicio)
         cmbTipo.getItems().setAll(com.concretolab.service.MaterialService.YEFRI_LERMA_TIPOS);
     }
 
@@ -99,8 +95,6 @@ public class MaterialesController implements Refrescable {
     public void refrescar() {
         yefriLermaCargarTabla();
     }
-
-    // ------------------------------------------------------------- acciones
 
     @FXML
     private void onNuevo() {
@@ -162,8 +156,6 @@ public class MaterialesController implements Refrescable {
         }
     }
 
-    // ----------------------------------------------------------------- apoyo
-
     private void yefriLermaCargarTabla() {
         yefriLermaTodos = yefriLermaServicio.yefriLermaListar();
         yefriLermaMostrarPagina();
@@ -180,7 +172,6 @@ public class MaterialesController implements Refrescable {
         paginador.yefriLermaActualizar(resultado);
     }
 
-    /** Asocia el mensaje de validacion del servicio con el campo que corresponde, si se puede. */
     private Control yefriLermaCampoDelError(String mensaje) {
         if (mensaje == null) {
             return null;
@@ -219,7 +210,6 @@ public class MaterialesController implements Refrescable {
                 txtPesoUnitario, txtObservaciones);
     }
 
-    /** Vacio = sin dato ({@code null}); si no es numerico registra el campo como invalido. */
     private static Double yefriLermaNumero(TextField campo, List<TextField> invalidos) {
         if (campo.getText().isBlank()) {
             return null;

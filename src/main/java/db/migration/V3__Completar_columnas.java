@@ -10,14 +10,7 @@ import java.util.Set;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
-/**
- * V3: completa las columnas que falten en tablas creadas por versiones anteriores de la aplicación (cuando el esquema
- * lo mantenía ddl-auto=update). SQLite no tiene «ADD COLUMN IF NOT EXISTS», así que se compara con PRAGMA table_info
- * usando como referencia las definiciones de V1__esquema_base.sql. Las columnas obligatorias reciben un valor por defecto
- * para poder agregarse sobre filas existentes. En una base nueva no hace nada.
- */
 public class V3__Completar_columnas extends BaseJavaMigration {
-
     @Override
     public void migrate(Context contexto) throws Exception {
         Connection conexion = contexto.getConnection();
@@ -51,7 +44,6 @@ public class V3__Completar_columnas extends BaseJavaMigration {
         return columnas;
     }
 
-    /** Separa las columnas por comas, respetando los paréntesis (por ejemplo varchar(30) o primary key (id)). */
     private static List<String> definiciones(String cuerpo) {
         List<String> partes = new ArrayList<>();
         int nivel = 0, inicio = 0;
@@ -65,7 +57,6 @@ public class V3__Completar_columnas extends BaseJavaMigration {
         return partes;
     }
 
-    /** SQLite exige un valor por defecto al agregar una columna NOT NULL a una tabla con filas. */
     private static String conDefecto(String definicion) {
         if (!definicion.toLowerCase().contains("not null")) return definicion;
         String tipo = definicion.split("\\s+")[1].toLowerCase();

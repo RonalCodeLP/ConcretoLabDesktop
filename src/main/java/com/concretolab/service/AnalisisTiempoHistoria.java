@@ -9,49 +9,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Motor de análisis dinámico tiempo-historia lineal (suelo + estructura). Sin estado: solo métodos estáticos.
- *
- * <h2>Física</h2>
- * Se integra la ecuación de movimiento del edificio con diafragma rígido (3 GDL por piso: ux, uy, rz en el centro de masas)
- * sometido al movimiento del terreno en X e Y simultáneamente:
- * <pre>  M·ü + C·u̇ + K·u = −M·(rx·agx(t) + ry·agy(t))</pre>
- * donde {@code u} es el desplazamiento RELATIVO a la base y {@code r} los vectores de influencia
- * ({@link FernandoHuancaAnalisisSismico.ModeloDinamico#influencia(int)}). El desplazamiento absoluto de cada piso es
- * {@code u + ug(t)}, con {@code ug} el desplazamiento del terreno (acelerograma integrado, ya con corrección de línea base).
- *
- * <h2>Método numérico</h2>
- * Newmark de aceleración media (β = 1/4, γ = 1/2), incondicionalmente estable y sin amortiguamiento numérico. La matriz
- * efectiva {@code K + (2/dt)·C + (4/dt²)·M} es constante (dt constante), por lo que se factoriza con LU una sola vez.
- * Condiciones iniciales en reposo (u = u̇ = 0); la aceleración inicial sale de la ecuación de movimiento: ü₀ = −r·ag(0).
- *
- * <h2>Amortiguamiento</h2>
- * Rayleigh C = α·M + β·K, calibrado para que la fracción ξ (5 % por E.030, art. 48.5) se cumpla exactamente en el periodo
- * fundamental T1 = {@code modelo.periodos()[0]} y en un segundo periodo T2 = 0,2·T1. Si 0,2·T1 queda por debajo del menor
- * periodo del modelo, T2 se toma igual al menor periodo disponible (así ningún modo del modelo queda con ξ muy por encima
- * de lo pedido por exceso de amortiguamiento de alta frecuencia). Si T2 resulta igual a T1 (un solo periodo) se usa solo la
- * parte de masa: C = 2·ξ·ω1·M. Entre T2 y T1 el amortiguamiento queda ligeramente por debajo de ξ.
- *
- * <h2>Supuestos</h2>
- * Modelo lineal-elástico, base empotrada, sin interacción suelo-estructura; las derivas son elásticas (sin 0,75·R).
- */
 public final class AnalisisTiempoHistoria {
     private AnalisisTiempoHistoria() {}
 
-    /** Distorsión de entrepiso admisible de concreto armado, Tabla 14 de la E.030. */
     private static final double FERNANDO_HUANCA_DERIVA_CONCRETO = 0.007;
-    /** Factor de amplificación del límite para tiempo-historia (E.030 2026 art. 49.2; 2018 art. 4.7.3). */
     private static final double FERNANDO_HUANCA_FACTOR_LIMITE = 1.25;
 
-    /**
-     * Resuelve el sistema acoplado de 3·S GDL con ambas componentes del registro actuando a la vez.
-     *
-     * @param modelo          modelo dinámico (masas, rigidez condensada, geometría y periodos)
-     * @param registro        registro sísmico con componentes X e Y de igual longitud (m/s²)
-     * @param amortiguamiento fracción del amortiguamiento crítico, en [0; 0,2)
-     * @return historia completa de respuesta relativa, derivas y cortantes
-     * @throws IllegalArgumentException si los datos son inválidos
-     */
     public static ResultadoTiempoHistoria fernandoHuancaResolver(FernandoHuancaAnalisisSismico.ModeloDinamico modelo,
                                                    RegistroSismico registro, double amortiguamiento) {
         if (modelo == null || registro == null) throw new IllegalArgumentException("Falta el modelo o el registro sísmico.");
@@ -80,7 +43,6 @@ public final class AnalisisTiempoHistoria {
         if (dt > tMin / 10.0)
             avisos.add(String.format(Locale.ROOT, "dt = %.4f s es mayor que T_menor/10 = %.4f s: Newmark es estable pero se pierde precisión en los modos altos.", dt, tMin / 10.0));
 
-        // Rayleigh: xi en T1 y en T2 = 0,2·T1 (o el menor periodo si 0,2·T1 queda por debajo de él).
         double t2 = 0.2 * t1;
         if (t2 < tMin) {
             t2 = tMin;
@@ -107,7 +69,6 @@ public final class AnalisisTiempoHistoria {
         }
         DecompositionSolver solver = new LUDecomposition(new Array2DRowRealMatrix(Kef, false)).getSolver();
 
-        // Historias [paso][GDL]
         double[][] U = new double[N][n];
         double[] u = new double[n], v = new double[n], a = new double[n];
         double[] cbx = new double[N], cby = new double[N];
@@ -139,7 +100,6 @@ public final class AnalisisTiempoHistoria {
             fernandoHuancaRegistrarCortante(m, S, a, ax[i], ay[i], cbx, cby, i);
         }
 
-        // Salidas por piso
         double[] tiempo = new double[N];
         double[][] ux = new double[N][S], uy = new double[N][S], rz = new double[N][S];
         double[][] dx = new double[N][S], dy = new double[N][S];
@@ -179,7 +139,6 @@ public final class AnalisisTiempoHistoria {
                 maxX, maxY, mx, my, tx, ty, cbx, cby, vx, vy, List.copyOf(avisos));
     }
 
-    /** Cortante basal = suma de fuerzas de inercia del piso: −Σ m·(ü_rel + ag), igual a la suma de fuerzas resistentes (K·u + C·u̇). */
     private static void fernandoHuancaRegistrarCortante(double[] m, int S, double[] a, double agx, double agy, double[] cbx, double[] cby, int i) {
         double sx = 0, sy = 0;
         for (int s = 0; s < S; s++) {
@@ -189,7 +148,6 @@ public final class AnalisisTiempoHistoria {
         cbx[i] = sx; cby[i] = sy;
     }
 
-    /** Deriva de entrepiso en un punto del piso: (desp. piso s − desp. piso s−1 en el mismo punto) / altura; desp. = u_dir ∓ (coord − cm)·rz. */
     private static double fernandoHuancaDerivaPunto(double[] u, int dir, int s, double x, double y,
                                       FernandoHuancaAnalisisSismico.ModeloDinamico mo, double h) {
         return (fernandoHuancaDesplazamientoPunto(u, dir, s, x, y, mo) - fernandoHuancaDesplazamientoPunto(u, dir, s - 1, x, y, mo)) / h;
@@ -201,19 +159,6 @@ public final class AnalisisTiempoHistoria {
         return dir == 0 ? u[3 * s] - (y - mo.ycm()[s]) * u[3 * s + 2] : u[3 * s + 1] + (x - mo.xcm()[s]) * u[3 * s + 2];
     }
 
-    /**
-     * Verifica las distorsiones de entrepiso con varios análisis tiempo-historia según la E.030.
-     * <ul>
-     *   <li>2026: art. 47.1 (mínimo siete conjuntos), 49.1 (derivas de diseño = promedio de los máximos), 49.2 (límite 1,25·0,007).</li>
-     *   <li>2018: art. 4.7.3 (siete o más: promedio; menos de siete: máximo; mínimo tres; límite 1,25·0,007).</li>
-     * </ul>
-     * El límite 0,007 corresponde a concreto armado. {@code cumple} exige además conjuntos suficientes.
-     *
-     * @param resultados resultados de {@link #fernandoHuancaResolver} (uno por registro; mismo número de pisos)
-     * @param norma      parámetros de la norma (se usa solo la versión)
-     * @return verificación por dirección y piso
-     * @throws IllegalArgumentException si la lista está vacía o los pisos no coinciden
-     */
     public static VerificacionTiempoHistoria fernandoHuancaVerificar(List<ResultadoTiempoHistoria> resultados, NormaE030.Parametros norma) {
         if (resultados == null || resultados.isEmpty()) throw new IllegalArgumentException("Se requiere al menos un resultado tiempo-historia.");
         if (norma == null) throw new IllegalArgumentException("Faltan los parámetros de la norma.");

@@ -27,16 +27,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/**
- * Autocompletado para un {@link TextField}: mientras el usuario escribe (con una pausa
- * de 180 ms) consulta {@code buscador} y muestra las sugerencias en una lista flotante.
- * <ul>
- *   <li>Flechas arriba/abajo para moverse, Enter para elegir, Esc para cerrar.</li>
- *   <li>El texto buscado se resalta en negrita dentro de cada sugerencia.</li>
- * </ul>
- */
 public class Autocompletar<T> {
-
     private static final Duration YEFRI_LERMA_PAUSA = Duration.millis(180);
     private static final int YEFRI_LERMA_FILAS_VISIBLES = 7;
     private static final double YEFRI_LERMA_ALTO_FILA = 54;
@@ -65,9 +56,6 @@ public class Autocompletar<T> {
         yefriLermaInstalarEventos();
     }
 
-    // ------------------------------------------------------- configuracion
-
-    /** Textos de cada sugerencia: titulo (resaltado), detalle gris y valor a la derecha. */
     public Autocompletar<T> yefriLermaPresentacion(Function<T, String> titulo, Function<T, String> detalle,
                                          Function<T, String> extra) {
         this.yefriLermaTitulo = titulo;
@@ -86,7 +74,6 @@ public class Autocompletar<T> {
         return this;
     }
 
-    /** Cambia el texto del campo sin disparar una busqueda. */
     public void setTexto(String texto) {
         yefriLermaSuspendido = true;
         campo.setText(texto);
@@ -100,8 +87,6 @@ public class Autocompletar<T> {
         yefriLermaPopup.hide();
     }
 
-    // -------------------------------------------------------------- interno
-
     private void yefriLermaConstruirPopup() {
         yefriLermaLista.getStyleClass().add("autocompletar-lista");
         yefriLermaLista.setCellFactory(lv -> new Celda());
@@ -113,7 +98,6 @@ public class Autocompletar<T> {
 
         VBox contenedor = new VBox(yefriLermaLista);
         contenedor.getStyleClass().add("autocompletar");
-        // El popup es otra ventana: necesita la hoja de estilos de la aplicacion.
         contenedor.getStylesheets().add(
                 Objects.requireNonNull(getClass().getResource("/css/app.css")).toExternalForm());
         yefriLermaPopup.getContent().add(contenedor);
@@ -216,7 +200,6 @@ public class Autocompletar<T> {
         yefriLermaAlSeleccionar.accept(item);
     }
 
-    /** Parte {@code texto} en tramos normales y resaltados segun las palabras buscadas. */
     private TextFlow yefriLermaResaltar(String texto) {
         String minusculas = texto.toLowerCase(Locale.ROOT);
         boolean[] marcado = new boolean[texto.length()];

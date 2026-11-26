@@ -14,9 +14,7 @@ import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Cuantías de acero editables, tipos de cemento/aditivo y verificación del cemento frente a sulfatos. */
 class PendientesCierreTest {
-
     @Test
     void cuantiasSinArchivoSonLasReferencialesYSeGuardanYLeen(@TempDir Path dir) throws Exception {
         Path archivo = dir.resolve("sub").resolve("cuantias-acero.properties");
@@ -40,8 +38,8 @@ class PendientesCierreTest {
 
         Files.writeString(archivo, "COLUMNA=abc\nVIGA=9999\nZAPATA=70\n");
         var leidas = CuantiasAcero.yefriLermaLeer(archivo);
-        assertThat(leidas.get("COLUMNA")).isEqualTo(150.0); // texto inválido → referencial
-        assertThat(leidas.get("VIGA")).isEqualTo(120.0);    // fuera de rango → referencial
+        assertThat(leidas.get("COLUMNA")).isEqualTo(150.0);
+        assertThat(leidas.get("VIGA")).isEqualTo(120.0);
         assertThat(leidas.get("ZAPATA")).isEqualTo(70.0);
     }
 

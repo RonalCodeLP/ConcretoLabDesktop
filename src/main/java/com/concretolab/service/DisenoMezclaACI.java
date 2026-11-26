@@ -4,19 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Diseño de mezcla de concreto de peso normal por el método ACI 211.1 (volumen absoluto), con la resistencia
- * promedio requerida según E.060 (art. 5) / ACI 318 y los límites de durabilidad del capítulo 4 de la E.060.
- *
- * <p>Es un cálculo de partida: el resultado debe validarse con mezclas de prueba y ajustarse en laboratorio.
- * Las tablas de ACI 211.1 corresponden a agregado grueso angular de peso normal; no cubre concreto liviano,
- * de alta resistencia (f'cr &gt; 45 MPa) ni con aditivos reductores de agua (que reducen el agua de mezclado).</p>
- */
 public final class DisenoMezclaACI {
-
     private DisenoMezclaACI() { }
 
-    /** Condición de exposición del concreto (E.060 cap. 4; valores derivados de ACI 318 cap. 19). */
     public enum Exposicion {
         NORMAL("Normal (sin requisitos especiales)", 0.0, 0.0, false),
         BAJA_PERMEABILIDAD("Servicio en agua: baja permeabilidad", 0.50, 28.0, false),
@@ -44,7 +34,6 @@ public final class DisenoMezclaACI {
         @Override public String toString() { return etiqueta; }
     }
 
-    /** Severidad de la exposición para el contenido de aire incorporado (ACI 211.1 tabla 6.3.3). */
     public enum SeveridadAire {
         SUAVE("Suave"), MODERADA("Moderada"), SEVERA("Severa");
         private final String etiqueta;
@@ -89,15 +78,12 @@ public final class DisenoMezclaACI {
             double volumenFino,
             double volumenAire,
             List<String> advertencias) {
-
-        /** Proporción en peso respecto del cemento (SSS), p. ej. 1 : 1,8 : 2,7. */
         public String proporcionEnPeso() {
             return String.format(Locale.ROOT, "1 : %.2f : %.2f / %.1f L de agua por bolsa de 42,5 kg",
                     finoSss / cemento, gruesoSss / cemento, relacionAc * 42.5);
         }
     }
 
-    // ---- ACI 211.1 tabla 6.3.3 (mm de asentamiento: 25-50, 75-100, 150-175; centros 37,5 / 87,5 / 162,5)
     private static final double[] YEFRI_LERMA_TMA = {9.5, 12.5, 19.0, 25.0, 37.5, 50.0, 75.0, 150.0};
     private static final double[] YEFRI_LERMA_ASENT = {37.5, 87.5, 162.5};
     private static final double[][] YEFRI_LERMA_AGUA_SIN_AIRE = {
@@ -109,32 +95,28 @@ public final class DisenoMezclaACI {
         {202, 193, 184, 175, 165, 157, 133, 119},
         {216, 205, 197, 184, 174, 166, 154, Double.NaN}};
     private static final double[] YEFRI_LERMA_AIRE_ATRAPADO = {3.0, 2.5, 2.0, 1.5, 1.0, 0.5, 0.3, 0.2};
-    private static final double[][] YEFRI_LERMA_AIRE_INCORPORADO = { // suave, moderada, severa
+    private static final double[][] YEFRI_LERMA_AIRE_INCORPORADO = {
         {4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.5, 1.0},
         {6.0, 5.5, 5.0, 4.5, 4.5, 4.0, 3.5, 3.0},
         {7.5, 7.0, 6.0, 6.0, 5.5, 5.0, 4.5, 4.0}};
 
-    // ---- ACI 211.1 tabla 6.3.4(a): f'cr a 28 días vs a/c
     private static final double[] YEFRI_LERMA_FCR = {15, 20, 25, 30, 35, 40, 45};
     private static final double[] YEFRI_LERMA_AC_SIN_AIRE = {0.79, 0.69, 0.61, 0.54, 0.47, 0.42, 0.38};
     private static final double[] YEFRI_LERMA_AC_CON_AIRE = {0.70, 0.60, 0.52, 0.45, 0.39};
 
-    // ---- ACI 211.1 tabla 6.3.6: volumen de grueso seco compactado por m³, según MF de la arena
     private static final double[] YEFRI_LERMA_MF = {2.40, 2.60, 2.80, 3.00};
     private static final double[][] YEFRI_LERMA_VOL_GRUESO = {
         {0.50, 0.48, 0.46, 0.44}, {0.59, 0.57, 0.55, 0.53}, {0.66, 0.64, 0.62, 0.60}, {0.71, 0.69, 0.67, 0.65},
         {0.75, 0.73, 0.71, 0.69}, {0.78, 0.76, 0.74, 0.72}, {0.82, 0.80, 0.78, 0.76}, {0.87, 0.85, 0.83, 0.81}};
 
-    /** Factor de corrección de la desviación estándar cuando hay menos de 30 ensayos (ACI 318 / E.060). */
     static double yefriLermaFactorMuestra(int n) {
         if (n >= 30) return 1.00;
-        if (n <= 15) return 1.16; // con menos de 15 ensayos no se usa s: lo decide fcr()
+        if (n <= 15) return 1.16;
         double[] ns = {15, 20, 25, 30};
         double[] fs = {1.16, 1.08, 1.03, 1.00};
         return yefriLermaInterpolar(ns, fs, n);
     }
 
-    /** Resistencia promedio requerida f'cr (MPa) y el criterio aplicado. */
     public static double[] yefriLermaFcr(double fc, Double s, int n, StringBuilder criterio) {
         if (!Double.isFinite(fc) || fc <= 0) {
             throw new IllegalArgumentException("Ingrese una f'c positiva (MPa).");
@@ -157,12 +139,6 @@ public final class DisenoMezclaACI {
         return new double[] {Math.max(a, b)};
     }
 
-    /**
-     * Aviso si el tipo de cemento elegido no corresponde a la exposición a sulfatos (E.060 cap. 4 / ACI 318 tabla 19.3.2.1):
-     * moderada → tipo II o MS; severa → tipo V o HS; muy severa → tipo V o HS más puzolana.
-     *
-     * @param tipoMaterial tipo del material de la biblioteca («CEMENTO TIPO V», «CEMENTO»…); {@code null} si no se eligió
-     */
     public static java.util.Optional<String> yefriLermaAvisoCemento(Exposicion exposicion, String tipoMaterial) {
         if (exposicion == null || tipoMaterial == null) return java.util.Optional.empty();
         String tipo = tipoMaterial.replaceFirst("^CEMENTO\\s*(TIPO\\s*)?", "").trim();
@@ -207,7 +183,6 @@ public final class DisenoMezclaACI {
                     + "verifíquelos contra la edición vigente de la norma.");
         }
 
-        // a/c por resistencia
         double acRes;
         if (aire) {
             if (fcr > YEFRI_LERMA_FCR[4]) {
@@ -228,7 +203,6 @@ public final class DisenoMezclaACI {
             av.add(String.format(Locale.ROOT, "Rige la durabilidad: a/c = %.2f (máxima por exposición) en lugar de %.2f por resistencia.", acDur, acRes));
         }
 
-        // agua y aire
         int it = yefriLermaIndiceTma(e.tmaMm(), av);
         double tma = YEFRI_LERMA_TMA[it];
         double[] aguaCol = new double[YEFRI_LERMA_ASENT.length];
@@ -245,7 +219,6 @@ public final class DisenoMezclaACI {
                 : YEFRI_LERMA_AIRE_ATRAPADO[it];
 
         double cemento = agua / ac;
-        // volumen de grueso seco compactado según MF
         double mf = e.moduloFinura();
         if (mf < 2.4 || mf > 3.0) {
             av.add(String.format(Locale.ROOT, "El módulo de finura %.2f está fuera de 2,40 – 3,00 (tabla ACI 211.1); se usó el límite más cercano.", mf));
@@ -271,8 +244,6 @@ public final class DisenoMezclaACI {
                 airePct, cemento, cemento / 42.5, b, gruesoSeco, gruesoSss, vol.finoSss(), vol.volumenAgua(),
                 vol.volumenCemento(), vol.volumenGrueso(), vol.volumenFino(), vol.volumenAire(), List.copyOf(av));
     }
-
-    // ------------------------------------------------------------------ utilidades
 
     private static void yefriLermaValidar(Entrada e) {
         if (e == null) {
@@ -327,7 +298,6 @@ public final class DisenoMezclaACI {
     }
 
     private static double yefriLermaInterpolarNaN(double[] xs, double[] ys, double x, double tma, List<String> av) {
-        // la tabla no da asentamiento de 150-175 mm para TMA 150 mm
         int n = 0;
         while (n < ys.length && !Double.isNaN(ys[n])) {
             n++;
@@ -338,7 +308,6 @@ public final class DisenoMezclaACI {
         return yefriLermaInterpolar(java.util.Arrays.copyOf(xs, n), java.util.Arrays.copyOf(ys, n), x);
     }
 
-    /** Interpolación lineal con valores extremos constantes fuera del rango. */
     static double yefriLermaInterpolar(double[] xs, double[] ys, double x) {
         if (x <= xs[0]) return ys[0];
         for (int i = 1; i < xs.length; i++) {

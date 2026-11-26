@@ -15,27 +15,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Logica no grafica de la pantalla sismica guiada: traduce las cuatro elecciones del asistente a parametros de la E.030,
- * aplica la regla de sistemas permitidos y arma la lista de verificaciones. No depende de JavaFX.
- */
 public final class GuiaSismica {
-
     private GuiaSismica() {
     }
 
-    /** Nivel de una verificacion mostrada en el semaforo. */
     public enum Nivel { OK, ALERTA, ERROR, INFO }
 
-    /** Que ofrece el boton de mejora de una verificacion. */
     public enum Correccion {
-        /** Sin boton: la verificacion cumple o es solo informativa. */
         NINGUNA,
-        /** La deriva no cumple: se calcula cuanto agrandar las columnas y se precarga en el modelo 3D. */
         DERIVA,
-        /** Solo un consejo en texto (no hay un cambio del modelo que lo resuelva de forma directa). */
         CONSEJO,
-        /** El modelo está mal armado (vigas que no llegan a las columnas): se muestran esos elementos en el modelo 3D. */
         MODELO
     }
 
@@ -44,12 +33,10 @@ public final class GuiaSismica {
             + "medida fija, pudieron quedar como bloques cortos sueltos. Corrija su longitud o posición (o deshaga el cambio con «Deshacer»), "
             + "o vuelva a generarlas con «Ejes, niveles y generación», y luego calcule de nuevo.";
 
-    /** El modelo forma pórticos (en cada piso al menos una viga une dos columnas): solo así las derivas tienen sentido. */
     public static boolean walterQuispesayhuaModeloValido(Resultado r) {
         return r.conexion() == null || r.conexion().formaPorticos();
     }
 
-    /** Una linea de la lista de verificaciones; {@code consejo} explica como mejorarla cuando no cumple. */
     public record Verificacion(Nivel nivel, String texto, Correccion correccion, String consejo) {
         public Verificacion(Nivel nivel, String texto) {
             this(nivel, texto, Correccion.NINGUNA, null);
@@ -69,7 +56,6 @@ public final class GuiaSismica {
     static final String WALTER_QUISPESAYHUA_CONSEJO_AISLAMIENTO = "La norma pide aislamiento sísmico para este uso en zonas 3 y 4. "
             + "Se requiere un proyecto con aisladores, que esta aplicación no modela.";
 
-    /** Zona de la E.030 a partir del numero 1 a 4 del Anexo II. */
     public static Zona walterQuispesayhuaZonaDe(int numero) {
         return switch (numero) {
             case 1 -> Zona.Z1;
@@ -80,7 +66,6 @@ public final class GuiaSismica {
         };
     }
 
-    /** Numero de zona (1 a 4). */
     public static int walterQuispesayhuaNumeroZona(Zona z) {
         return switch (z) {
             case Z1 -> 1;
@@ -90,21 +75,15 @@ public final class GuiaSismica {
         };
     }
 
-    /**
-     * Tabla 9 (E.030 2026, art. 21): en categoria A (A1/A2) y zonas 2 a 4 no se permiten porticos como sistema
-     * (se exigen dual, muros o albanileria). Para B y C si se permiten.
-     */
     public static boolean walterQuispesayhuaPorticosPermitidos(Categoria categoria, Zona zona) {
         return walterQuispesayhuaPorticosPermitidos(categoria, zona, false);
     }
 
-    /** Con A1 (salud de 2.º y 3.er nivel) los pórticos no se permiten en ninguna zona: aislamiento en 3 y 4; dual, muros o albañilería en 1 y 2. */
     public static boolean walterQuispesayhuaPorticosPermitidos(Categoria categoria, Zona zona, boolean esA1) {
         if (esA1) return false;
         return !(categoria == Categoria.A && zona != Zona.Z1);
     }
 
-    /** Texto del aviso si los porticos no estan permitidos; {@code null} si lo estan. */
     public static String walterQuispesayhuaAvisoTabla9(Categoria categoria, Zona zona, Version version) {
         return walterQuispesayhuaAvisoTabla9(categoria, zona, version, false);
     }
@@ -120,7 +99,6 @@ public final class GuiaSismica {
                 + "Este cálculo es solo referencial.";
     }
 
-    /** Cargas {cm, cv} en kN/m2 para cada piso segun el uso: todos con la carga viva de pisos salvo el ultimo, que usa la de techo. */
     public static double[][] walterQuispesayhuaCargasPorUso(UsoEdificacion uso, int pisos) {
         double[][] r = new double[Math.max(pisos, 0)][];
         for (int i = 0; i < r.length; i++) {
@@ -130,10 +108,6 @@ public final class GuiaSismica {
         return r;
     }
 
-    /**
-     * Arma los parametros de la norma desde las elecciones del asistente. {@code ct} nulo usa el del sistema; Vs30 solo se
-     * aplica con la version 2026 y un suelo que interpola (S2/S3), en otro caso se ignora.
-     */
     public static Parametros walterQuispesayhuaParametros(Version version, Zona zona, UsoEdificacion uso, TipoSuelo tipoSuelo,
                                         SistemaEstructural sistema, double ia, double ip, Double ct, double vs30) {
         NormaE030.Suelo suelo = tipoSuelo.suelo(version);
@@ -142,7 +116,6 @@ public final class GuiaSismica {
                 ct == null ? sistema.ct() : ct, vs);
     }
 
-    /** Lo que falta elegir para poder calcular (lista vacia si todo esta listo). */
     public static List<String> walterQuispesayhuaFaltantes(Zona zona, UsoEdificacion uso, TipoSuelo suelo, SistemaEstructural sistema, boolean hayPisos) {
         List<String> f = new ArrayList<>();
         if (zona == null) f.add("la ubicación o la zona sísmica (paso 1)");
@@ -154,7 +127,6 @@ public final class GuiaSismica {
         return f;
     }
 
-    /** Verifica el resultado y devuelve las lineas del semaforo. */
     public static List<Verificacion> walterQuispesayhuaVerificaciones(Parametros norma, Resultado r, UsoEdificacion uso) {
         List<Verificacion> v = new ArrayList<>();
         var cx = r.conexion();
@@ -178,7 +150,6 @@ public final class GuiaSismica {
             String texto = "Deriva " + par[0].toString().toLowerCase(Locale.ROOT) + " " + d.nombre()
                     + ": " + String.format(Locale.ROOT, "%.5f", d.derivaMaxima()) + (ok ? " ≤ " : " > ") + lim;
             if (!walterQuispesayhuaModeloValido(r)) {
-                // Con vigas sueltas el número no representa un pórtico: no se muestra como «cumple».
                 v.add(new Verificacion(Nivel.ALERTA, texto + " (no válida: modelo incompleto)"));
                 continue;
             }
@@ -217,7 +188,6 @@ public final class GuiaSismica {
         return v;
     }
 
-    /** Mayor razon Δmax/Δprom entre las direcciones, en los pisos con deriva mayor que la mitad del limite. */
     static double walterQuispesayhuaRazonTorsionMaxima(Resultado r) {
         double lim = NormaE030.FERNANDO_HUANCA_DERIVA_LIMITE_CONCRETO;
         double max = 1;

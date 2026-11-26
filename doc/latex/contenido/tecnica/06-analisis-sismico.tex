@@ -1,0 +1,1172 @@
+% ------------------------------------------------------------------------------
+\section{Análisis sísmico}
+\label{sec:sis}
+% ------------------------------------------------------------------------------
+
+El módulo de análisis sísmico toma la geometría del proyecto activo (las columnas y vigas del modelo 3D), arma con
+ella un pórtico tridimensional de concreto armado con un diafragma rígido por piso y lo analiza según la Norma Técnica
+E.030 «Diseño Sismorresistente» del Reglamento Nacional de Edificaciones, en su texto 2026 (R.M.~N.\textsuperscript{o}
+183-2026-VIVIENDA) o en su versión 2018 (R.M.~N.\textsuperscript{o} 355-2018-VIVIENDA). Este capítulo describe lo que
+\textbf{hace el código}, paso a paso, con el nombre de la clase y del método que implementa cada etapa.
+
+\begin{importante}[Estado del módulo]
+El análisis sísmico de ConcretoLab es \textbf{educativo y preliminar}. No está validado para diseñar ni para construir
+obras, no reemplaza a un programa de análisis estructural completo y sus resultados deben ser revisados por un
+ingeniero civil colegiado. La propia aplicación lo advierte en la pantalla, en la lista de advertencias y en el reporte
+PDF.
+\end{importante}
+
+\begin{nota}[Sobre las citas de la norma]
+Los números de artículo y de tabla que aparecen en este capítulo son los que el código devuelve con
+\ruta{NormaE030.Parametros.art(...)} o los que escribe en sus mensajes y comentarios. Para esta documentación no se
+volvieron a contrastar con el texto oficial; donde hay una duda concreta se indica en el texto.
+\end{nota}
+
+% ------------------------------------------------------------------------------
+\subsection{Propósito y alcance}
+\label{sec:sis-alcance}
+
+El módulo entrega, para un edificio de pórticos de concreto armado:
+
+\begin{itemize}
+	\item los parámetros sísmicos $Z$, $U$, $S$, $T_P$, $T_L$, $R_0$, $I_a$, $I_p$, $R$ y $C_T$, elegidos con un asistente de
+	      cuatro preguntas;
+	\item el peso sísmico, el centro de masas y la inercia polar de cada piso;
+	\item todos los modos de vibración del modelo condensado (periodos, formas y masas efectivas);
+	\item las fuerzas y cortantes del \textbf{análisis estático} y del \textbf{análisis modal espectral};
+	\item los desplazamientos inelásticos, las derivas de entrepiso en el centro de masas y en cada nudo, la razón de
+	      torsión $\Delta_{\text{máx}}/\Delta_{\text{prom}}$ y la junta sísmica;
+	\item una lista de verificaciones con semáforo y un veredicto («CUMPLE (preliminar)», «NO CUMPLE» o «MODELO
+	      INCOMPLETO»);
+	\item una recomendación de aumento de las columnas cuando la deriva no cumple (botón «Cómo corregir»);
+	\item un análisis tiempo-historia lineal opcional con registros sintéticos o importados;
+	\item un reporte PDF con todo lo anterior.
+\end{itemize}
+
+Quedan fuera del alcance: muros y placas, sistemas dual, de muros, de muros de ductilidad limitada y de albañilería,
+zonas rígidas en los nudos, losas flexibles, interacción suelo-estructura, aislamiento sísmico, análisis no lineal y
+diseño de elementos. La figura~\ref{fig:sis-flujo} resume el flujo de cálculo.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[font=\sffamily\small, caja/.style={draw=clazul, fill=clazulclaro, rounded corners=3pt,
+			minimum width=11.5cm, minimum height=0.85cm, align=center}, flecha/.style={-latex, thick, clazuloscuro}]
+		\node[caja] (a) at (0,0) {\textbf{Asistente} (\ruta{GuiaSismica}): zona, uso, suelo y sistema $\rightarrow$ \ruta{NormaE030.Parametros}};
+		\node[caja] (b) at (0,-1.25) {\textbf{Geometría}: pisos por la cara superior de vigas, columnas y vigas como barras 3D};
+		\node[caja] (c) at (0,-2.5) {\textbf{Rigidez} con diafragma rígido y condensación estática; \textbf{pesos y masas} por piso};
+		\node[caja] (d) at (0,-3.75) {\textbf{Modos} (Commons Math) $\rightarrow$ análisis \textbf{estático} y \textbf{modal espectral} (CQC)};
+		\node[caja] (e) at (0,-5.0) {\textbf{Derivas}, torsión, junta, \ruta{ConexionVigas} $\rightarrow$ verificaciones y veredicto};
+		\node[caja, fill=clgris, draw=cltexto] (f) at (0,-6.25) {Recomendación de mejora $\cdot$ Tiempo-historia $\cdot$ Reporte PDF};
+		\draw[flecha] (a) -- (b);
+		\draw[flecha] (b) -- (c);
+		\draw[flecha] (c) -- (d);
+		\draw[flecha] (d) -- (e);
+		\draw[flecha] (e) -- (f);
+	\end{tikzpicture}
+	\caption{Flujo del análisis sísmico.}
+	\label{fig:sis-flujo}
+\end{figure}
+
+% ------------------------------------------------------------------------------
+\subsection{Clases que intervienen}
+\label{sec:sis-clases}
+
+Todas las clases de cálculo están en \ruta{com.concretolab.service} y no dependen de JavaFX; se prueban sin interfaz
+gráfica. La lógica no gráfica del asistente está en \ruta{com.concretolab.controller.GuiaSismica} y la de la pestaña de
+tiempo-historia en \ruta{com.concretolab.ui.\allowbreak{}ResumenSimulacion}.
+
+\begin{longtable}{L{6.2cm}L{8.0cm}}
+	\caption{Clases del módulo de análisis sísmico.} \label{tab:sis-clases} \\
+	\hline
+	\textbf{Clase} & \textbf{Responsabilidad} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Responsabilidad} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\multicolumn{2}{l}{\textit{Norma y parámetros (\ruta{service})}} \\
+	\ruta{NormaE030} & Enumeraciones \ruta{Version}, \ruta{Zona}, \ruta{Categoria} y \ruta{Suelo}; registro \ruta{Parametros}
+	con $C(T)$, $S_a/g$, $V/P$, exponente $k$, factor inelástico, junta, restricciones de irregularidad y citas de
+	artículos (\ruta{art}); límite de deriva \ruta{FERNANDO\_HUANCA\_DERIVA\_LIMITE\_CONCRETO} $= 0{,}007$. \\
+	\ruta{TipoSuelo} & Suelo descrito en lenguaje simple y su perfil equivalente en cada versión. \\
+	\ruta{UsoEdificacion} & Uso de la edificación: categoría, cargas vivas de la E.020, carga muerta adicional sugerida,
+	estado de verificación y si exige aislamiento (A1). \\
+	\ruta{SistemaEstructural} & $R_0$ por versión, $C_T$ y si la aplicación puede modelar el sistema (solo pórticos). \\
+	\ruta{ZonificacionService} & Bean \ruta{@Service}: zona sísmica por distrito leída de un archivo CSV. \\
+	\multicolumn{2}{l}{\textit{Análisis (\ruta{service})}} \\
+	\ruta{FernandoHuancaAnalisisSismico} & Motor del análisis: pisos, pórtico 3D, diafragma rígido, condensación, modos,
+	estático, espectral, derivas, junta, advertencias, \ruta{ConexionVigas} y \ruta{ModeloDinamico}. \\
+	\ruta{RecomendacionSismica} & «Cómo corregir»: menor aumento uniforme de las columnas que hace cumplir la deriva. \\
+	\ruta{ReporteSismo} & Reporte PDF del análisis (y del tiempo-historia, si se ejecutó). \\
+	\multicolumn{2}{l}{\textit{Tiempo-historia (\ruta{service})}} \\
+	\ruta{RegistroSismico} & Acelerograma inmutable de dos componentes con integración y corrección de línea base. \\
+	\ruta{GeneradorAcelerograma} & Acelerogramas sintéticos compatibles con el espectro de diseño con $R = 1$. \\
+	\ruta{ImportadorRegistro} & Lectura de acelerogramas en archivos de texto (CISMID, IGP, CSMIP, PEER-NGA y similares). \\
+	\ruta{EspectroRespuesta} & Espectro de pseudoaceleración de un registro (método de Nair--Jennings). \\
+	\ruta{EscaladoRegistros} & Escalado de los conjuntos de registros al espectro de diseño con $R = 1$. \\
+	\ruta{AnalisisTiempoHistoria} & Integración de Newmark con amortiguamiento de Rayleigh y verificación de derivas. \\
+	\ruta{ResultadoTiempoHistoria} & Historias de un registro: desplazamientos, derivas y cortante basal. \\
+	\ruta{VerificacionTiempoHistoria} & Deriva de diseño por piso y dirección, criterio y conjuntos mínimos. \\
+	\ruta{ResumenTiempoHistoria} & Resumen de una simulación: escalado, resultados, verificación, tabla y veredicto. \\
+	\multicolumn{2}{l}{\textit{Interfaz (\ruta{controller} y \ruta{ui})}} \\
+	\ruta{GuiaSismica} & Lógica no gráfica del asistente: parámetros, Tabla 9, cargas por uso, faltantes y verificaciones. \\
+	\ruta{WalterQuispesayhuaSismoController} & Pantalla \ruta{sismo-view.fxml}: asistente, cálculo, pestañas de resultados,
+	«Cómo corregir» y exportación PDF. \\
+	\ruta{TiempoHistoriaController} & Pestaña «Simulación temporal» (\ruta{tiempo-historia-view.fxml}). \\
+	\ruta{ResumenSimulacion} & Simulación en segundo plano, periodo para el escalado, decimación de series y colores de
+	deriva. \\
+	\ruta{VistaModal} & Pestaña «Simulación 3D»: animación de las formas modales sobre el modelo. \\
+	\multicolumn{2}{l}{\textit{Auxiliares (sección~\ref{sec:sis-auxiliares})}} \\
+	\ruta{DiagnosticoSismico}, \ruta{EdificioCortante}, \ruta{HistoriaPiso}, \ruta{OsciladorSismico}, \ruta{AnalisisPortico}
+	& Cálculos simplificados que hoy no usa ninguna pantalla. \\
+\end{longtable}
+
+% ------------------------------------------------------------------------------
+\subsection{Datos de entrada}
+\label{sec:sis-entrada}
+
+\subsubsection{El asistente de cuatro pasos}
+
+La pantalla \ruta{sismo-view.fxml} pide los datos en cuatro tarjetas y un panel plegado de opciones avanzadas
+(tabla~\ref{tab:sis-asistente}). \ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaFaltantes} arma la lista de lo que falta: la
+ubicación o zona, el uso, el suelo, el sistema (o un sistema que la aplicación pueda modelar) y pisos en el proyecto.
+Mientras falte algo, la pantalla lo muestra («Falta: \ldots») y desactiva el botón «Calcular análisis sísmico»; además,
+\ruta{onCalcular} marca con error los campos vacíos y no calcula.
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{3.3cm}L{4.6cm}L{5.6cm}}
+		\hline
+		\textbf{Paso} & \textbf{Control} & \textbf{Qué produce} \\ \hline
+		1. ¿Dónde está la obra? & Departamento, provincia y distrito en cascada, o búsqueda por texto (al menos 2 letras,
+		8 resultados), o «zona manual» & Zona sísmica y factor $Z$ (\ruta{ZonificacionService}) \\
+		2. ¿Para qué se usará? & Lista de \ruta{UsoEdificacion} & Categoría, $U$, porcentaje de carga viva y cargas por
+		piso precargadas \\
+		3. ¿Cómo es el suelo? & Lista de \ruta{TipoSuelo} & Perfil de suelo de la versión elegida: $S$, $T_P$, $T_L$ \\
+		4. ¿Qué sistema estructural tiene? & Lista de \ruta{SistemaEstructural} & $R_0$ y $C_T$ (solo pórticos se calcula) \\ \hline
+	\end{tabular}
+	\caption{Pasos del asistente sísmico.}
+	\label{tab:sis-asistente}
+\end{table}
+
+El panel «Opciones avanzadas (ya tienen valores seguros)» contiene: la versión de la norma (2026 por defecto), $V_{s30}$
+(opcional), $I_a \in \{1{,}0;\ 0{,}90;\ 0{,}80;\ 0{,}75;\ 0{,}60;\ 0{,}50\}$,
+$I_p \in \{1{,}0;\ 0{,}90;\ 0{,}85;\ 0{,}75;\ 0{,}60\}$, $f'_c = 21$~MPa, coeficiente de Poisson $0{,}20$, fracción de rigidez $EI$ igual a $1{,}0$, espesor de losa
+$0{,}20$~m y $C_T$, que se llena solo al elegir el sistema.
+
+Debajo hay una tabla editable con una fila por piso detectado: cota, área de losa (por defecto, el rectángulo envolvente
+del piso), carga muerta adicional (CM) y carga viva (CV) en kN/m$^2$. \ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaCargasPorUso}
+la precarga al elegir el uso: todos los pisos con la CM adicional sugerida y la CV de pisos, salvo el último, que recibe
+la CV de techo. El usuario puede editar cualquier valor.
+
+\subsubsection{De las respuestas a los parámetros}
+
+\ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaParametros} construye el registro \ruta{NormaE030.Parametros} con:
+
+\begin{itemize}
+	\item la zona elegida y la categoría del uso (\ruta{uso.categoria()});
+	\item el perfil \ruta{tipoSuelo.suelo(version)};
+	\item $R_0 = $ \ruta{sistema.r0(version)} y $C_T$ = el valor escrito, o \ruta{sistema.ct()} si es nulo;
+	\item $V_{s30}$ solo si la versión es 2026 y el perfil interpola (S2 o S3); en otro caso, \ruta{NaN}.
+\end{itemize}
+
+El constructor compacto de \ruta{Parametros} valida que haya versión, zona, categoría y suelo; que el suelo sea de la
+misma versión; que $R_0 > 0$, $0 < I_a \le 1$, $0 < I_p \le 1$ y $C_T > 0$; que no se combine el suelo S4 con la zona 4
+(la Tabla 4 no tabula $S$ y exige un análisis de respuesta de sitio), y que $V_{s30}$, si se da, esté dentro del intervalo
+del perfil. El coeficiente de reducción y la regularidad son
+\begin{equation}
+	R = R_0 \cdot I_a \cdot I_p, \qquad \text{regular} \iff I_a = I_p = 1 .
+	\label{eq:sis-r}
+\end{equation}
+
+Las tablas~\ref{tab:sis-zona} a~\ref{tab:sis-uso} reproducen los valores que el código tiene escritos.
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{2.2cm}L{1.6cm}L{1.0cm}L{6.0cm}}
+		\hline
+		\textbf{Zona / categoría} & \textbf{Factor} & \textbf{\%CV} & \textbf{Notas} \\ \hline
+		Zona 4 & $Z = 0{,}45$ & --- & Tabla 1 \\
+		Zona 3 & $Z = 0{,}35$ & --- & \\
+		Zona 2 & $Z = 0{,}25$ & --- & \\
+		Zona 1 & $Z = 0{,}10$ & --- & \\ \hline
+		A (esenciales) & $U = 1{,}5$ & 50 & Tabla 7; la A1 (salud de 2.\textsuperscript{o} y 3.\textsuperscript{er}
+		nivel) se representa también con A \\
+		B (importantes) & $U = 1{,}3$ & 50 & \\
+		C (comunes) & $U = 1{,}0$ & 25 & \\ \hline
+	\end{tabular}
+	\caption{Zonas (\ruta{NormaE030.Zona}) y categorías (\ruta{NormaE030.Categoria}).}
+	\label{tab:sis-zona}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{1.3cm}L{1.7cm}L{1.7cm}L{1.7cm}L{1.7cm}L{1.6cm}L{1.6cm}}
+		\hline
+		\textbf{Perfil} & \textbf{$S$ (Z4)} & \textbf{$S$ (Z3)} & \textbf{$S$ (Z2)} & \textbf{$S$ (Z1)} & \textbf{$T_P$ (s)} &
+		\textbf{$T_L$ (s)} \\ \hline
+		\multicolumn{7}{l}{\textit{Texto 2026 (intervalo $a$--$b$: $a$ para la mayor velocidad, $b$ para la menor)}} \\
+		S0 & 0,80 & 0,80 & 0,80 & 0,80 & 0,3 & 3,0 \\
+		S1 & 1,00 & 1,00 & 1,00 & 1,00 & 0,4 & 2,5 \\
+		S2 & 1,00--1,10 & 1,00--1,15 & 1,00--1,30 & 1,00--1,30 & 0,4--0,6 & 2,5--2,0 \\
+		S3 & 1,10--1,20 & 1,15--1,20 & 1,30--1,40 & 1,30--1,60 & 0,6--0,9 & 2,0--1,6 \\
+		S4 & no tabulado & 1,30 & 1,70 & 2,40 & 1,2 & 1,6 \\
+		\multicolumn{7}{l}{\textit{Versión 2018 (valores fijos)}} \\
+		S0 & 0,80 & 0,80 & 0,80 & 0,80 & 0,3 & 3,0 \\
+		S1 & 1,00 & 1,00 & 1,00 & 1,00 & 0,4 & 2,5 \\
+		S2 & 1,05 & 1,15 & 1,20 & 1,60 & 0,6 & 2,0 \\
+		S3 & 1,10 & 1,20 & 1,40 & 2,00 & 1,0 & 1,6 \\ \hline
+	\end{tabular}
+	\caption{Perfiles de suelo de \ruta{NormaE030.Suelo} (S2 y S3 de 2026 interpolan con $V_{s30}$ entre 550--350 y
+		350--200~m/s).}
+	\label{tab:sis-suelo}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{3.6cm}L{1.6cm}L{1.6cm}L{6.4cm}}
+		\hline
+		\textbf{\ruta{TipoSuelo}} & \textbf{2026} & \textbf{2018} & \textbf{Aviso que muestra} \\ \hline
+		Roca sana o muy dura & S0 & S1 & En 2018 la roca dura S0 exige $V_{s30} > 1500$~m/s; sin medirlo se toma S1 \\
+		Suelo muy firme & S1 & S1 & --- \\
+		Suelo firme & S2 & S2 & --- \\
+		Suelo intermedio & S3 & S2 & --- \\
+		Suelo blando & S4 & S3 & En zona 4 el texto 2026 no tabula $S$ para S4 \\
+		No tengo estudio de suelos & S3 & S3 & El art. 16.1 (2026) exige estudio de suelos; resultado referencial \\ \hline
+	\end{tabular}
+	\caption{Traducción de \ruta{TipoSuelo} al perfil de cada versión.}
+	\label{tab:sis-tiposuelo}
+\end{table}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{4.2cm}L{1.5cm}L{1.5cm}L{0.9cm}L{3.9cm}}
+		\hline
+		\textbf{\ruta{SistemaEstructural}} & \textbf{$R_0$ 2026} & \textbf{$R_0$ 2018} & \textbf{$C_T$} & \textbf{Modelable} \\ \hline
+		Pórticos & 8 & 8 & 35 & Sí (el único) \\
+		Dual & 7 & 7 & 60 & No \\
+		Muros estructurales & 6 & 6 & 60 & No \\
+		Muros de ductilidad limitada & 3,5 & 4 & 60 & No \\
+		Albañilería armada o confinada & 3 & 3 & 60 & No \\ \hline
+	\end{tabular}
+	\caption{Sistemas estructurales (el código cita la Tabla 8 del art. 20, la Tabla 10 del art. 22.1 y el art. 36.1).}
+	\label{tab:sis-sistema}
+\end{table}
+
+\begin{longtable}{L{4.0cm}L{0.9cm}L{1.3cm}L{1.3cm}L{1.7cm}L{1.9cm}}
+	\caption{Usos (\ruta{UsoEdificacion}): categoría y cargas en kN/m$^2$.} \label{tab:sis-uso} \\
+	\hline
+	\textbf{Uso} & \textbf{Cat.} & \textbf{CV pisos} & \textbf{CV techo} & \textbf{CM adic. sugerida} &
+	\textbf{Verificado} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Uso} & \textbf{Cat.} & \textbf{CV pisos} & \textbf{CV techo} & \textbf{CM adic.} & \textbf{Verif.} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Vivienda & C & 2,0 & 1,0 & 2,0 & Sí \\
+	Oficinas & C & 2,5 & 1,0 & 1,5 & Sí \\
+	Hotel o hostal & C & 2,0 & 1,0 & 2,0 & Sí \\
+	Restaurante & C & 4,0 & 1,0 & 1,5 & Sí \\
+	Colegio, instituto o universidad & A & 2,5 & 1,0 & 1,5 & Sí \\
+	Posta o centro de salud (1.\textsuperscript{er} nivel) & A & 2,0 & 1,0 & 2,0 & Sí \\
+	Hospital (2.\textsuperscript{o} y 3.\textsuperscript{er} nivel, A1) & A & 3,0 & 1,0 & 2,0 & Sí \\
+	Centro comercial, cine, estadio o iglesia & B & 5,0 & 1,0 & 1,0 & Sí \\
+	Industria o taller común & C & 5,0 & 1,0 & 1,0 & No \\
+	Depósito o almacén & C & 5,0 & 1,0 & 0,5 & No \\
+	Edificación esencial & A & 2,5 & 1,0 & 1,5 & No \\
+\end{longtable}
+
+La carga muerta adicional (acabados y tabiquería) \textbf{no proviene de la E.020}: es un valor típico sugerido. Un uso
+«no verificado» tiene al menos una carga viva que no figura literalmente en la Tabla 1 de la E.020; el campo
+\ruta{fuente} lo explica y la pantalla muestra una nota. Cada uso guarda además la carga viva de corredores y escaleras
+(\ruta{cvCorredoresEscaleras}), pero el análisis no la usa. La fuente del uso «Depósito o almacén» menciona el 80~\% del
+peso almacenable (art. 31c), pero el cálculo del peso sísmico aplica el porcentaje de su categoría (C, 25~\%); ese 80~\%
+no está implementado.
+
+\subsubsection{Versiones 2026 y 2018}
+
+La versión se elige en las opciones avanzadas. Al cambiarla, \ruta{onCambiarVersion} habilita o desactiva la búsqueda
+por distrito, la zona manual y $V_{s30}$, y borra los resultados. La tabla~\ref{tab:sis-versiones} lista las diferencias
+que implementa el código y la tabla~\ref{tab:sis-articulos}, las citas que devuelve \ruta{Parametros.art}.
+
+\begin{longtable}{L{4.0cm}L{4.9cm}L{4.9cm}}
+	\caption{Diferencias entre las versiones en el código.} \label{tab:sis-versiones} \\
+	\hline
+	\textbf{Aspecto} & \textbf{Texto 2026} & \textbf{Versión 2018} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Aspecto} & \textbf{Texto 2026} & \textbf{Versión 2018} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Perfiles de suelo & S0 a S4; S2 y S3 interpolan con $V_{s30}$ & S0 a S3, valores fijos (los nombres S2 y S3 no
+	significan lo mismo que en 2026) \\
+	Factor $C$ & Tramo $1 + 7{,}5\,T/T_P$ para $T < 0{,}2\,T_P$ & $C = 2{,}5$ hasta $T_P$ \\
+	Combinación direccional & 100~\% en la dirección analizada y 30~\% en la perpendicular & Cada dirección al 100~\%,
+	sin componente perpendicular \\
+	Zona por distrito & Anexo II, desde el CSV & Desactivada: la zona se elige a mano \\
+	Periodo del sitio & Aviso del art. 14.8 en categorías A y B, zona 4, suelos S1 a S4 & Sin aviso \\
+	Junta mínima & $0{,}02\,Z S h \ge 0{,}03$~m & $0{,}006\,h \ge 0{,}03$~m \\
+	$R_0$ de muros de ductilidad limitada & 3,5 & 4 \\
+	Tablas citadas & Tabla 9 (sistemas), Tabla 12 (torsión), Tabla 13 (restricciones), Tabla 14 (deriva) & Tabla 6,
+	Tabla 9, Tabla 10, Tabla 11 \\
+	Tiempo-historia & Mínimo 7 conjuntos; siempre el promedio & Mínimo 3; promedio con 7 o más, máximo con menos \\
+\end{longtable}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{4.1cm}L{4.1cm}L{2.4cm}L{2.4cm}}
+		\hline
+		\textbf{Clave de \ruta{art}} & \textbf{Tema} & \textbf{2026} & \textbf{2018} \\ \hline
+		\ruta{aplicabilidad} & Uso del método estático & art. 33.2 & art. 4.5.1 \\
+		\ruta{peso} & Peso sísmico & art. 31 & art. 4.3 \\
+		\ruta{estatico} & Método estático & arts. 33 a 37 & art. 4.5 \\
+		\ruta{excentricidad} & Excentricidad accidental (estático) & art. 37 & art. 4.5.5 \\
+		\ruta{espectral} & Análisis modal espectral & arts. 39 a 45 & art. 4.6 \\
+		\ruta{cqc} & Combinación modal & art. 42 & art. 4.6.3 \\
+		\ruta{minimo} & Cortante mínimo dinámico & art. 44 & art. 4.6.4 \\
+		\ruta{excentricidadEspectral} & Excentricidad accidental (espectral) & art. 45 & art. 4.6.5 \\
+		\ruta{desplazamientos} & Desplazamientos laterales & art. 50.3 & art. 5.1 \\
+		\ruta{junta} & Separación entre edificios & art. 52 & art. 5.3 \\
+		\ruta{inerciaBruta} & Secciones brutas & arts. 30.2 y 36.2 & arts. 4.2 y 4.5.4 \\
+		\ruta{tablaIrregularidad} & Restricciones a las irregularidades & Tabla 13 & Tabla 10 \\ \hline
+	\end{tabular}
+	\caption{Citas que devuelve \ruta{NormaE030.Parametros.art(tema)}.}
+	\label{tab:sis-articulos}
+\end{table}
+
+\subsubsection{Interpolación con \texorpdfstring{$V_{s30}$}{Vs30}}
+
+En el texto 2026, los perfiles S2 y S3 guardan cada valor como un intervalo $\{a, b\}$: $a$ corresponde al extremo de
+mayor velocidad ($V_{\text{alto}}$) y $b$ al de menor ($V_{\text{bajo}}$). El método privado \ruta{Suelo.interpolar}
+calcula
+\begin{equation}
+	t = \min\!\left(1,\ \max\!\left(0,\ \frac{V_{\text{alto}} - V_{s30}}{V_{\text{alto}} - V_{\text{bajo}}}\right)\right),
+	\qquad X = a + t\,(b - a), \qquad X \in \{S,\ T_P,\ T_L\} .
+	\label{eq:sis-vs30}
+\end{equation}
+Con S2 los extremos son 550 y 350~m/s; con S3, 350 y 200~m/s. Sin $V_{s30}$ se toma $b$, el valor más desfavorable
+(art. 17, nota *), y el análisis lo informa en las advertencias. Por ejemplo, S2 en zona 4 con $V_{s30} = 450$~m/s da
+$S = 1{,}05$, $T_P = 0{,}5$~s y $T_L = 2{,}25$~s (valores fijados por \ruta{SismoE030Test}). En la versión 2018 el campo
+$V_{s30}$ está desactivado y se ignora.
+
+\subsubsection{Zonificación por distrito}
+
+\ruta{ZonificacionService} lee el recurso \ruta{/data/zonificacion-e030-2026.csv}, que en el código fuente está en
+\ruta{src/main/resources/data/zonificacion-e030-2026.csv} y viaja dentro del JAR. Es un archivo UTF-8 (se tolera la
+marca BOM) con separador punto y coma y cabecera \ruta{departamento;provincia;distrito;zona}; los nombres se conservan
+como los escribe el Anexo II del texto 2026, en el mismo orden. Contiene 25 departamentos, 196 provincias y 1892
+distritos (cifras que comprueba \ruta{ZonificacionServiceTest}).
+
+\begin{itemize}
+	\item La carga es perezosa y única (doble comprobación sobre un campo \ruta{volatile}); los índices quedan inmutables.
+	\item Una fila con un número de columnas distinto de 4 o una zona fuera de 1 a 4 lanza \ruta{IllegalStateException}
+	      con el número de línea.
+	\item Las comparaciones ignoran tildes, mayúsculas y espacios sobrantes (normalización NFD).
+	\item \ruta{fernandoHuancaBuscar} ordena los resultados así: distritos que empiezan por el texto, provincias que
+	      empiezan por él, distritos que lo contienen y provincias que lo contienen.
+	\item \ruta{fernandoHuancaZona} devuelve la zona como \ruta{OptionalInt}; \ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaZonaDe}
+	      la convierte en \ruta{NormaE030.Zona}.
+\end{itemize}
+
+Con la versión 2018 la búsqueda por distrito se desactiva y la zona manual se fuerza, porque el anexo de esa versión es
+otro y la aplicación no lo tiene.
+
+% ------------------------------------------------------------------------------
+\subsection{Modelo estructural}
+\label{sec:sis-modelo}
+
+El motor es la clase \ruta{FernandoHuancaAnalisisSismico} y su punto de entrada,
+\ruta{fernandoHuancaAnalizar(Entrada)}. La \ruta{Entrada} reúne los elementos del proyecto, $f'_c$ (MPa), el coeficiente
+de Poisson, la fracción de rigidez, el espesor de losa, las cargas por piso (\ruta{CargaPiso}: área, CM adicional y CV)
+y los parámetros de la norma. Antes de calcular se valida que $10 \le f'_c \le 100$~MPa, que la fracción de rigidez
+esté en $(0, 1]$, que el coeficiente de Poisson esté en $[0;\ 0{,}5)$, que el espesor no sea negativo y que haya una
+carga por piso con área positiva y cargas no negativas.
+
+Solo se usan los elementos de tipo \ruta{COLUMNA} y \ruta{VIGA}. Cada uno es un prisma con centro $(x, y, z)$ y medidas
+\ruta{largo} (en X), \ruta{ancho} (en Y) y \ruta{altura} (en Z). Las zapatas no se modelan (base empotrada); los muros y
+las losas generan avisos (sección~\ref{sec:sis-advertencias}). Las constantes del motor son la tolerancia
+\ruta{FERNANDO\_HUANCA\_TOL} $= 0{,}05$~m, el peso unitario \ruta{FERNANDO\_HUANCA\_PESO\_CONCRETO} $= 24$~kN/m$^3$ y la
+gravedad \ruta{FERNANDO\_HUANCA\_G} $= 9{,}80665$~m/s$^2$.
+
+\subsubsection{Detección de pisos}
+
+\ruta{fernandoHuancaPisos} (que la pantalla usa también para llenar la tabla de cargas) detecta los niveles así:
+
+\begin{enumerate}
+	\item Calcula la cara superior de cada viga, $z + h/2$, y ordena esos valores.
+	\item Los agrupa: un valor abre un grupo nuevo si supera en más de 0,05~m al \textbf{primero} del grupo actual. La cota
+	      del piso es el promedio del grupo (\ruta{fernandoHuancaNiveles}).
+	\item La base es la menor cota inferior de las columnas, $z_{\text{base}} = \min(z - h/2)$. Se descartan los niveles
+	      que no superan $z_{\text{base}} + 0{,}05$~m.
+	\item Para cada piso, \ruta{fernandoHuancaEnvolvente} calcula el rectángulo que envuelve las columnas que llegan al
+	      nivel y las vigas del nivel; su área es el área de losa por defecto y sus lados $L_x$, $L_y$ se usan para la
+	      excentricidad accidental.
+\end{enumerate}
+
+Si no hay columnas o vigas, o ninguna viga está por encima de la base, se lanza una \ruta{IllegalArgumentException} con
+un mensaje para el usuario. Las alturas de entrepiso son $h_1 = \text{cota}_1 - z_{\text{base}}$ y
+$h_i = \text{cota}_i - \text{cota}_{i-1}$, y la altura total es $h_n = \text{cota}_N - z_{\text{base}}$.
+
+\subsubsection{Columnas: nudos y barras}
+
+Para cada columna, el motor busca los pisos cuya cota cumple
+$z_{\text{inf}} + 0{,}05 < \text{cota}_i \le z_{\text{sup}} + 0{,}05$. El nudo inicial está en la base (empotrado) si
+$|z_{\text{inf}} - z_{\text{base}}| \le 0{,}05$~m; si no, en el piso donde nace la columna. Si la columna nace en una
+cota que no es un piso, se considera empotrada y se agrega un aviso. Después crea una barra por cada tramo entre pisos
+consecutivos, de modo que una columna que atraviesa varios pisos queda partida en cada nivel. Una columna que no llega
+a ningún nivel se ignora con un aviso.
+
+Los nudos se identifican por sus coordenadas redondeadas al milímetro (\ruta{fernandoHuancaNudo}), así que dos
+columnas apiladas comparten el nudo del piso. Cada nudo guarda la sección de la columna que lo creó ($h_x$ = largo,
+$h_y$ = ancho), que sirve para decidir qué vigas llegan a él.
+
+\subsubsection{Vigas: unión con las columnas}
+\label{sec:sis-vigas}
+
+Una viga es de dirección X si su largo es mayor o igual que su ancho; si no, es de dirección Y. Su piso es aquel cuya
+cota coincide con la cara superior de la viga con una tolerancia de 0,05~m; si no hay ninguno, se ignora con un aviso.
+\ruta{fernandoHuancaEnLinea} decide si el nudo de una columna (centro $(x_n, y_n)$, sección $h_x \times h_y$) está en la
+línea de una viga en X de centro $(x_c, y_c)$ y longitud $L$:
+\begin{equation}
+	|y_n - y_c| \le \frac{h_y}{2} + 0{,}05
+	\qquad \text{y} \qquad
+	x_c - \frac{L}{2} - \frac{h_x}{2} - 0{,}05 \;\le\; x_n \;\le\; x_c + \frac{L}{2} + \frac{h_x}{2} + 0{,}05 ;
+	\label{eq:sis-enlinea}
+\end{equation}
+para una viga en Y se intercambian los papeles de X e Y. Los nudos que cumplen se ordenan a lo largo de la viga y cada
+par consecutivo se une con una barra de eje a eje de columna, sin zonas rígidas; una viga larga que cruza tres columnas
+da dos barras. Si hay menos de dos nudos, la viga no aporta rigidez y se agrega el aviso «no une dos columnas». La
+sección de la barra es $b \times h$, con $b$ igual al ancho (viga en X) o al largo (viga en Y) y $h$ igual a la altura.
+
+\subsubsection{Diafragma rígido y grados de libertad}
+
+Cada piso tiene tres grados de libertad maestros en su centro de masas: $U_{x,i}$, $U_{y,i}$ y $\theta_i$. Los nudos del
+piso se ligan a ellos por la condición de diafragma rígido,
+\begin{equation}
+	u_x = U_{x,i} - (y - y_{cm,i})\,\theta_i, \qquad u_y = U_{y,i} + (x - x_{cm,i})\,\theta_i, \qquad r_z = \theta_i ,
+	\label{eq:sis-diafragma}
+\end{equation}
+y conservan tres grados de libertad propios ($u_z$, $r_x$, $r_y$). Los nudos de la base no tienen grados de libertad
+(empotramiento). La numeración global pone primero los $3N$ grados maestros, piso por piso, y luego los propios de los
+nudos. Cada grado local de un nudo se guarda como una lista de índices globales con sus coeficientes
+(\ruta{fernandoHuancaGdl} y \ruta{fernandoHuancaCoef}), y el ensamblaje reparte cada término de la rigidez con esos
+coeficientes.
+
+\subsubsection{Rigidez de las barras}
+
+\ruta{fernandoHuancaRigidezLocal} arma la matriz de $12 \times 12$ de una barra 3D de Euler--Bernoulli con los términos
+$EA/L$ (axial), $GJ/L$ (torsión) y, en cada plano de flexión,
+\begin{equation}
+	\frac{12EI}{L^3}, \qquad \frac{6EI}{L^2}, \qquad \frac{4EI}{L}, \qquad \frac{2EI}{L},
+	\label{eq:sis-flexion}
+\end{equation}
+con $E = E_c$ (en kPa) y $G = E / [2(1 + \nu)]$. Las dos inercias se multiplican por la fracción de rigidez $f$; el área
+y la constante de torsión no. Para una sección $l_2 \times l_3$ se usa $I_z = l_3 l_2^3/12$, $I_y = l_2 l_3^3/12$ y la
+constante de torsión de \ruta{fernandoHuancaTorsion}, con $a = \max(l_2, l_3)$ y $b = \min(l_2, l_3)$:
+\begin{equation}
+	J = a\,b^3 \left[\frac{1}{3} - 0{,}21\,\frac{b}{a}\left(1 - \frac{b^4}{12\,a^4}\right)\right] .
+	\label{eq:sis-torsion}
+\end{equation}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{L{2.2cm}L{2.1cm}L{2.1cm}L{2.1cm}L{1.5cm}L{1.5cm}}
+		\hline
+		\textbf{Barra} & \textbf{$e_1$ (eje)} & \textbf{$e_2$} & \textbf{$e_3$} & \textbf{$l_2$} & \textbf{$l_3$} \\ \hline
+		Columna & $(0, 0, 1)$ & $(1, 0, 0)$ & $(0, 1, 0)$ & largo & ancho \\
+		Viga en X & $(1, 0, 0)$ & $(0, 1, 0)$ & $(0, 0, 1)$ & ancho & altura \\
+		Viga en Y & $(0, 1, 0)$ & $(-1, 0, 0)$ & $(0, 0, 1)$ & largo & altura \\ \hline
+	\end{tabular}
+	\caption{Ejes locales y dimensiones de sección de cada barra.}
+	\label{tab:sis-ejes}
+\end{table}
+
+Con estos ejes, la rigidez lateral de una columna en X depende del cubo de su largo y en Y del cubo de su ancho; por eso
+la recomendación de mejora agranda el largo para corregir X y el ancho para corregir Y. La matriz global de cada barra es
+$K_g = T^{\mathsf{T}} K_l\, T$, con $T$ formada por cuatro bloques de la matriz de cosenos directores $[e_1; e_2; e_3]$.
+
+\subsubsection{Condensación estática}
+
+La matriz ensamblada se divide en el bloque maestro ($m$, los $3N$ grados del diafragma) y el bloque propio ($s$). Se
+condensa con una factorización LU de Apache Commons Math 3.6.1:
+\begin{equation}
+	K_c = K_{mm} - K_{ms}\,K_{ss}^{-1}\,K_{sm}, \qquad K_c \leftarrow \tfrac{1}{2}\left(K_c + K_c^{\mathsf{T}}\right).
+	\label{eq:sis-condensacion}
+\end{equation}
+La segunda expresión elimina la asimetría numérica. Si $K_{ss}$ es singular, el mensaje es «El modelo es inestable o
+tiene piezas desconectadas\ldots»; si $K_c$ es singular, «La rigidez lateral del modelo es nula: faltan columnas
+empotradas o vigas que unan los pórticos». $K_c$ (de $3N \times 3N$, en kN/m, kN y kN$\cdot$m) es la rigidez que usan el
+análisis estático, el modal y el tiempo-historia.
+
+\subsubsection{Pesos y masas}
+
+El peso sísmico de cada piso se arma con contribuciones puntuales (registro privado \ruta{Peso}: peso, posición e
+inercia propia):
+
+\begin{itemize}
+	\item \textbf{Columnas:} cada tramo de longitud $L$ pesa $\gamma_c \cdot \text{largo} \cdot \text{ancho} \cdot L$, con
+	      $\gamma_c = 24$~kN/m$^3$, y se reparte mitad al piso de abajo y mitad al de arriba; la mitad que llega a la base
+	      no se cuenta. Su inercia propia se toma nula.
+	\item \textbf{Vigas:} el peso completo $w = \gamma_c \cdot \text{largo} \cdot \text{ancho} \cdot \text{altura}$ se asigna
+	      al piso de la viga, en su centro, con inercia propia $w\,(L^2 + B^2)/12$, donde $L$ y $B$ son su largo y su ancho
+	      en planta.
+	      También pesan las vigas que no unen columnas, siempre que estén en un piso reconocido.
+	\item \textbf{Losa y cargas:} en el centro del rectángulo envolvente,
+	      \begin{equation}
+	      	W_{\text{losa},i} = A_i \left(e\,\gamma_c + CM_i + \alpha_i\, CV_i\right), \qquad
+	      	I_{\text{losa},i} = W_{\text{losa},i}\, \frac{L_x^2 + L_y^2}{12} \cdot \frac{A_i}{L_x L_y},
+	      	\label{eq:sis-losa}
+	      \end{equation}
+	      con $\alpha_i = 0{,}25$ en el último piso (azotea) y, en los demás, el porcentaje de la categoría: 50~\% en A y B,
+	      25~\% en C (el código cita el art. 31). El factor $A_i/(L_x L_y)$ escala el rectángulo envolvente al área de losa
+	      indicada.
+\end{itemize}
+
+No se descuenta la intersección entre vigas, losa y columnas. Con esas contribuciones,
+\begin{equation}
+	P_i = \sum_k w_k, \qquad x_{cm,i} = \frac{\sum_k w_k x_k}{P_i}, \qquad
+	I_i = \sum_k \left[ I_k + w_k \left( (x_k - x_{cm,i})^2 + (y_k - y_{cm,i})^2 \right) \right],
+	\label{eq:sis-pesos}
+\end{equation}
+y las masas del diafragma son $m_{x,i} = m_{y,i} = P_i/g$ (kN$\cdot$s$^2$/m) y $m_{\theta,i} = I_i/g$
+(kN$\cdot$s$^2\cdot$m). El peso total es $P = \sum P_i$.
+
+\begin{nota}
+\ruta{FERNANDO\_HUANCA\_PESO\_CONCRETO} vale 24~kN/m$^3$ y su comentario lo asocia a los 2400~kgf/m$^3$ de la E.020, que
+equivalen a unos 23,5~kN/m$^3$. El código usa el valor redondeado de 24.
+\end{nota}
+
+\subsubsection{Módulo de elasticidad}
+
+\ruta{fernandoHuancaModulo} aplica la expresión de la E.060 con $f'_c$ en kgf/cm$^2$ y devuelve MPa:
+\begin{equation}
+	E_c = 15\,000 \sqrt{\frac{f'_c}{0{,}0980665}} \times 0{,}0980665 \quad [\text{MPa}],
+	\label{eq:sis-ec}
+\end{equation}
+que para $f'_c = 21$~MPa da unos 21\,526~MPa. \ruta{SismoE030Test.\allowbreak{}moduloElasticoSigueLaE060} lo fija en
+$21\,538 \pm 60$~MPa (cercano a $4700\sqrt{f'_c}$).
+
+% ------------------------------------------------------------------------------
+\subsection{Modos de vibración}
+\label{sec:sis-modos}
+
+El problema $K_c\,\phi = \omega^2 M \phi$, con $M$ diagonal, se lleva a forma simétrica estándar:
+\begin{equation}
+	\tilde{A} = M^{-1/2} K_c M^{-1/2}, \qquad \tilde{A}\,\psi = \lambda\,\psi, \qquad
+	\phi = M^{-1/2}\psi, \qquad \omega = \sqrt{\lambda}, \qquad T = \frac{2\pi}{\omega} .
+	\label{eq:sis-modos}
+\end{equation}
+Los autovalores y autovectores los calcula \ruta{EigenDecomposition} de Commons Math. Se ordenan de menor a mayor
+autovalor (de mayor a menor periodo) y \textbf{se conservan los $3N$ modos}: no hay truncamiento. Si algún autovalor
+no supera $10^{-9}$, el modelo tiene modos de cuerpo rígido y se detiene el cálculo. Como $\psi$ es ortonormal, las
+formas $\phi$ quedan normalizadas respecto de la masa ($\phi^{\mathsf{T}} M \phi = 1$), y los factores de participación y
+las masas efectivas son
+\begin{equation}
+	\Gamma_{x,n} = \sum_{i=1}^{N} m_{x,i}\,\phi_{n,(x,i)}, \qquad
+	M^{\text{ef}}_{x,n} = \frac{\Gamma_{x,n}^2}{P/g},
+	\label{eq:sis-masaefectiva}
+\end{equation}
+y lo mismo en Y. Como se usan todos los modos, la masa efectiva acumulada es 100~\% en cada dirección
+(\ruta{SismoE030Test} lo comprueba con 9 modos para 3 pisos). El periodo fundamental de cada dirección es el del modo con
+mayor masa efectiva en esa dirección; es el que se informa como «T fundamental X $\cdot$ Y».
+
+% ------------------------------------------------------------------------------
+\subsection{Análisis estático}
+\label{sec:sis-estatico}
+
+El método privado \ruta{estatico} aplica los artículos que el código cita como arts. 33 a 37 (2026) o art. 4.5 (2018).
+
+\paragraph{Periodo, factor $C$ y cortante.} El periodo aproximado es el mismo para X e Y:
+\begin{equation}
+	T = \frac{h_n}{C_T} .
+	\label{eq:sis-periodo}
+\end{equation}
+El factor de amplificación general es (\ruta{Parametros.c}):
+\begin{equation}
+	C(T) =
+	\begin{cases}
+		1 + 7{,}5\,T/T_P & T < 0{,}2\,T_P \quad \text{(solo texto 2026)} \\
+		2{,}5 & T \le T_P \\
+		2{,}5\,T_P/T & T_P < T < T_L \\
+		2{,}5\,T_P T_L/T^2 & T \ge T_L
+	\end{cases}
+	\label{eq:sis-c}
+\end{equation}
+Para el cortante estático, \ruta{cEstatico} usa $C = 2{,}5$ si $T < T_P$ (el código cita los arts. 18.3 y 34.1), es
+decir, el tramo corto no reduce la fuerza estática. El cortante en la base es (\ruta{coeficienteCortante})
+\begin{equation}
+	V = Z\,U\,S\,\max\!\left(\frac{C}{R},\ 0{,}11\right) P .
+	\label{eq:sis-cortante}
+\end{equation}
+
+\paragraph{Distribución en altura.} Con $h_i$ medida desde la base,
+\begin{equation}
+	k =
+	\begin{cases}
+		1{,}0 & T \le 0{,}5~\text{s} \\
+		\min(2{,}0;\ 0{,}75 + 0{,}5\,T) & T > 0{,}5~\text{s}
+	\end{cases}
+	\qquad
+	F_i = V\,\frac{P_i\,h_i^{k}}{\sum_j P_j\,h_j^{k}}, \qquad Q_i = \sum_{j \ge i} F_j .
+	\label{eq:sis-distribucion}
+\end{equation}
+
+\paragraph{Fuerzas para desplazamientos.} El mínimo $C/R \ge 0{,}11$ no se aplica a los desplazamientos (el código lo
+atribuye al art. 50.3). Las fuerzas que se aplican al modelo para calcularlos son
+\begin{equation}
+	F^{\Delta}_i = \kappa\,F_i, \qquad \kappa = \frac{Z U S\, C/R}{Z U S \max(C/R;\ 0{,}11)} \le 1 .
+	\label{eq:sis-reduccion}
+\end{equation}
+
+\paragraph{Excentricidad accidental.} Para cada dirección $d$ se resuelven, con la factorización de $K_c$, dos casos con
+el momento torsor $M_{t,i} = \pm 0{,}05\,B_i\,F^{\Delta}_i$ aplicado junto a las fuerzas, donde $B_i$ es la dimensión del
+rectángulo envolvente perpendicular a la dirección analizada ($L_y$ para X, $L_x$ para Y). Se resuelve además un caso sin
+excentricidad para usarlo como acción perpendicular.
+
+\paragraph{Combinación direccional.} En cada punto de control y para cada signo de la excentricidad, la deriva es la del
+caso al 100~\% más el 30~\% de la deriva que produce en esa misma dirección la carga perpendicular (sin excentricidad),
+sumando valores absolutos; se toma el mayor de los dos signos:
+\begin{equation}
+	\delta = \max_{\pm e}\left( \left|\delta_{100}^{\pm e}\right| + \mu \left|\delta_{\perp}\right| \right),
+	\qquad \mu = \begin{cases} 0{,}30 & \text{texto 2026} \\ 0 & \text{versión 2018} \end{cases}
+	\label{eq:sis-combinacion-estatica}
+\end{equation}
+El término perpendicular solo es distinto de cero cuando la planta acopla ambas direcciones (por ejemplo, con una columna
+más rígida que las demás). Las citas del código para esta combinación no coinciden del todo: el comentario del método
+\ruta{estatico} menciona los arts. 28.3 y 33.3, mientras que \ruta{fraccionPerpendicular} y el aviso mencionan los
+arts. 28.1, 33.3 y 43; verifíquese contra el texto de la norma.
+
+\paragraph{Aplicabilidad.} El código considera aplicable el método estático a estructuras regulares de hasta 30~m y a
+cualquier estructura en la zona 1 (art. 33.2 en 2026; art. 4.5.1 en 2018, con la misma regla). Si no es aplicable, lo
+avisa y recomienda usar el resultado espectral, pero \textbf{los resultados estáticos se calculan y entran igual en el
+veredicto}.
+
+% ------------------------------------------------------------------------------
+\subsection{Análisis modal espectral}
+\label{sec:sis-espectral}
+
+El método privado \ruta{espectral} aplica los artículos que el código cita como arts. 39 a 45 (2026) o art. 4.6 (2018).
+
+\paragraph{Espectro y respuesta modal.} Para cada modo $n$ y cada dirección del sismo $L$ (X o Y):
+\begin{equation}
+	\frac{S_{a,n}}{g} = \frac{Z\,U\,C(T_n)\,S}{R}, \qquad
+	u_n = \frac{\Gamma_{L,n}\,S_{a,n}}{\omega_n^2}\,\phi_n, \qquad
+	f_{n,i} = m_i\,\phi_{n,(L,i)}\,\Gamma_{L,n}\,S_{a,n}, \qquad
+	Q_{n,i} = \sum_{j \ge i} f_{n,j} .
+	\label{eq:sis-modal}
+\end{equation}
+El cortante de piso se combina a partir de los cortantes modales (no sumando fuerzas ya combinadas), y la deriva de cada
+punto de control se combina a partir de las derivas modales.
+
+\paragraph{Combinación CQC.} Toda respuesta $r$ se combina con
+\begin{equation}
+	r = \sqrt{\sum_{m}\sum_{n} \rho_{mn}\,r_m\,r_n}, \qquad
+	\rho_{mn} = \frac{8\,\xi^2\,(1 + \beta)\,\beta^{3/2}}{(1 - \beta^2)^2 + 4\,\xi^2\,\beta\,(1 + \beta)^2},
+	\qquad \beta = \frac{\omega_n}{\omega_m}, \qquad \xi = 0{,}05,
+	\label{eq:sis-cqc}
+\end{equation}
+que es la expresión de Der Kiureghian para amortiguamiento igual en todos los modos (método privado \ruta{cqc}).
+
+\paragraph{Excentricidad accidental.} Con las fuerzas de piso ya combinadas y sin escalar, se aplica en cada piso el
+momento $M_{t,i} = 0{,}05\,B_i\,F_i^{\text{CQC}}$, con el mismo signo en todos los pisos, y se resuelve un caso estático.
+El valor absoluto de la deriva que produce se suma a la deriva CQC (el código cita el art. 45).
+
+\paragraph{Combinación direccional.} En el texto 2026, la deriva de la dirección $d$ combina por raíz de la suma de
+cuadrados el resultado al 100~\% (con su excentricidad) y el 30~\% de la deriva que el espectro perpendicular produce en
+esa dirección:
+\begin{equation}
+	\delta = \sqrt{\left(\delta^{\text{CQC}}_{100} + \left|\delta_{t}\right|\right)^2 + \left(\mu\,\delta^{\text{CQC}}_{\perp}\right)^2} .
+	\label{eq:sis-combinacion-espectral}
+\end{equation}
+
+\paragraph{Cortante mínimo.} Si el cortante dinámico en la base no alcanza una fracción del estático
+(\ruta{fraccionMinimaDinamica}: 80~\% si la estructura es regular, 90~\% si es irregular; art. 44 en 2026, art. 4.6.4 en
+2018), las fuerzas y los cortantes se multiplican por
+\begin{equation}
+	f_{\text{esc}} = \max\!\left(1,\ \frac{\varphi_{\min}\,V_{\text{est}}}{V_{\text{din}}}\right),
+	\label{eq:sis-escala}
+\end{equation}
+donde $V_{\text{est}}$ es el cortante de la ecuación~\eqref{eq:sis-cortante}. \textbf{Los desplazamientos y las derivas
+no se escalan}. El periodo que se guarda en el resultado espectral de cada dirección es el del modo con mayor masa
+efectiva en ella.
+
+% ------------------------------------------------------------------------------
+\subsection{Desplazamientos, derivas, torsión y junta}
+\label{sec:sis-derivas}
+
+\paragraph{Desplazamientos inelásticos.} Los desplazamientos elásticos se multiplican por
+\ruta{Parametros.\allowbreak{}factorInelastico}:
+\begin{equation}
+	\Delta_{\text{inel}} = f_{\text{in}}\,\Delta_{\text{el}}, \qquad
+	f_{\text{in}} = \begin{cases} 0{,}75\,R & \text{estructura regular} \\ 0{,}85\,R & \text{estructura irregular} \end{cases}
+	\label{eq:sis-inelastico}
+\end{equation}
+El código cita el art. 50.3 (2026) o el art. 5.1 (2018) para los desplazamientos laterales.
+
+\paragraph{Derivas.} Los puntos de control de cada piso son su centro de masas y todos sus nudos. La deriva en un punto
+$(x, y)$ es
+\begin{equation}
+	\delta_i(x, y) = \frac{u_i(x, y) - u_{i-1}(x, y)}{h_i} \le 0{,}007,
+	\label{eq:sis-deriva}
+\end{equation}
+con $u_i(x, y)$ obtenido del diafragma rígido (ecuación~\ref{eq:sis-diafragma}) y $u_0 = 0$. El límite 0,007 es el de
+concreto armado (\ruta{FERNANDO\_HUANCA\_DERIVA\_LIMITE\_CONCRETO}; Tabla 14 en 2026 y Tabla 11 en 2018, según el
+código). Cada \ruta{Direccion} guarda las derivas en el centro de masas (\ruta{derivasCm}) y el máximo entre todos los
+puntos (\ruta{derivasMaximas}); la verificación usa el máximo, y \ruta{Direccion.cumple()} exige
+$\max_i \delta_i \le 0{,}007$. El desplazamiento informado por piso (\ruta{desplazamientosCm}) es el del centro de masas.
+
+\paragraph{Razón de torsión.} \ruta{fernandoHuancaRazonTorsion} toma los dos nudos extremos en la coordenada
+perpendicular a la dirección analizada (el de menor y el de mayor $y$ para X) y calcula, con las derivas que incluyen la
+excentricidad accidental,
+\begin{equation}
+	r_t = \frac{\max(\delta_a, \delta_b)}{(\delta_a + \delta_b)/2} .
+	\label{eq:sis-razon}
+\end{equation}
+La razón se calcula en todos los pisos, pero solo se tiene en cuenta en los que la deriva supera la mitad del límite
+($0{,}0035$). Si $r_t > 1{,}3$ y el $I_p$
+elegido es mayor que 0,75 (o $r_t > 1{,}5$ e $I_p > 0{,}60$), las advertencias señalan una posible irregularidad
+torsional (Tabla 12 en 2026, Tabla 9 en 2018, según el código).
+
+\paragraph{Junta sísmica.} El registro \ruta{Junta} guarda la altura $h_n$, el mínimo por norma y los dos tercios del
+mayor desplazamiento inelástico del techo entre los cuatro análisis (estático y espectral, X e Y):
+\begin{equation}
+	s_{\min} = \begin{cases} \max(0{,}02\,Z\,S\,h_n;\ 0{,}03~\text{m}) & \text{texto 2026 (art. 52)} \\
+		\max(0{,}006\,h_n;\ 0{,}03~\text{m}) & \text{versión 2018 (art. 5.3)} \end{cases}
+	\qquad s_{\text{propio}} = \tfrac{2}{3}\,\Delta_{\text{techo,máx}} .
+	\label{eq:sis-junta}
+\end{equation}
+La aplicación solo informa ambos valores: la separación real debe sumar el aporte del edificio vecino y no ser menor que
+el mínimo. La fórmula de 2026 es la que tiene el código y la que fija \ruta{SismoE030Test}; verifíquese contra el texto
+de la norma.
+
+% ------------------------------------------------------------------------------
+\subsection{Verificaciones y veredicto}
+\label{sec:sis-verificaciones}
+
+\subsubsection{Vigas sueltas y pisos sin pórtico}
+
+Un modelo cuyas vigas no llegan a las columnas no es un pórtico: sus columnas trabajan como voladizos aislados y, si son
+gruesas, pueden dar derivas bajas que no significan nada. Para detectarlo, \ruta{fernandoHuancaConexionVigas} revisa con
+el mismo criterio del análisis (ecuación~\ref{eq:sis-enlinea}) cuántas columnas que llegan al piso de cada viga están en
+su línea, y devuelve el registro \ruta{ConexionVigas}:
+
+\begin{itemize}
+	\item \ruta{vigas}: número total de vigas;
+	\item \ruta{idsSueltas} y \ruta{sueltas}: identificadores y nombres de las vigas que no unen al menos dos columnas
+	      (incluidas las que no están en un piso reconocido);
+	\item \ruta{pisosSinPortico}: pisos (1 es el primero) en los que ninguna viga une dos columnas;
+	\item \ruta{formaPorticos()}: verdadero si no hay pisos sin pórtico y no todas las vigas están sueltas.
+\end{itemize}
+
+El resultado del análisis lo incluye (\ruta{Resultado.conexion()}) y \ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaModeloValido}
+lo consulta. El mismo método se usa en el editor del modelo: antes de guardar una edición,
+\ruta{ModeloController.\allowbreak{}yefriLermaVigasQueSeSueltan} compara la conexión antes y después del cambio y, si alguna viga
+dejaría de unir dos columnas, pide confirmación («Vigas que quedarían sueltas»).
+
+\subsubsection{Lista de verificaciones}
+
+\ruta{GuiaSismica.\allowbreak{}walterQuispesayhuaVerificaciones} produce la lista del semáforo (tabla~\ref{tab:sis-verificaciones}).
+Cada \ruta{Verificacion} tiene un nivel (\ruta{OK}, \ruta{ALERTA}, \ruta{ERROR} o \ruta{INFO}), un texto, un tipo de
+corrección (\ruta{NINGUNA}, \ruta{DERIVA}, \ruta{CONSEJO} o \ruta{MODELO}) y un consejo. La pantalla dibuja un botón
+«Cómo corregir» en las correcciones \ruta{DERIVA} y \ruta{CONSEJO}, y «Ver en el modelo 3D» en \ruta{MODELO}.
+
+\begin{longtable}{L{3.6cm}L{5.4cm}L{4.8cm}}
+	\caption{Verificaciones, en el orden en que aparecen.} \label{tab:sis-verificaciones} \\
+	\hline
+	\textbf{Verificación} & \textbf{Nivel} & \textbf{Corrección} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Verificación} & \textbf{Nivel} & \textbf{Corrección} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Modelo incompleto (solo si hay vigas sueltas) & \ruta{ERROR} «Modelo incompleto: $n$ de $m$ vigas no unen dos
+	columnas\ldots» si no forma pórticos; \ruta{ALERTA} si forma pórticos pero hay alguna suelta & \ruta{MODELO}: abre el
+	modelo 3D con esas vigas seleccionadas y el consejo de cómo medirlas \\
+	Deriva estática X, estática Y, espectral X, espectral Y & \ruta{OK} si $\le 0{,}007$; \ruta{ERROR} si no; con el
+	modelo incompleto, \ruta{ALERTA} «(no válida: modelo incompleto)» & \ruta{DERIVA} en las que fallan: recomendación de
+	aumento de columnas \\
+	Cortante mínimo & \ruta{OK} sin escalar; \ruta{ALERTA} si se escaló (muestra el factor) & \ruta{CONSEJO}: no es un error
+	del modelo \\
+	Torsión $\Delta_{\text{máx}}/\Delta_{\text{prom}}$ & \ruta{OK} hasta 1,3; \ruta{ALERTA} sobre 1,3; \ruta{ERROR} sobre
+	1,5 (extrema) & \ruta{CONSEJO}: redistribuir rigidez o revisar $I_p$ \\
+	Método estático aplicable & \ruta{OK} o \ruta{ALERTA} & \ruta{CONSEJO}: usar el espectral \\
+	Sistema estructural (Tabla 9 en 2026, Tabla 6 en 2018) & \ruta{ERROR} en categoría A y zonas 2 a 4; \ruta{OK} en los
+	demás casos & \ruta{CONSEJO}: sistema dual o de muros \\
+	Aislamiento (uso A1 en zonas 3 y 4) & \ruta{ERROR} (solo si aplica) & \ruta{CONSEJO}: requiere aisladores \\
+	Junta sísmica & \ruta{INFO} con el mínimo y los 2/3 del desplazamiento propio & --- \\
+\end{longtable}
+
+La línea de la Tabla 9 llama a \ruta{walterQuispesayhuaAvisoTabla9} sin la marca de uso A1. Por eso, para un hospital
+(A1) en zona 1 la lista muestra «los pórticos están permitidos», mientras que el aviso rojo del resumen, que sí recibe
+esa marca, dice que no lo están. En las zonas 2 a 4 ambos coinciden, porque toda la categoría A queda prohibida.
+
+La torsión de esta lista usa la mayor razón de los cuatro análisis en los pisos con deriva mayor que $0{,}0035$
+(\ruta{walterQuispesayhuaRazonTorsionMaxima}) y no tiene en cuenta el $I_p$ elegido; el aviso de la lista de advertencias,
+en cambio, solo aparece si ese $I_p$ todavía no refleja la irregularidad.
+
+\subsubsection{Veredicto}
+
+\ruta{WalterQuispesayhuaSismoController.\allowbreak{}walterQuispesayhuaVeredicto} decide el texto del encabezado del resumen:
+
+\begin{enumerate}
+	\item «MODELO INCOMPLETO: las vigas no forman pórticos», si \ruta{walterQuispesayhuaModeloValido} es falso;
+	\item «CUMPLE (preliminar)», si las cuatro direcciones (estática X e Y, espectral X e Y) tienen deriva máxima
+	      $\le 0{,}007$;
+	\item «NO CUMPLE», en otro caso.
+\end{enumerate}
+
+El veredicto solo depende de las derivas y de la conexión de las vigas. Una línea en rojo por la Tabla 9, por torsión
+extrema o por aislamiento no lo cambia; por eso la lista de verificaciones se muestra siempre debajo. Con el modelo
+incompleto, la pestaña «Derivas» y el reporte PDF muestran «No válida» en lugar de «Cumple» o «No cumple».
+
+\subsubsection{Advertencias del análisis}
+\label{sec:sis-advertencias}
+
+Además de la lista de verificaciones, \ruta{fernandoHuancaAnalizar} devuelve una lista de textos
+(\ruta{Resultado.\allowbreak{}advertencias}) que la pantalla muestra bajo el resumen y el PDF reproduce. Según el caso, incluye:
+
+\begin{itemize}
+	\item columnas o vigas ignoradas o consideradas empotradas por estar fuera de los pisos reconocidos, y vigas que no
+	      unen dos columnas;
+	\item método estático no aplicable y cortante dinámico escalado;
+	\item restricciones a las irregularidades (\ruta{Parametros.\allowbreak{}restricciones}, Tabla 13 en 2026 o Tabla 10 en 2018): en
+	      categoría A y zonas 2 a 4 no se permiten irregularidades; en A no se permiten extremas; en B y zonas 2 a 4 no se
+	      permiten extremas; en C y zonas 3 y 4 no se permiten extremas; en C y zona 2 las extremas solo hasta 2 pisos u
+	      8~m. El código considera extrema una irregularidad con $I_a$ o $I_p \le 0{,}60$;
+	\item muros en el modelo, que no se incluyen en la rigidez ni en el cortante;
+	\item losas del modelo, que solo se usan para el metrado (el peso sale de las cargas por m$^2$);
+	\item en 2026, zona 4, categorías A o B y suelos S1 a S4: el art. 14.8 pide verificar que el periodo del sitio sea
+	      menor que $0{,}65\,T_P$, cosa que el módulo no calcula;
+	\item $V_{s30}$ no indicado en S2 o S3 (con los valores usados);
+	\item la combinación direccional aplicada (2026) o la nota de que la versión 2018 no la pide;
+	\item posible irregularidad torsional, según la razón $r_t$ y el $I_p$ elegido;
+	\item masa efectiva acumulada menor que 90~\% (con todos los modos conservados no debería aparecer);
+	\item periodo $h_n/C_T$ distinto en más de 50~\% del periodo modal en X;
+	\item rigidez reducida por debajo de 1,0, porque la norma pide secciones brutas;
+	\item la junta sísmica y el recordatorio de base empotrada, sin zonas rígidas ni muros.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\subsection{Recomendación de mejora}
+\label{sec:sis-recomendacion}
+
+Cuando una deriva no cumple, su línea ofrece «Cómo corregir». El controlador llama una sola vez por resultado a
+\ruta{RecomendacionSismica.\allowbreak{}fernandoHuancaRecomendar(Entrada, Resultado)}, que busca el \textbf{menor aumento uniforme} de
+la sección de todas las columnas que hace cumplir la deriva:
+
+\begin{enumerate}
+	\item Toma la deriva de cada dirección como el mayor valor entre el estático y el espectral
+	      (\ruta{fernandoHuancaDerivaX} y \ruta{fernandoHuancaDerivaY}). Si ambas cumplen, responde que no hace falta
+	      cambiar nada. Si no hay columnas, sugiere agregar columnas o muros.
+	\item Repite: suma \ruta{FERNANDO\_HUANCA\_PASO} $= 0{,}05$~m al largo (X) de todas las columnas si falla X y al ancho
+	      (Y) si falla Y, y vuelve a ejecutar \ruta{fernandoHuancaAnalizar} sobre \textbf{copias} de los elementos, con las
+	      mismas cargas, materiales y parámetros. Así la medida sale del cálculo e incluye el peso de las columnas más
+	      grandes. Las medidas se redondean al milímetro.
+	\item Se detiene cuando ambas direcciones cumplen o cuando un aumento superaría \ruta{FERNANDO\_HUANCA\_MAXIMO}
+	      $= 0{,}60$~m. En ese caso limita el aumento a 0,60~m, marca la recomendación como insuficiente y sugiere placas o
+	      un sistema dual validado en un programa de análisis.
+	\item Si es suficiente pero el aumento supera \ruta{FERNANDO\_HUANCA\_AUMENTO\_GRANDE} $= 0{,}30$~m, el texto agrega:
+	      «Es un aumento grande: probablemente convenga más peraltar las vigas o agregar placas en esa dirección que
+	      agrandar tanto las columnas».
+\end{enumerate}
+
+El resultado (\ruta{Recomendacion}) lleva los aumentos en X e Y, la lista de \ruta{Cambio} (columna, largo nuevo y ancho
+nuevo), las derivas antes y después, y un texto con las secciones actuales y nuevas (hasta cuatro distintas). El diálogo
+«Cómo corregir la deriva» ofrece «Ir al modelo 3D y precargar el cambio»: navega a \ruta{modelo-view} y llama a
+\ruta{ModeloController.\allowbreak{}yefriLermaPrecargarCorreccion}. El cambio no se guarda solo: el usuario lo revisa, pulsa
+«Aplicar» y vuelve a calcular el análisis.
+
+\begin{consejo}
+La recomendación agranda \textbf{todas} las columnas por igual y solo en la dirección que falla. Es una medida de
+anteproyecto; otras soluciones (peraltar vigas, agregar placas, redistribuir columnas) pueden ser mejores y la
+aplicación lo dice en el mismo texto.
+\end{consejo}
+
+% ------------------------------------------------------------------------------
+\subsection{Análisis tiempo-historia}
+\label{sec:sis-th}
+
+La pestaña «Simulación temporal» está incluida en la vista sísmica (\ruta{fx:include} de \ruta{tiempo-historia-view.fxml})
+y se configura después de cada cálculo con \ruta{TiempoHistoriaController.\allowbreak{}walterQuispesayhuaConfigurar}. Usa el
+\ruta{ModeloDinamico} que devuelve el análisis: masas, rigidez condensada $K_c$, cotas, alturas, centros de masas,
+puntos de control y periodos. Toda la lógica de cálculo está en las clases de servicio; la pantalla solo la orquesta.
+
+\subsubsection{Flujo en la pantalla}
+
+\begin{enumerate}
+	\item El periodo para el escalado es $T = \max(T_x, T_y)$ (\ruta{ResumenSimulacion.\allowbreak{}walterQuispesayhuaPeriodoFundamental}),
+	      con los periodos fundamentales del análisis espectral; así la rejilla $0{,}2\,T$ a $1{,}5\,T$ cubre ambas
+	      direcciones.
+	\item El usuario elige una fuente: «Generar» crea 7 conjuntos sintéticos (constante
+	      \ruta{WALTER\_QUISPESAYHUA\_CONJUNTOS\_SINTETICOS}) con la semilla indicada (2026 por defecto); o «Importar
+	      acelerograma\ldots» agrega registros a una lista (un archivo de tres columnas o dos archivos, uno por componente,
+	      con la unidad y, si hace falta, el paso de tiempo) y «Simular importados» los procesa.
+	\item Un \ruta{Task} de JavaFX ejecuta en un hilo aparte \ruta{ResumenSimulacion.\allowbreak{}walterQuispesayhuaSimular}: escala los
+	      registros, resuelve cada uno con 5~\% de amortiguamiento y verifica las derivas, informando el avance.
+	\item La pestaña muestra el veredicto, las advertencias, una tabla por registro (PGA, factor, desplazamiento máximo del
+	      techo, deriva máxima y cortante basal máximo en X e Y, más la fila del promedio o máximo y la del límite), la
+	      gráfica del espectro de diseño con $R = 1$ frente al promedio SRSS escalado y una animación del edificio que se
+	      mueve con el terreno (desplazamiento absoluto = relativo + terreno). Los entrepisos se pintan en verde hasta el
+	      60~\% del límite, en ámbar hasta el 100~\% y en rojo por encima.
+\end{enumerate}
+
+\subsubsection{Registros sísmicos}
+
+\ruta{RegistroSismico} es un registro inmutable con nombre, fuente, $\Delta t$ (entre 0,001 y 0,1~s) y dos componentes
+horizontales de igual longitud (de 2 a 200\,000 pasos) en m/s$^2$. Las velocidades y desplazamientos del terreno se
+obtienen con una corrección de línea base (\ruta{integrar}): se resta la aceleración media, se integra la velocidad por
+trapecios y se le resta un polinomio $\alpha t + \beta t^2$ elegido para que la velocidad final y el desplazamiento final
+sean nulos; luego se integra el desplazamiento. \ruta{escalado(factor)} devuelve una copia con ambas componentes
+multiplicadas por el mismo factor.
+
+\paragraph{Registros sintéticos.} \ruta{GeneradorAcelerograma.\allowbreak{}fernandoHuancaGenerarConjuntos} genera, por componente:
+
+\begin{itemize}
+	\item una densidad espectral objetivo
+	      $G(\omega) = \dfrac{4\zeta}{\pi\omega}\left(\dfrac{S_a(\omega)}{\eta}\right)^2$ con $\zeta = 0{,}05$ y el factor
+	      de pico $\eta = \max\!\left(2,\ \sqrt{2 \ln \max(2 f t_s;\ 3)}\right)$, $t_s = 15$~s;
+	\item una suma de armónicos con fases aleatorias (FFT inversa de 4096 puntos), $\Delta t = 0{,}01$~s y 40~s de
+	      duración (4001 pasos);
+	\item una envolvente de intensidad: $(t/3)^2$ hasta 3~s, 1 hasta 15~s y $e^{-0{,}2(t - 15)}$ después;
+	\item hasta 25 iteraciones de corrección en frecuencia, que multiplican el espectro de Fourier por el cociente objetivo /
+	      espectro de respuesta, hasta que cada componente quede entre 95 y 110~\% del objetivo en $0{,}2\,T$ a $1{,}5\,T$
+	      (el criterio interno es 95,5--109,5~\% apuntando a 102,5~\%); se eliminan las frecuencias menores de 0,05~Hz.
+\end{itemize}
+
+Las componentes X e Y usan fases independientes y el resultado es reproducible con la misma semilla. Si una componente no
+converge, la razón mínima alcanzada se anota en la fuente del registro.
+
+\paragraph{Registros importados.} \ruta{ImportadorRegistro} lee archivos de texto de hasta 10~MB: una columna
+(aceleración, con $\Delta t$ indicado o leído del encabezado, por ejemplo «DT=0.005», «DELTA T» o «INTERVALO»), dos
+columnas (tiempo y aceleración), tres columnas (tiempo, $a_x$, $a_y$) o más de tres columnas como una sola serie (formato
+PEER-NGA, si se conoce $\Delta t$). Admite espacio, tabulación, coma o punto y coma como separadores y coma decimal;
+omite el encabezado y sugiere la unidad si el encabezado la menciona. Las unidades son m/s$^2$, cm/s$^2$ (gal, factor
+0,01) y $g$ (factor 9,80665). El $\Delta t$ de una columna de tiempo es la mediana de los incrementos y debe ser uniforme
+con $\pm 1$~\%. Al importar un par de archivos, ambos deben tener el mismo $\Delta t$ (1~\%) y casi la misma longitud (se
+recorta al menor).
+
+\subsubsection{Espectro de respuesta y escalado}
+
+\ruta{EspectroRespuesta.\allowbreak{}fernandoHuancaPseudoAceleracion} resuelve un oscilador amortiguado con el método exacto para
+excitación lineal por tramos (Nair--Jennings, coeficientes de la Tabla 5.2.1 de Chopra) y devuelve
+$S_a = \omega^2 \max|u(t)|$. Para $T \le 0{,}02$~s toma la aceleración pico del terreno, y si el paso del registro es
+grueso respecto del periodo, subdivide cada intervalo (hasta 64 veces) para trabajar con unos $T/20$.
+
+\ruta{EscaladoRegistros.\allowbreak{}fernandoHuancaEscalar} trabaja en una rejilla logarítmica de 60 periodos entre $0{,}2\,T$ y
+$1{,}5\,T$ (el código cita el art. 47.5) y con el espectro de diseño del art. 41 con $R = 1$
+(\ruta{fernandoHuancaConR1} pone $R_0 = I_a = I_p = 1$). Para cada conjunto calcula el espectro de cada componente al
+5~\% y su combinación $\text{SRSS}_i(T) = \sqrt{S_{a,x}^2 + S_{a,y}^2}$ (art. 47.4), y luego:
+\begin{align}
+	f_i &= \left[\frac{1}{m}\sum_{j=1}^{m} \frac{\text{SRSS}_i(T_j)}{S_{a,d}(T_j)}\right]^{-1}
+	&& \text{(registros reales)} \label{eq:sis-fi} \\
+	f_i &= \max\!\left(1,\ \frac{0{,}90}{\min_j \min(S_{a,x}, S_{a,y})/S_{a,d}}\right)
+	&& \text{(sintéticos compatibles)} \label{eq:sis-fi-compatible} \\
+	k_{\text{c}} &= \max\!\left(1,\ \left[\min_j \frac{\frac{1}{n}\sum_i f_i\,\text{SRSS}_i(T_j)}{S_{a,d}(T_j)}\right]^{-1}\right),
+	&& \text{factor final} = f_i\,k_{\text{c}} . \label{eq:sis-k}
+\end{align}
+Aquí $S_{a,d}$ es el espectro de diseño con $R = 1$, $m = 60$ periodos y $n$ conjuntos. El mismo factor se aplica a las
+dos componentes de un conjunto. Con el factor común $k_{\text{c}}$, el promedio SRSS escalado no baja del 100~\% del
+espectro de diseño en ningún periodo de la rejilla. El escalado avisa si alguna componente escalada queda por debajo del
+90~\% del espectro (art. 47.6; con registros reales solo es un aviso), si hay menos conjuntos que el mínimo (7 en el
+texto 2026, art. 47.1; 3 en 2018, art. 4.7) y si algún factor es mayor que 4 o menor que 0,25. Cumple si la razón
+mínima es al menos 0,999, hay conjuntos suficientes y, con sintéticos, ninguna componente queda bajo el 90~\%.
+
+\subsubsection{Integración en el tiempo}
+
+\ruta{AnalisisTiempoHistoria.\allowbreak{}fernandoHuancaResolver} integra el sistema acoplado de $3N$ grados de libertad con las dos
+componentes del registro actuando a la vez:
+\begin{equation}
+	M\ddot{u} + C\dot{u} + K_c\,u = -M\left(r_x\,a_{g,x}(t) + r_y\,a_{g,y}(t)\right),
+	\label{eq:sis-movimiento}
+\end{equation}
+donde $u$ es el desplazamiento relativo a la base y $r_x$, $r_y$ son los vectores de influencia
+(\ruta{ModeloDinamico.influencia}). El amortiguamiento es de Rayleigh, $C = \alpha M + \beta K_c$, calibrado para que
+$\xi = 0{,}05$ (art. 48.5) se cumpla en $T_1$ = \ruta{periodos()[0]} (el mayor periodo del modelo) y en $T_2 = 0{,}2\,T_1$;
+si $0{,}2\,T_1$ es menor que el menor periodo del modelo, $T_2$ se toma igual a ese periodo:
+\begin{equation}
+	\alpha = \frac{2\,\xi\,\omega_1\omega_2}{\omega_1 + \omega_2}, \qquad \beta = \frac{2\,\xi}{\omega_1 + \omega_2} .
+	\label{eq:sis-rayleigh}
+\end{equation}
+Ese $T_1$ puede no coincidir con el $T$ del escalado, que es el mayor de los periodos fundamentales en X e Y (por
+ejemplo, si el primer modo es torsional). El método es Newmark de aceleración media ($\beta_N = 1/4$, $\gamma_N = 1/2$), incondicionalmente estable. Como
+$\Delta t$ es constante, la matriz efectiva se factoriza con LU una sola vez:
+\begin{equation}
+	\hat{K} = K_c + \frac{2}{\Delta t}\,C + \frac{4}{\Delta t^2}\,M .
+	\label{eq:sis-newmark}
+\end{equation}
+Se parte del reposo, con $\ddot{u}_0 = -r\,a_g(0)$. Si $\Delta t$ supera la décima parte del menor periodo, se avisa de
+la pérdida de precisión en los modos altos. El cortante basal de cada instante es la suma de las fuerzas de inercia,
+$V_b(t) = -\sum_i m_i\,(\ddot{u}_i + a_g)$. Las derivas se calculan en los mismos puntos de control del análisis
+espectral y son \textbf{elásticas}: no se multiplican por $0{,}75\,R$, porque el registro ya está escalado al espectro con
+$R = 1$.
+
+\subsubsection{Verificación del artículo 49}
+
+\ruta{AnalisisTiempoHistoria.\allowbreak{}fernandoHuancaVerificar} toma, por piso y dirección, el máximo en el tiempo de cada registro
+y los combina:
+
+\begin{itemize}
+	\item \textbf{texto 2026}: siempre el promedio de los máximos (art. 49.1), con un mínimo de 7 conjuntos (art. 47.1);
+	\item \textbf{versión 2018}: el promedio si hay 7 conjuntos o más y el máximo si hay menos, con un mínimo de 3
+	      (art. 4.7.3).
+\end{itemize}
+
+El límite es $1{,}25 \times 0{,}007 = 0{,}00875$ (art. 49.2 en 2026, art. 4.7.3 en 2018, según el código). La
+verificación cumple si todos los pisos cumplen en X e Y y hay conjuntos suficientes. \ruta{ResumenTiempoHistoria.veredicto}
+devuelve «CUMPLE», «NO CUMPLE» o «NO CONCLUYENTE» (menos conjuntos que el mínimo), y el controlador lo reemplaza por
+«MODELO INCOMPLETO» si las vigas no forman pórticos. Las advertencias recuerdan siempre que el tiempo-historia es una
+verificación complementaria que no sustituye al análisis estático ni al espectral (arts. 46.1 y 32.3), que el modelo es
+lineal-elástico con $R = 1$ y que la base está empotrada.
+
+% ------------------------------------------------------------------------------
+\subsection{Reporte PDF}
+\label{sec:sis-pdf}
+
+El botón «Exportar PDF» llama a \ruta{ReporteSismo.\allowbreak{}fernandoHuancaGenerar(proyecto, entrada, resultado, resumen)}, que
+arma el documento con OpenPDF 1.3.43 (paquete \ruta{com.lowagie}) en tamaño A4, y lo guarda con
+\ruta{Exportador.\allowbreak{}fernandoHuancaGuardar} (nombre sugerido \ruta{analisis-sismico}). Si se ejecutó una simulación
+temporal, se incluye su último resumen. El contenido es:
+
+\begin{enumerate}
+	\item título, versión de la norma, proyecto y ubicación;
+	\item \textbf{datos y parámetros}: zona, categoría, suelo ($S$, $V_{s30}$ o la nota del valor más desfavorable), $T_P$,
+	      $T_L$, $R_0$, $I_a$, $I_p$, $R$, regularidad, $C_T$, límite de deriva, $f'_c$, $E_c$, Poisson, fracción de
+	      rigidez, espesor de losa y peso sísmico total;
+	\item \textbf{pisos y pesos}: cota, altura, área, peso, centro de masas e inercia polar, con la nota del porcentaje de
+	      carga viva y del peso unitario;
+	\item \textbf{modos}: periodo, frecuencia y masas efectivas, con la masa acumulada;
+	\item \textbf{análisis estático}: $T$, $C$, $k$, $V$, excentricidad y combinación direccional, y la tabla de fuerzas y
+	      cortantes por piso;
+	\item \textbf{análisis modal espectral}: espectro, CQC, excentricidad, combinación direccional, factores de escala y la
+	      tabla de fuerzas y cortantes;
+	\item \textbf{desplazamientos y derivas} inelásticos por piso, con estado «Cumple», «No cumple» o «No válida» y, si el
+	      modelo está incompleto, un párrafo «MODELO INCOMPLETO»;
+	\item \textbf{tiempo-historia} (si existe): origen de los registros, conjuntos, $T$ y rejilla, razón de escalado, tabla
+	      por registro, factores, resultado del art. 49, deriva de diseño por piso y advertencias;
+	\item \textbf{advertencias} del análisis, \textbf{referencias} (E.030 de la versión elegida, E.060, E.020,
+	      Der Kiureghian 1981, McGuire et al. 2000 y Chopra) y una nota final de que los resultados son educativos y
+	      preliminares.
+\end{enumerate}
+
+% ------------------------------------------------------------------------------
+\subsection{Otras clases del paquete}
+\label{sec:sis-auxiliares}
+
+El paquete \ruta{service} contiene cinco clases sísmicas simplificadas que \textbf{ninguna pantalla usa hoy}; solo las
+llaman sus pruebas (\ruta{AnalisisPorticoTest}, \ruta{HistoriaPisoTest}, \ruta{OsciladorSismicoTest} y
+\ruta{ProyectoIntegracionTest}):
+
+\begin{itemize}
+	\item \ruta{DiagnosticoSismico.\allowbreak{}yefriLermaRevisar}: cuenta zapatas, columnas y vigas y devuelve una lista fija de lo que
+	      faltaría para un modelo analítico. No calcula nada.
+	\item \ruta{OsciladorSismico.\allowbreak{}yefriLermaCalcular}: oscilador de un grado de libertad; $T = 2\pi\sqrt{m/k}$,
+	      $F = m\,S_a\,g$ y $\Delta = F/k$ (en mm).
+	\item \ruta{HistoriaPiso}: rigidez de un piso como suma de $12EI/h^3$ de columnas biempotradas
+	      (\ruta{yefriLermaPiso}) e integración de Newmark de aceleración media para un grado de libertad
+	      (\ruta{yefriLermaResolver}, exige $\Delta t \le T/20$).
+	\item \ruta{EdificioCortante.\allowbreak{}yefriLermaSimular}: edificio de cortante con masas iguales y una traslación por planta
+	      (1 a 12 niveles), diagonalización de Jacobi y superposición modal con \ruta{HistoriaPiso}.
+	\item \ruta{AnalisisPortico.\allowbreak{}yefriLermaResolver}: pórtico plano elástico por rigidez directa (hasta 60 nudos y 180
+	      barras) con eliminación de Gauss y pivoteo parcial; devuelve desplazamientos y reacciones.
+\end{itemize}
+
+% ------------------------------------------------------------------------------
+\subsection{Pruebas automáticas}
+\label{sec:sis-pruebas}
+
+Las pruebas no validan el módulo frente a la norma ni frente a otro programa: comprueban que el código calcula lo que
+dice calcular, con valores conocidos y casos con solución analítica. La tabla~\ref{tab:sis-pruebas} resume las seis
+clases de prueba del módulo.
+
+\begin{longtable}{L{4.8cm}L{9.6cm}}
+	\caption{Pruebas del módulo sísmico y valores que fijan.} \label{tab:sis-pruebas} \\
+	\hline
+	\textbf{Clase de prueba} & \textbf{Qué comprueba} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase de prueba} & \textbf{Qué comprueba} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{SismoE030Test} & Tablas: S2 en zona 4 sin $V_{s30}$ da $S = 1{,}10$; $C(0{,}4) = 2{,}5$, $C(1{,}0) = 1{,}5$ y
+	$C(3{,}0) = 2{,}5 \cdot 0{,}6 \cdot 2{,}0/9$ con $T_P = 0{,}6$ y $T_L = 2{,}0$; $k(0{,}5) = 1$, $k(1{,}0) = 1{,}25$,
+	$k(3{,}0) = 2$; factor inelástico 6 ($0{,}75 \times 8$) y 5,1 ($0{,}85 \times 6$). Mínimo $C/R = 0{,}11$. Tramo corto:
+	$C(0{,}06) = 1{,}75$ y $C_{\text{est}}(0{,}06) = 2{,}5$. Interpolación: $V_{s30} = 450$ da $S = 1{,}05$,
+	$T_P = 0{,}5$, $T_L = 2{,}25$; S3 en zona 1 con 275~m/s da $S = 1{,}45$, $T_P = 0{,}75$, $T_L = 1{,}8$; S4 en zona 4
+	y $V_{s30}$ fuera de rango se rechazan. Un piso con vigas casi rígidas tiene un periodo a menos de 12~\% del de cuatro
+	columnas biempotradas. Tres pisos: 9 modos ordenados y 100~\% de masa efectiva; $T = 9/35$; las fuerzas estáticas
+	suman $V$ y crecen con la altura. El espectral cumple el 80~\% del estático y es simétrico en planta simétrica. Las
+	derivas estáticas no dependen de $R$ cuando rige el mínimo 0,11. La excentricidad accidental eleva la deriva máxima
+	sobre la del centro de masas. Versión 2018: sus tablas, sin el 30~\%, citas \ruta{art. 4.6.4} y \ruta{art. 44}. Junta:
+	$0{,}02 \times 0{,}45 \times 1{,}10 \times 9$ (2026) y $0{,}006 \times 9$ (2018), mínimo 0,03~m. $E_c(21) = 21\,538
+	\pm 60$~MPa. El PDF empieza con \ruta{\%PDF}. \\
+	\ruta{GuiaSismicaTest} & Tabla 9: pórticos prohibidos en categoría A y zonas 2 a 4, y en A1 en todas las zonas.
+	Conversión de zonas. Armado de parámetros (vivienda y suelo intermedio en 2026 dan C, S3, $R_0 = 8$, $C_T = 35$; en
+	2018 el suelo intermedio pasa a S2 y $V_{s30}$ se ignora). Cargas por uso con la CV de techo en el último piso. Lista de
+	faltantes. La lista de verificaciones incluye la junta (\ruta{INFO}), la Tabla 9 (\ruta{ERROR} en un colegio en zona 4)
+	y cuatro líneas de deriva. \\
+	\ruta{RecomendacionSismicaTest} & Pórtico de 4 pisos con columnas de $0{,}80 \times 0{,}40$~m que solo falla en Y: la
+	recomendación es $+0{,}10$~m en Y y nada en X (con $+0{,}05$ la deriva aún es 0,0075; con $+0{,}10$, 0,0069), cambia
+	las 4 columnas, es el mínimo y no modifica los elementos originales. Sin fallas no hay cambios. Las derivas que fallan
+	llevan la corrección \ruta{DERIVA}. \\
+	\ruta{TiempoHistoriaTest} & Oscilador armónico: amplitud estacionaria con error menor que 1,5~\% y cortante basal menor
+	que 2~\%. Sin carga no hay movimiento. El periodo de vibración libre es $T_1$. Planta simétrica sin movimiento en Y ni
+	giro. Convergencia entre $\Delta t$ y $\Delta t/2$ dentro de 1~\%. Desplazamiento absoluto = relativo + terreno.
+	Verificación: límite 0,00875; 7 conjuntos promedian; en 2018 con 3 conjuntos se toma el máximo; 3 conjuntos en 2026 y
+	2 en 2018 son insuficientes. \\
+	\ruta{RegistrosSismicosTest} & Validaciones del registro, integración y corrección de línea base. Espectro de un seno
+	en resonancia igual a $1/(2\xi)$ con error menor que 1~\%, tendencia a la PGA en periodos cortos e impulso con solución
+	analítica. Importación de una, dos, tres columnas y formato PEER, pares de archivos, errores claros, $\Delta t$ no
+	uniforme y archivos mayores de 10~MB. Generador reproducible con la semilla, 7 conjuntos de 40~s con
+	$\Delta t = 0{,}01$~s y espectro entre 85 y 125~\% del objetivo. Escalado con promedio SRSS $\ge$ diseño, mismo factor
+	en ambas componentes y avisos de conjuntos y del art. 47.6. \\
+	\ruta{ModeloIncompletoTest} (paquete \ruta{controller}) & Pórtico de 3 pisos (3 $\times$ 2 columnas a 5 $\times$ 4~m) bien armado: sin
+	vigas sueltas. Con columnas de 1,1~m y vigas convertidas en bloques de $0{,}6 \times 0{,}6$~m, las cuatro derivas
+	«cumplen», pero todas las vigas están sueltas, los pisos 1, 2 y 3 no tienen pórtico, el veredicto empieza con «MODELO
+	INCOMPLETO» y las derivas salen en \ruta{ALERTA} «no válida». Una sola viga suelta es solo una alerta. La edición avisa
+	solo de las vigas que se sueltan por el cambio. \\
+\end{longtable}
+
+\begin{nota}
+En \ruta{SismoE030Test.\allowbreak{}tablasDeLaNormaCoincidenConValoresConocidos}, las comprobaciones de $T_P = 0{,}6$ y $T_L = 2{,}0$
+para S2 sin $V_{s30}$ quedaron por error dentro de un comentario de línea, por lo que hoy no se ejecutan. Los valores sí
+se comprueban indirectamente en los casos de $C(1{,}0)$ y $C(3{,}0)$.
+\end{nota}
+
+% ------------------------------------------------------------------------------
+\subsection{Supuestos y límites}
+\label{sec:sis-limites}
+
+\begin{itemize}
+	\item \textbf{Sistema:} solo pórticos de concreto armado. Los otros sistemas se pueden elegir para ver su $R_0$, pero
+	      no se calculan. Los muros del modelo no aportan rigidez ni cortante.
+	\item \textbf{Apoyos:} base empotrada, sin zapatas ni interacción suelo-estructura.
+	\item \textbf{Elementos:} barras de Euler--Bernoulli de eje a eje, sin zonas rígidas en los nudos ni deformación por
+	      cortante; secciones rectangulares brutas (o reducidas por la fracción de rigidez, con aviso).
+	\item \textbf{Diafragma:} rígido en cada piso; las losas no se modelan como elementos, solo como peso.
+	\item \textbf{Pisos:} se definen por la cara superior de las vigas con una tolerancia de 5~cm; los niveles muy cercanos
+	      se agrupan y las columnas que nacen fuera de un piso se consideran empotradas.
+	\item \textbf{Pesos:} 24~kN/m$^3$ para el concreto, sin descontar intersecciones; las cargas por m$^2$ las fija el
+	      usuario (las sugeridas pueden no estar verificadas).
+	\item \textbf{Análisis:} lineal-elástico; amortiguamiento de 5~\%; excentricidad accidental de 0,05 de la dimensión en
+	      planta del rectángulo envolvente; combinación direccional solo en 2026.
+	\item \textbf{Verificaciones:} solo deriva de concreto armado (0,007), torsión, cortante mínimo, aplicabilidad, Tabla 9,
+	      aislamiento y junta. No se verifican la resistencia ni el diseño de vigas, columnas o nudos, ni las demás
+	      irregularidades: $I_a$ e $I_p$ los elige el usuario.
+	\item \textbf{Tiempo-historia:} verificación complementaria lineal con registros escalados a $R = 1$; no sustituye al
+	      análisis estático ni al espectral.
+	\item \textbf{Norma:} los textos y artículos son los que el código tiene escritos; si su proyecto tiene un trámite
+	      iniciado con la versión anterior, verifique cuál rige.
+\end{itemize}
+
+\begin{advertencia}[Módulo preliminar, no validado]
+El análisis sísmico de ConcretoLab Desktop es una herramienta \textbf{educativa y de anteproyecto}. Sus pruebas
+automáticas comprueban la programación contra valores conocidos, no constituyen una validación profesional del método.
+\textbf{No use estos resultados para diseñar ni para construir obras}, ni los presente como memoria de cálculo ante una
+entidad. Todo edificio real debe ser analizado y diseñado por un ingeniero civil colegiado, con un programa de análisis
+estructural reconocido y con los criterios completos de la norma vigente.
+\end{advertencia}

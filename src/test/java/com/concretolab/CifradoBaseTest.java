@@ -18,7 +18,6 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
 class CifradoBaseTest {
-
     private static void crearPlana(Path db) throws Exception {
         try (Connection c = DriverManager.getConnection("jdbc:sqlite:" + db); var s = c.createStatement()) {
             s.execute("create table secreto(x text)");
@@ -49,8 +48,7 @@ class CifradoBaseTest {
         assertThat(BaseCifrada.erickDelgadoClaveCorrecta(db, "clave-segura-1".toCharArray())).isTrue();
         assertThat(BaseCifrada.erickDelgadoClaveCorrecta(db, "otra-clave-xx".toCharArray())).isFalse();
         assertThat(BaseCifrada.erickDelgadoClaveCorrecta(db, null)).isFalse();
-        assertThat(BaseCifrada.erickDelgadoInspeccionar(copia)).isEqualTo(Estado.SIN_CIFRAR); // la copia de seguridad previa es la original
-        // el archivo cifrado se acepta como candidato de restauración
+        assertThat(BaseCifrada.erickDelgadoInspeccionar(copia)).isEqualTo(Estado.SIN_CIFRAR);
         assertThat(RespaldoDatos.erickDelgadoEsSqliteValido(db)).isTrue();
     }
 
@@ -79,26 +77,22 @@ class CifradoBaseTest {
     void unaBaseProtegidaDeUnaVersionAnteriorSeConvierteSinPerderProyectosYConservaUnaCopia(@TempDir Path dir) throws Exception {
         Path db = dir.resolve("app.db");
         Path copias = dir.resolve("backups");
-        // 1) una base creada por la aplicación, con dos proyectos y elementos
         try (ConfigurableApplicationContext ctx = iniciar(db, null)) {
             var servicio = ctx.getBean(YefriLermaProyectoService.class);
             var p = servicio.yefriLermaCrearProyecto("Edificio Los Álamos", "Arequipa");
             servicio.yefriLermaCrearPlantilla(p.getId(), new YefriLermaProyectoService.Plantilla(5, 4, 1.2, 1.2, 0.5, 0.4, 3, 0.3, 0.5));
             servicio.yefriLermaCrearProyecto("Vivienda 2 pisos", "Lima");
         }
-        // 2) como la dejaba la versión anterior: protegida con contraseña
         char[] clave = "clave-anterior-1".toCharArray();
         Files.delete(BaseCifrada.erickDelgadoCifrarExistente(db, clave));
         assertThat(BaseCifrada.erickDelgadoInspeccionar(db)).isEqualTo(Estado.CIFRADA);
         byte[] protegida = Files.readAllBytes(db);
 
-        // contraseña equivocada: no se toca nada ni se crean copias
         assertThatThrownBy(() -> BaseCifrada.erickDelgadoQuitarClave(db, "equivocada-123".toCharArray(), copias))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThat(Files.readAllBytes(db)).isEqualTo(protegida);
         assertThat(copias).doesNotExist();
 
-        // 3) conversión con la contraseña correcta
         Path copia = BaseCifrada.erickDelgadoQuitarClave(db, clave, copias);
         assertThat(BaseCifrada.erickDelgadoInspeccionar(db)).isEqualTo(Estado.SIN_CIFRAR);
         assertThat(copia.getParent()).isEqualTo(copias);
@@ -107,7 +101,6 @@ class CifradoBaseTest {
         assertThat(Files.readAllBytes(copia)).as("la copia es la base protegida tal como estaba").isEqualTo(protegida);
         assertThat(BaseCifrada.erickDelgadoClaveCorrecta(copia, clave)).isTrue();
 
-        // 4) la aplicación abre sin contraseña y los proyectos siguen ahí
         try (ConfigurableApplicationContext ctx = iniciar(db, null)) {
             var servicio = ctx.getBean(YefriLermaProyectoService.class);
             var nombres = servicio.proyectos().stream().map(com.concretolab.model.Proyecto::getNombre).toList();
@@ -115,7 +108,6 @@ class CifradoBaseTest {
             var alamos = servicio.proyectos().stream().filter(x -> x.getNombre().equals("Edificio Los Álamos")).findFirst().orElseThrow();
             assertThat(servicio.elementos(alamos.getId())).hasSize(12);
         }
-        // una base que ya no está protegida no se vuelve a convertir
         assertThatThrownBy(() -> BaseCifrada.erickDelgadoQuitarClave(db, clave, copias)).isInstanceOf(IllegalStateException.class);
     }
 

@@ -12,31 +12,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-/**
- * Exporta el modelo (prismas alineados a los ejes) a IFC2X3 en texto (STEP). Cada elemento es un
- * IfcColumn, IfcBeam, IfcWallStandardCase, IfcSlab o IfcFooting con geometría de sólido extruido y material «Concreto».
- * Todos cuelgan de un único nivel en la cota 0 con coordenadas absolutas. Las vigas y las losas se extruyen en vertical
- * (la forma es exacta; el eje de extrusión no sigue la dirección de la viga).
- */
 public final class ExportadorIfc {
-
     private ExportadorIfc() { }
 
     private static final String ERICK_DELGADO_BASE64 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
 
-    /** GUID comprimido de 22 caracteres de IFC a partir de una semilla estable. */
     static String erickDelgadoGuid(String semilla) {
         UUID u = UUID.nameUUIDFromBytes(semilla.getBytes(StandardCharsets.UTF_8));
         byte[] b = ByteBuffer.allocate(16).putLong(u.getMostSignificantBits()).putLong(u.getLeastSignificantBits()).array();
         BigInteger n = new BigInteger(1, b);
         var sb = new StringBuilder();
-        // 128 bits = 2 bits + 21 grupos de 6 bits
         sb.append(ERICK_DELGADO_BASE64.charAt(n.shiftRight(126).intValue() & 0x3));
         for (int i = 20; i >= 0; i--) sb.append(ERICK_DELGADO_BASE64.charAt(n.shiftRight(i * 6).intValue() & 0x3F));
         return sb.toString();
     }
 
-    /** Texto STEP: comillas duplicadas y caracteres no ASCII como \X2\…\X0\. */
     static String erickDelgadoTexto(String s) {
         if (s == null) return "$";
         var sb = new StringBuilder("'");

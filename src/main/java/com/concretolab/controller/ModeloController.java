@@ -51,14 +51,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Pantalla «Modelo 3D y metrado». Es la duena del selector de proyecto: lo mantiene sincronizado
- * con {@link SesionProyecto} para que las demas vistas lean de ahi el proyecto activo.
- */
 @Component
 @RequiredArgsConstructor
 public class ModeloController implements Refrescable {
-
     private final YefriLermaProyectoService yefriLermaServicio;
     private final com.concretolab.service.FernandoHuancaPlanoDxf yefriLermaImportadorDxf;
 
@@ -66,7 +61,7 @@ public class ModeloController implements Refrescable {
         Proyecto activo = yefriLermaSesion.getProyecto();
         if (activo == null) {
             new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
-                    "Selecciona el proyecto que quieres exportar.").showAndWait();
+                    "Seleccione el proyecto que desea exportar.").showAndWait();
             return;
         }
         var selector = new javafx.stage.FileChooser();
@@ -78,7 +73,7 @@ public class ModeloController implements Refrescable {
         try {
             yefriLermaImportadorDxf.fernandoHuancaExportar(destino.toPath(),yefriLermaServicio.elementos(activo.getId()));
             new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION,
-                    "DXF guardado. Abre el archivo en AutoCAD y selecciona una vista isométrica.").showAndWait();
+                    "DXF guardado. Abra el archivo en AutoCAD y seleccione una vista isométrica.").showAndWait();
         } catch (java.io.IOException | IllegalArgumentException ex) {
             new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.ERROR,ex.getMessage()).showAndWait();
         }
@@ -160,15 +155,12 @@ public class ModeloController implements Refrescable {
     private final EditorCuadricula yefriLermaEditorCuadricula;
     private final MovimientoElementoService yefriLermaMovimientos;
 
-    /** Se crea en initialize(): construye nodos 3D de JavaFX, que no existen todavía cuando Spring instancia el controlador. */
     private ErickDelgadoVisor3D yefriLermaVisor3d;
 
-    // ---- cabecera
     @FXML private ComboBox<Proyecto> cmbProyecto;
     @FXML private MenuButton btnNuevoProyecto;
     @FXML private Button btnEliminarProyecto;
 
-    // ---- elementos
     @FXML private TableView<Elemento> tabla;
     @FXML private TableColumn<Elemento, String> colTipo;
     @FXML private TableColumn<Elemento, String> colNombre;
@@ -181,21 +173,17 @@ public class ModeloController implements Refrescable {
     @FXML private Button btnMover;
     @FXML private Button btnDeshacer;
     @FXML private VBox panelMovimiento;
-    /** Texto completo del metrado: se muestra en un globo al pulsar «Metrado» para no tapar la tabla. */
-    private Label lblResumen; // se crea en initialize(): un Label no puede crearse antes de iniciar JavaFX
+    private Label lblResumen;
     @FXML private Button btnMetrado;
     @FXML private StackPane contenedorVisor;
     @FXML private Button btnExportarDxf;
 
-    // ---- filtro y selección múltiple
     @FXML private ComboBox<String> cmbFiltroTipo;
     @FXML private Button btnSeleccionarTodo;
     @FXML private Label lblSeleccion;
-    /** Todos los elementos del proyecto; la tabla muestra solo los del tipo filtrado, el visor 3D muestra todos. */
     private final ObservableList<Elemento> yefriLermaTodos = FXCollections.observableArrayList();
     private FilteredList<Elemento> yefriLermaFiltrados;
     static final String YEFRI_LERMA_TODOS_LOS_TIPOS = "Todos los tipos";
-    /** Texto del filtro → tipo de elemento. */
     static final Map<String, String> YEFRI_LERMA_FILTROS = filtros();
 
     private static Map<String, String> filtros() {
@@ -209,7 +197,6 @@ public class ModeloController implements Refrescable {
         return Collections.unmodifiableMap(m);
     }
 
-    // ---- panel: varios elementos a la vez
     @FXML private VBox panelLote;
     @FXML private Label lblTituloLote;
     @FXML private Label lblAvisoLote;
@@ -219,20 +206,15 @@ public class ModeloController implements Refrescable {
     @FXML private TextField txtLoteAltura;
     @FXML private Button btnAplicarLote;
     @FXML private Button btnMoverDesdeEditar;
-    /** Elementos que edita el panel de lote. */
     private List<Elemento> yefriLermaLote = List.of();
     private Popover yefriLermaGloboMetrado;
-    /** Selección que había al empezar el último clic en la tabla (para el doble clic sobre varias filas). */
     private List<Elemento> yefriLermaSeleccionPrevia = List.of();
-    /** Clic simple en 3D sobre una selección múltiple: espera por si es el primer clic de un doble clic. */
     private javafx.animation.PauseTransition yefriLermaClicPendiente;
 
-    // ---- panel: proyecto
     @FXML private VBox panelProyecto;
     @FXML private TextField txtNombreProyecto;
     @FXML private TextField txtUbicacionProyecto;
 
-    // ---- panel: elemento
     @FXML private VBox panelElemento;
     @FXML private Label lblTituloElemento;
     @FXML private ComboBox<String> cmbTipo;
@@ -244,7 +226,6 @@ public class ModeloController implements Refrescable {
     @FXML private TextField txtY;
     @FXML private TextField txtZ;
 
-    // ---- panel: plantilla rectangular
     @FXML private VBox panelPlantilla;
     @FXML private TextField txtSeparacionX;
     @FXML private TextField txtSeparacionY;
@@ -256,27 +237,20 @@ public class ModeloController implements Refrescable {
     @FXML private TextField txtAnchoViga;
     @FXML private TextField txtAlturaViga;
 
-    /** Evita que los cambios hechos por codigo en el combo se propaguen como si los hubiera hecho el usuario. */
     private boolean yefriLermaSincronizando;
-    /** Id del elemento en edicion; {@code null} cuando el panel registra uno nuevo. */
     private Long yefriLermaIdEditando;
     private EditorMovimiento yefriLermaEditorMovimiento;
-    /** Historial de «Deshacer» (el más reciente primero): ediciones de uno o varios elementos y movimientos en 3D. */
     private final java.util.Deque<YefriLermaPaso> yefriLermaHistorial = new java.util.ArrayDeque<>();
     static final int YEFRI_LERMA_MAXIMO_DESHACER = 20;
-    /** La edición está habilitada (falsa mientras se mueve un elemento en 3D). */
     private boolean yefriLermaEdicionHabilitada = true;
 
-    /** Un cambio que se puede deshacer. */
     sealed interface YefriLermaPaso permits YefriLermaPasoEdicion, YefriLermaPasoMovimiento {
         String descripcion();
         Long proyectoId();
     }
 
-    /** Edición de uno o varios elementos: estado antes y después (copias, mismos ids). */
     record YefriLermaPasoEdicion(String descripcion, Long proyectoId, List<Elemento> antes, List<Elemento> despues) implements YefriLermaPaso { }
 
-    /** Movimiento en 3D (lo deshace MovimientoElementoService, que también revisa los vínculos viga-columna). */
     record YefriLermaPasoMovimiento(String descripcion, Long proyectoId, Operacion operacion) implements YefriLermaPaso { }
 
     @FXML
@@ -288,13 +262,10 @@ public class ModeloController implements Refrescable {
         colNombre.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNombre()));
         colVolumen.setCellValueFactory(c -> new SimpleStringProperty(yefriLermaVolumen(c.getValue().volumen())));
         Tablas.fernandoHuancaConfigurar(tabla, "Agregue elementos al proyecto", this::yefriLermaDobleClicFila);
-        // El primer clic de un doble clic deja seleccionada solo esa fila: se recuerda la selección de antes para
-        // que el doble clic sobre una fila de una selección múltiple edite todas (como en el explorador de archivos).
         tabla.addEventFilter(javafx.scene.input.MouseEvent.MOUSE_PRESSED, ev -> {
             if (ev.getClickCount() == 1) yefriLermaSeleccionPrevia = List.copyOf(tabla.getSelectionModel().getSelectedItems());
         });
 
-        // La tabla muestra los elementos filtrados por tipo; SortedList mantiene el orden por columnas.
         yefriLermaFiltrados = new FilteredList<>(yefriLermaTodos, e -> true);
         var ordenados = new SortedList<>(yefriLermaFiltrados);
         ordenados.comparatorProperty().bind(tabla.comparatorProperty());
@@ -327,7 +298,6 @@ public class ModeloController implements Refrescable {
         btnMetrado.disableProperty().bind(Bindings.isEmpty(yefriLermaTodos));
         Formularios.fernandoHuancaLimpiarAlEditar(txtLoteLargo, txtLoteAncho, txtLoteAltura);
         yefriLermaActualizarDeshacer();
-        // Ctrl+Z deshace el último cambio mientras se ve esta pantalla (los campos de texto tienen su propio Ctrl+Z).
         tabla.sceneProperty().addListener((o, a, escena) -> {
             if (escena != null) {
                 escena.getAccelerators().put(new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.Z,
@@ -374,8 +344,6 @@ public class ModeloController implements Refrescable {
         yefriLermaCargarElementos();
     }
 
-    // ------------------------------------------------------------- proyecto
-
     @FXML
     private void onNuevoProyecto() {
         Formularios.fernandoHuancaLimpiarErrores(txtNombreProyecto, txtUbicacionProyecto);
@@ -412,8 +380,6 @@ public class ModeloController implements Refrescable {
             yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
         }
     }
-
-    // ------------------------------------------------------------- elementos
 
     @FXML
     private void onNuevoElemento() {
@@ -541,7 +507,6 @@ public class ModeloController implements Refrescable {
         });
     }
 
-    /** Desde el panel «Editar elemento»: cierra el panel y empieza a mover ese elemento en el visor 3D. */
     @FXML
     private void onMoverDesdeEditar() {
         Long id = yefriLermaIdEditando;
@@ -559,12 +524,6 @@ public class ModeloController implements Refrescable {
         tabla.requestFocus();
     }
 
-    // ------------------------------------------------------ varios elementos a la vez
-
-    /**
-     * Abre el panel de lote para {@code lista}. Los textos iniciales pueden venir vacíos (sin cambio), con una medida
-     * (0,50) o con un incremento (+0,05). {@code aviso} se muestra arriba (por ejemplo, la recomendación sísmica).
-     */
     private void yefriLermaAbrirLote(List<Elemento> lista, String aviso, String largo, String ancho, String altura) {
         yefriLermaLote = List.copyOf(lista);
         Formularios.fernandoHuancaLimpiarErrores(txtLoteLargo, txtLoteAncho, txtLoteAltura);
@@ -581,7 +540,6 @@ public class ModeloController implements Refrescable {
         Platform.runLater(txtLoteLargo::requestFocus);
     }
 
-    /** «24 columnas, 4 vigas · secciones 40×40, 30×50 cm». */
     static String yefriLermaDescribirLote(List<Elemento> lista) {
         var porTipo = lista.stream().collect(Collectors.groupingBy(Elemento::getTipo, LinkedHashMap::new, Collectors.counting()));
         String tipos = porTipo.entrySet().stream().map(e -> e.getValue() + " " + e.getKey().toLowerCase(Locale.ROOT)
@@ -596,12 +554,10 @@ public class ModeloController implements Refrescable {
         return BigDecimal.valueOf(metros * 100).setScale(1, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
-    /** Cambio pedido en un campo del lote: vacío = sin cambio; «0,5» fija; «+0,05» o «-0,05» suma o resta. */
     record YefriLermaAjuste(boolean relativo, double valor) {
         double aplicar(double actual) { return relativo ? actual + valor : valor; }
     }
 
-    /** {@code null} si el campo está vacío; lanza NumberFormatException si no es un número. */
     static YefriLermaAjuste yefriLermaLeerAjuste(String texto) {
         String t = texto == null ? "" : texto.trim().replace(',', '.').replace(" ", "");
         if (t.isEmpty()) return null;
@@ -611,7 +567,6 @@ public class ModeloController implements Refrescable {
         return new YefriLermaAjuste(relativo, v);
     }
 
-    /** Copias de {@code lista} con los ajustes aplicados; valida que las medidas queden positivas. */
     static List<Elemento> yefriLermaAplicarAjustes(List<Elemento> lista, YefriLermaAjuste largo, YefriLermaAjuste ancho, YefriLermaAjuste altura) {
         List<Elemento> r = new ArrayList<>();
         for (Elemento o : lista) {
@@ -670,17 +625,13 @@ public class ModeloController implements Refrescable {
                 yefriLermaNotificador.fernandoHuancaCerrarPanel();
                 yefriLermaCargarElementos();
                 yefriLermaSeleccionarIds(ids);
-                yefriLermaNotificador.exito(nuevos.size() + " elementos actualizados. Si no era lo que querías, pulsa «Deshacer» (Ctrl+Z).");
+                yefriLermaNotificador.exito(nuevos.size() + " elementos actualizados. Si no era lo que buscaba, pulse «Deshacer» (Ctrl+Z).");
             } catch (Exception e) {
                 yefriLermaNotificador.fernandoHuancaError(yefriLermaMensaje(e));
             }
         });
     }
 
-    /**
-     * Antes de guardar: si con estos cambios alguna viga deja de unir dos columnas (por ejemplo, al poner una medida fija a
-     * vigas en X y en Y a la vez), pide confirmación. Si no, guarda directamente.
-     */
     private void yefriLermaConfirmarSiSueltaVigas(List<Elemento> cambiados, Runnable guardar) {
         List<String> sueltas = yefriLermaVigasQueSeSueltan(List.copyOf(yefriLermaTodos), cambiados);
         if (sueltas.isEmpty()) {
@@ -694,7 +645,6 @@ public class ModeloController implements Refrescable {
                         + "«Ancho eje Y». ¿Guardar de todos modos? (Se puede deshacer.)", "Guardar igual", guardar);
     }
 
-    /** Nombres de las vigas que unían dos columnas y dejarían de hacerlo si se guardan {@code cambiados}. */
     static List<String> yefriLermaVigasQueSeSueltan(List<Elemento> actuales, List<Elemento> cambiados) {
         try {
             var antes = new HashSet<>(com.concretolab.service.FernandoHuancaAnalisisSismico.fernandoHuancaConexionVigas(actuales).idsSueltas());
@@ -709,11 +659,9 @@ public class ModeloController implements Refrescable {
             }
             return nuevas;
         } catch (IllegalArgumentException sinPorticos) {
-            return List.of(); // proyecto sin columnas o sin vigas: no hay pórticos que romper
+            return List.of();
         }
     }
-
-    // ------------------------------------------------------ deshacer
 
     private void yefriLermaRegistrarPaso(YefriLermaPaso paso) {
         yefriLermaHistorial.push(paso);
@@ -733,7 +681,6 @@ public class ModeloController implements Refrescable {
                 + yefriLermaHistorial.size() + " paso(s)." : "No hay cambios para deshacer"));
     }
 
-    /** Ctrl+Z: solo cuando se ve esta pantalla, sin paneles abiertos ni un movimiento en curso. */
     private void yefriLermaDeshacerConAtajo() {
         if (tabla.getScene() == null || !yefriLermaEdicionHabilitada || yefriLermaNotificador.fernandoHuancaHayVentanaAbierta()) return;
         onDeshacer();
@@ -762,7 +709,6 @@ public class ModeloController implements Refrescable {
         yefriLermaActualizarDeshacer();
     }
 
-    /** Vuelve a guardar el estado anterior, solo si los elementos siguen como quedaron tras ese cambio. */
     private void yefriLermaDeshacerEdicion(YefriLermaPasoEdicion paso) {
         var actuales = yefriLermaServicio.elementos(paso.proyectoId()).stream().collect(Collectors.toMap(Elemento::getId, e -> e));
         for (Elemento d : paso.despues()) {
@@ -788,10 +734,6 @@ public class ModeloController implements Refrescable {
                 && Math.abs(a.getX() - b.getX()) < t && Math.abs(a.getY() - b.getY()) < t && Math.abs(a.getZ() - b.getZ()) < t;
     }
 
-    /**
-     * Lo llama el análisis sísmico: muestra en el modelo los elementos indicados (por ejemplo, vigas que no llegan a las
-     * columnas), ya seleccionados, con un aviso. No cambia nada.
-     */
     public void yefriLermaMostrarElementos(Set<Long> ids, String aviso) {
         if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
         boolean soloVigas = !ids.isEmpty() && yefriLermaTodos.stream().filter(e -> ids.contains(e.getId())).allMatch(e -> "VIGA".equals(e.getTipo()));
@@ -800,10 +742,6 @@ public class ModeloController implements Refrescable {
         if (aviso != null) yefriLermaNotificador.fernandoHuancaAdvertencia(aviso);
     }
 
-    /**
-     * Lo llama el análisis sísmico: muestra las columnas que conviene agrandar, ya seleccionadas, con el panel de lote
-     * precargado. No guarda nada: el usuario revisa y pulsa «Aplicar».
-     */
     public void yefriLermaPrecargarCorreccion(List<com.concretolab.service.RecomendacionSismica.Cambio> cambios, String aviso) {
         if (panelMovimiento.isVisible()) yefriLermaEditorMovimiento.walterQuispesayhuaCerrar();
         var porId = yefriLermaTodos.stream().filter(e -> e.getId() != null).collect(Collectors.toMap(Elemento::getId, e -> e));
@@ -823,7 +761,6 @@ public class ModeloController implements Refrescable {
                 yefriLermaTextoCambio(cambios, actuales, false), "");
     }
 
-    /** Medida fija si todas las columnas quedan iguales; si no, el incremento común (+0,05). Vacío si no cambia. */
     static String yefriLermaTextoCambio(List<com.concretolab.service.RecomendacionSismica.Cambio> cambios, List<Elemento> actuales, boolean enX) {
         var porId = actuales.stream().collect(Collectors.toMap(Elemento::getId, e -> e));
         Set<Double> nuevos = new HashSet<>(), deltas = new HashSet<>();
@@ -845,14 +782,11 @@ public class ModeloController implements Refrescable {
         return BigDecimal.valueOf(v).setScale(3, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString().replace('.', ',');
     }
 
-    // ------------------------------------------------------ selección
-
     private void yefriLermaActualizarSeleccion() {
         int n = tabla.getSelectionModel().getSelectedItems().size();
         lblSeleccion.setText(n <= 1 ? tabla.getItems().size() + " en la lista" : n + " seleccionados");
     }
 
-    /** Selecciona solo {@code e}; si el filtro lo oculta, vuelve a «Todos los tipos». */
     private void yefriLermaSeleccionarSolo(Elemento e) {
         if (!tabla.getItems().contains(e)) cmbFiltroTipo.setValue(YEFRI_LERMA_TODOS_LOS_TIPOS);
         tabla.getSelectionModel().clearSelection();
@@ -865,18 +799,12 @@ public class ModeloController implements Refrescable {
         int[] indices = java.util.stream.IntStream.range(0, tabla.getItems().size())
                 .filter(i -> ids.contains(tabla.getItems().get(i).getId())).toArray();
         if (indices.length > 0) {
-            // una sola llamada: así el visor 3D se redibuja una vez y no por cada fila
             tabla.getSelectionModel().selectIndices(indices[0], java.util.Arrays.copyOfRange(indices, 1, indices.length));
         }
         var primero = tabla.getSelectionModel().getSelectedItems().stream().findFirst();
         primero.ifPresent(tabla::scrollTo);
     }
 
-    /**
-     * Clic en el visor 3D. Con Ctrl suma o quita el elemento de la selección (aunque sea de otro tipo: el filtro pasa a
-     * «Todos los tipos»). Sin Ctrl deja seleccionado solo ese; si ya era parte de una selección múltiple espera el tiempo
-     * de doble clic, porque un doble clic sobre la selección debe editar todos.
-     */
     private void yefriLermaClicEn3d(Elemento e, boolean agregar) {
         yefriLermaCancelarClicPendiente();
         var seleccion = tabla.getSelectionModel().getSelectedItems();
@@ -905,10 +833,6 @@ public class ModeloController implements Refrescable {
         }
     }
 
-    /**
-     * Doble clic en el visor 3D: si el elemento es parte de una selección múltiple abre «Editar N elementos» para todos;
-     * si no, «Editar elemento» (con el botón «Mover en 3D»).
-     */
     private void yefriLermaEditarDesde3d(Elemento e) {
         yefriLermaCancelarClicPendiente();
         if (panelMovimiento.isVisible()) return;
@@ -921,7 +845,6 @@ public class ModeloController implements Refrescable {
         yefriLermaEditar(e);
     }
 
-    /** Doble clic en una fila de la tabla: igual que en 3D, sobre una selección múltiple edita todas. */
     private void yefriLermaDobleClicFila(Elemento e) {
         var previa = yefriLermaSeleccionPrevia;
         if (previa.size() > 1 && previa.contains(e)) {
@@ -950,8 +873,6 @@ public class ModeloController implements Refrescable {
                     }
                 });
     }
-
-    // ------------------------------------------------------ plantilla rectangular
 
     @FXML
     private void onPlantilla() {
@@ -1042,14 +963,11 @@ public class ModeloController implements Refrescable {
         yefriLermaNotificador.fernandoHuancaCerrarPanel();
     }
 
-    // ----------------------------------------------------------------- apoyo
-
     private List<TextField> yefriLermaCamposPlantilla() {
         return List.of(txtSeparacionX, txtSeparacionY, txtLargoZapata, txtAnchoZapata, txtAlturaZapata,
                 txtLadoColumna, txtAlturaColumna, txtAnchoViga, txtAlturaViga);
     }
 
-    /** Recarga el combo y deja seleccionado (y en la sesion) el proyecto con ese id, si existe. */
     private void yefriLermaCargarProyectos(Long idActivo) {
         yefriLermaSincronizando = true;
         try {
@@ -1081,7 +999,6 @@ public class ModeloController implements Refrescable {
         yefriLermaDibujar(true);
     }
 
-    /** Metrado de concreto neto (sin doble conteo en cruces) con encofrado y acero referenciales por tipo. */
     static String yefriLermaResumenMetrado(java.util.List<Elemento> elementos) {
         if (elementos.isEmpty()) {
             return "El proyecto no tiene elementos.";
@@ -1104,7 +1021,6 @@ public class ModeloController implements Refrescable {
         return sb.toString();
     }
 
-    /** Edita las cuantías de acero (kg/m³) que usa el metrado; se guardan en la carpeta de datos. */
     @FXML
     private void onEditarCuantias() {
         var actuales = com.concretolab.service.CuantiasAcero.yefriLermaLeer();
@@ -1154,7 +1070,6 @@ public class ModeloController implements Refrescable {
         }
     }
 
-    /** Texto corto en el botón («Metrado · 57,86 m³») y texto completo para el globo. */
     private void yefriLermaActualizarMetrado() {
         if (cmbProyecto.getValue() == null) {
             lblResumen.setText("Seleccione un proyecto");
@@ -1168,7 +1083,6 @@ public class ModeloController implements Refrescable {
         if (yefriLermaGloboMetrado != null && yefriLermaGloboMetrado.isShowing()) yefriLermaGloboMetrado.hide();
     }
 
-    /** Muestra u oculta el metrado completo en un globo junto al botón, sin ocupar espacio de la tabla. */
     @FXML
     private void onVerMetrado() {
         if (yefriLermaGloboMetrado != null && yefriLermaGloboMetrado.isShowing()) {
@@ -1192,7 +1106,6 @@ public class ModeloController implements Refrescable {
         return BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).toPlainString().replace('.', ',');
     }
 
-    /** Reencuadra la camara al cargar datos, pero no al seleccionar una fila. */
     private void yefriLermaDibujar(boolean reencuadrar) {
         Set<Elemento> marcados = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         marcados.addAll(tabla.getSelectionModel().getSelectedItems());
@@ -1212,7 +1125,6 @@ public class ModeloController implements Refrescable {
         return yefriLermaNumero(campo, "Ingrese un número válido.");
     }
 
-    /** Lee un decimal (acepta coma); si no es valido marca el campo y devuelve {@code null}. */
     private Double yefriLermaNumero(TextField campo, String mensajeError) {
         try {
             return Double.parseDouble(campo.getText().trim().replace(',', '.'));
@@ -1226,7 +1138,6 @@ public class ModeloController implements Refrescable {
         return e.getMessage() == null ? "No se pudo completar la operación." : e.getMessage();
     }
 
-    /** Mismo formato que {@code FormatoNumeros.volumen} (esa clase no es visible fuera de {@code ui}). */
     private static String yefriLermaVolumen(double valor) {
         return BigDecimal.valueOf(valor).setScale(6, RoundingMode.HALF_UP).stripTrailingZeros()
                 .toPlainString().replace('.', ',');

@@ -12,12 +12,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.layout.VBox;
 
-/**
- * Diálogos del arranque. ConcretoLab abre sin contraseña; solo se pide la contraseña de una base creada con una versión
- * anterior que la tenía, para convertirla una única vez. Se pueden llamar desde cualquier hilo: se ejecutan en el de JavaFX.
- */
 public final class DialogoClaveBase {
-
     private DialogoClaveBase() { }
 
     static <T> T erickDelgadoEnFx(Supplier<T> tarea) {
@@ -33,7 +28,6 @@ public final class DialogoClaveBase {
         return futuro.join();
     }
 
-    /** Pide la contraseña de una base antigua protegida; {@code aviso} explica el motivo o el intento fallido. */
     public static Optional<char[]> erickDelgadoPedirActual(String aviso) {
         return erickDelgadoEnFx(() -> {
             var dialogo = new Dialog<char[]>();

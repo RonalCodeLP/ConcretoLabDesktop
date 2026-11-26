@@ -6,9 +6,6 @@ import java.util.function.Consumer;
 import com.concretolab.service.MovimientoElementoService.Posicion;
 import com.concretolab.service.MovimientoElementoService.Referencias;
 import com.concretolab.service.MovimientoElementoService.Estado;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.AmbientLight;
@@ -29,12 +26,9 @@ import javafx.scene.paint.PhongMaterial;
 import javafx.scene.shape.Box;
 import javafx.scene.transform.Rotate;
 import javafx.scene.transform.Translate;
-import javafx.util.Duration;
 
-/** Visor 3D del modelo: solo presentación, no modifica datos. X e Y son horizontales y Z es vertical (en metros). */
 public class ErickDelgadoVisor3D {
     private static final double ERICK_DELGADO_ESCALA = 65;
-    // Colores de los materiales 3D (no son CSS). Los de la leyenda 2D están en css/pendiente-modelo.css.
     private static final Color ERICK_DELGADO_EJE_X = Color.web("#ef4444"), ERICK_DELGADO_EJE_Y = Color.web("#22c55e"), ERICK_DELGADO_EJE_Z = Color.web("#3b82f6");
     private static final Color ERICK_DELGADO_COLOR_SELECCION = Color.web("#f59e0b");
     private static final Color ERICK_DELGADO_COLOR_ZAPATA = Color.web("#78716c");
@@ -53,10 +47,8 @@ public class ErickDelgadoVisor3D {
     private Long erickDelgadoIdMovimiento;
     private Consumer<Double> erickDelgadoAlArrastrar;
     private double erickDelgadoInicioArrastre;
-    /** Tiempo máximo entre dos clics sobre el mismo elemento para tomarlos como doble clic. */
     public static final long ERICK_DELGADO_DOBLE_CLIC_MS = 450;
 
-    /** Clic sobre un elemento: {@code agregar} es true con Ctrl (o Shift / Cmd) para sumar o quitar de la selección. */
     @FunctionalInterface
     public interface AlClic {
         void accept(Elemento elemento, boolean agregar);
@@ -111,16 +103,10 @@ public class ErickDelgadoVisor3D {
 
     public StackPane erickDelgadoNodo() { return erickDelgadoNodo; }
 
-    /** Redibuja los elementos. Si {@code reencuadrar} es true, ajusta el suelo y la cámara al modelo. */
     public void erickDelgadoMostrar(List<Elemento> lista, Elemento seleccionado, Consumer<Elemento> alSeleccionar, boolean reencuadrar) {
         erickDelgadoMostrar(lista, e -> e == seleccionado, (e, agregar) -> alSeleccionar.accept(e), e -> { }, reencuadrar);
     }
 
-    /**
-     * Igual que {@link #erickDelgadoMostrar(List, Elemento, Consumer, boolean)} pero resalta todos los elementos que cumplen
-     * {@code resaltado} (selección múltiple), distingue el clic con Ctrl (agregar a la selección) y avisa del doble clic
-     * sobre un elemento con {@code alDobleClic} (el segundo clic de un doble clic no vuelve a seleccionar).
-     */
     public void erickDelgadoMostrar(List<Elemento> lista, java.util.function.Predicate<Elemento> resaltado, AlClic alSeleccionar,
                                     Consumer<Elemento> alDobleClic, boolean reencuadrar) {
         elementos.getChildren().clear();
@@ -134,7 +120,6 @@ public class ErickDelgadoVisor3D {
             caja.setUserData(e.getId());
             caja.setOnMouseClicked(ev -> {
                 if (erickDelgadoIdMovimiento != null || !ev.isStillSincePress() || ev.getButton() != MouseButton.PRIMARY) return;
-                // La caja se vuelve a crear al seleccionar, así que el doble clic se detecta por elemento y tiempo, no por nodo.
                 boolean agregar = ev.isControlDown() || ev.isShortcutDown() || ev.isMetaDown() || ev.isShiftDown();
                 long ahora = System.currentTimeMillis();
                 boolean doble = !agregar && e.getId() != null && e.getId().equals(erickDelgadoUltimoClicId)
@@ -223,7 +208,7 @@ public class ErickDelgadoVisor3D {
             }
         }
         int x0 = (int) Math.floor(minX) - 2, x1 = (int) Math.ceil(maxX) + 2, y0 = (int) Math.floor(minY) - 2, y1 = (int) Math.ceil(maxY) + 2;
-        int paso = Math.max(1, (int) Math.ceil(Math.max(x1 - x0, y1 - y0) / 40.0)); // evita demasiadas líneas en modelos grandes
+        int paso = Math.max(1, (int) Math.ceil(Math.max(x1 - x0, y1 - y0) / 40.0));
         x1 = x0 + (int) Math.ceil((x1 - x0) / (double) paso) * paso;
         y1 = y0 + (int) Math.ceil((y1 - y0) / (double) paso) * paso;
 
@@ -255,7 +240,6 @@ public class ErickDelgadoVisor3D {
         Box ez = new Box(g, largo, g); ez.setTranslateX(ox); ez.setTranslateZ(oy); ez.setTranslateY(nivel - 2 - largo / 2); ez.setMaterial(erickDelgadoMaterial(ERICK_DELGADO_EJE_Z, false));
         ejes.getChildren().addAll(ex, ey, ez);
 
-        // Ajusta el cuadro: centra el modelo y aleja la cámara según su tamaño.
         double radio = Math.hypot(Math.hypot(w, d), (alto - base) * ERICK_DELGADO_ESCALA) / 2;
         erickDelgadoRadioModelo = radio;
         erickDelgadoDesplazamiento.setX(0); erickDelgadoDesplazamiento.setY(0);
@@ -264,7 +248,6 @@ public class ErickDelgadoVisor3D {
         erickDelgadoCamara.setTranslateZ(-erickDelgadoDistancia);
     }
 
-    /** La cámara tiene un campo de visión vertical de 30°: una esfera de radio r cabe a r / sen(15°) ≈ 3,86·r, con un 10 % de margen. */
     private static double erickDelgadoDistanciaParaEncuadrar(double radio) {
         return Math.max(500, radio / Math.sin(Math.toRadians(15)) * 1.1);
     }
@@ -314,17 +297,17 @@ public class ErickDelgadoVisor3D {
     }
 
     private void vista(double ax, double ay) {
-        // Gira por el camino corto para que la animación no dé vueltas completas.
         double actual = erickDelgadoRotacionY.getAngle(), destino = ay + 360 * Math.round((actual - ay) / 360);
-        new Timeline(new KeyFrame(Duration.millis(350),
-                new KeyValue(erickDelgadoRotacionX.angleProperty(), ax), new KeyValue(erickDelgadoRotacionY.angleProperty(), destino),
-                new KeyValue(erickDelgadoDesplazamiento.xProperty(), 0.0), new KeyValue(erickDelgadoDesplazamiento.yProperty(), 0.0))).play();
+        erickDelgadoRotacionX.setAngle(ax);
+        erickDelgadoRotacionY.setAngle(destino);
+        erickDelgadoDesplazamiento.setX(0);
+        erickDelgadoDesplazamiento.setY(0);
     }
 
     private void erickDelgadoAjustar() {
-        vista(25, -35); // mismo ángulo que «Isométrica» (el eje X se invirtió para que Z quede hacia arriba)
+        vista(25, -35);
         erickDelgadoDistancia = erickDelgadoDistanciaParaEncuadrar(erickDelgadoRadioModelo);
-        new Timeline(new KeyFrame(Duration.millis(350), new KeyValue(erickDelgadoCamara.translateZProperty(), -erickDelgadoDistancia))).play();
+        erickDelgadoCamara.setTranslateZ(-erickDelgadoDistancia);
     }
 
     private PointLight erickDelgadoLuz(Color color, double x, double y, double z) {
@@ -344,7 +327,7 @@ public class ErickDelgadoVisor3D {
         return switch (tipo) {
             case "ZAPATA" -> ERICK_DELGADO_COLOR_ZAPATA;
             case "COLUMNA" -> ERICK_DELGADO_COLOR_COLUMNA;
-            case "LOSA" -> Color.web("#94a3b8", 0.35); // translúcida: no tapa lo que hay debajo
+            case "LOSA" -> Color.web("#94a3b8", 0.35);
             case "MURO" -> Color.web("#f59e0b");
             default -> ERICK_DELGADO_COLOR_VIGA;
         };

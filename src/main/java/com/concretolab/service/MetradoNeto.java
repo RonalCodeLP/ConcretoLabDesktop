@@ -8,21 +8,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
-/**
- * Metrado de concreto sin doble conteo. Los elementos son prismas alineados a los ejes; donde dos se cruzan (columna con
- * viga, viga con losa, muro con losa…) el volumen común se asigna una sola vez al elemento de mayor prioridad:
- * zapata, columna, viga, muro y por último losa. A igual tipo gana el que está antes en la lista.
- *
- * <p>También estima el encofrado (superficie de contacto con el molde, sin descontar contactos entre elementos) y el
- * acero con cuantías referenciales editables. Son estimaciones de anteproyecto, no un metrado de obra.</p>
- */
 public final class MetradoNeto {
-
     private MetradoNeto() { }
 
     private static final List<String> YEFRI_LERMA_PRIORIDAD = List.of("ZAPATA", "COLUMNA", "VIGA", "MURO", "LOSA");
 
-    /** Cuantías referenciales de acero en kg por m³ de concreto, por tipo. */
     public static Map<String, Double> yefriLermaCuantiasReferenciales() {
         var m = new LinkedHashMap<String, Double>();
         m.put("ZAPATA", 60.0);
@@ -105,7 +95,6 @@ public final class MetradoNeto {
         return new Resultado(List.copyOf(filas), vb, vn, enc, ac, neto);
     }
 
-    /** Superficie de molde: columnas y zapatas, perímetro por altura; vigas, fondo y dos caras; muros, dos caras; losas, el fondo. */
     static double yefriLermaSuperficieEncofrado(Elemento e) {
         double l = e.getLargo(), a = e.getAncho(), h = e.getAltura();
         return switch (e.getTipo()) {
@@ -117,7 +106,6 @@ public final class MetradoNeto {
         };
     }
 
-    /** Volumen de la unión de cajas por compresión de coordenadas (exacto). */
     static double yefriLermaVolumenUnion(List<Caja> cajas) {
         if (cajas.isEmpty()) return 0;
         if (cajas.size() == 1) return cajas.get(0).volumen();

@@ -11,10 +11,8 @@ import javafx.scene.control.TextField;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-/** Balance de volúmenes: cemento y agregado fino por m³ a partir de los parámetros que ingresa el profesional. */
 @Component
 public class BalanceController implements Refrescable {
-
     @FXML private TextField txtAgua;
     @FXML private TextField txtRelacionAc;
     @FXML private TextField txtDensidadCemento;
@@ -28,7 +26,6 @@ public class BalanceController implements Refrescable {
     private final MainController yefriLermaPrincipal;
     private final MezclasController yefriLermaMezclas;
 
-    /** Último balance calculado (por m³, agregados SSS), para pasarlo a «Registrar mezcla». */
     private record YefriLermaBalance(double cemento, double agua, double finoSss, double gruesoSss, double relacionAc, double aire) { }
 
     private YefriLermaBalance yefriLermaUltimo;
@@ -43,7 +40,7 @@ public class BalanceController implements Refrescable {
         TextField[] campos = yefriLermaCampos();
         for (TextField campo : campos) {
             campo.textProperty().addListener((obs, anterior, actual) -> {
-                lblResultado.setText("Los datos cambiaron. Calcula nuevamente.");
+                lblResultado.setText("Los datos cambiaron. Calcule nuevamente.");
                 yefriLermaUltimo = null;
                 btnUsarEnMezcla.setDisable(true);
             });
@@ -53,7 +50,6 @@ public class BalanceController implements Refrescable {
 
     @Override
     public void refrescar() {
-        // Pantalla sin datos persistentes: se conservan los valores ingresados.
     }
 
     @FXML
@@ -76,7 +72,6 @@ public class BalanceController implements Refrescable {
         }
     }
 
-    /** Lleva el balance a «Mezclas y probetas» y abre «Registrar mezcla» con las cantidades por m³. */
     @FXML
     private void onUsarEnMezcla() {
         var b = yefriLermaUltimo;

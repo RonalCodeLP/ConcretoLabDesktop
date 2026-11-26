@@ -12,16 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 
-/**
- * Las migraciones de Flyway (db/migration) deben dejar las tablas que las entidades necesitan, tanto en una base
- * nueva como en una creada antes con ddl-auto=update. Sustituye a ddl-auto=validate, que no sirve con SQLite.
- */
 class EsquemaMigracionesTest {
-
     private static ConfigurableApplicationContext iniciar(File db) {
         return new SpringApplicationBuilder(ConcretoLabApplication.class)
                 .run("--spring.datasource.url=jdbc:sqlite:" + db.getAbsolutePath(), "--spring.main.web-application-type=none",
-                        "--app.seeder.enabled=false", "--logging.file.name=target/pruebas.log"); // argumentos: máxima prioridad, nunca la base real
+                        "--app.seeder.enabled=false", "--logging.file.name=target/pruebas.log");
     }
 
     private static List<String> consultarCadaEntidad(ConfigurableApplicationContext contexto) {
@@ -57,7 +52,6 @@ class EsquemaMigracionesTest {
     void unaBaseCreadaAntesSeCompletaSinPerderDatos() throws Exception {
         File db = Files.createTempFile("antigua", ".db").toFile();
         db.deleteOnExit();
-        // Simula una base creada por ddl-auto=update antes de las migraciones: sin tabla bitacora y sin historial de Flyway.
         try (var c = DriverManager.getConnection("jdbc:sqlite:" + db.getAbsolutePath()); var st = c.createStatement()) {
             for (String linea : new String(getClass().getResourceAsStream("/db/migration/V1__esquema_base.sql").readAllBytes(), "UTF-8").split("\\R"))
                 if (linea.startsWith("CREATE TABLE")) st.execute(linea.replace(" IF NOT EXISTS", ""));

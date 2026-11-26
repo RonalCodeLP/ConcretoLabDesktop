@@ -8,11 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Tamizado de ejemplo de la arena DEMO. Requiere que {@link MaterialSeeder} ya haya corrido. Es idempotente. */
 @Component
 @RequiredArgsConstructor
 public class GranulometriaSeeder {
-
     public static final String YEFRI_LERMA_IDENTIFICACION = "DEMO - Tamizado de arena";
 
     private final MaterialService materiales;

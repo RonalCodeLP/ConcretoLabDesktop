@@ -13,12 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/**
- * Un «edificio» cuyas vigas no llegan a las columnas no es un pórtico: el análisis no debe decir «CUMPLE» aunque las
- * columnas sueltas (muy gruesas) den derivas bajas. Caso reportado: columnas agrandadas y vigas convertidas en bloques.
- */
 class ModeloIncompletoTest {
-
     private static long ids = 0;
 
     private static Elemento el(String tipo, String n, double largo, double ancho, double alto, double x, double y, double z) {
@@ -28,7 +23,6 @@ class ModeloIncompletoTest {
         return e;
     }
 
-    /** Pórtico de 3 pisos, 3×2 columnas a 5 m × 4 m, como el escenario LAB. */
     static List<Elemento> portico(double lado) {
         List<Elemento> l = new ArrayList<>();
         double z = 0;
@@ -53,7 +47,6 @@ class ModeloIncompletoTest {
                 new Parametros(Zona.Z4, Categoria.C, Suelo.S2, 8, 1, 1, 35)));
     }
 
-    /** Las vigas como bloques de 1,1 × 1,1 (medida fija puesta a todas): ninguna llega de columna a columna. */
     private static List<Elemento> conVigasComoBloques(List<Elemento> l) {
         for (Elemento e : l) if (e.getTipo().equals("VIGA")) { e.setLargo(0.6); e.setAncho(0.6); }
         return l;
@@ -73,7 +66,6 @@ class ModeloIncompletoTest {
     @Test
     void conLasVigasSueltasNuncaDiceCumpleAunqueLasColumnasGruesasDenDerivasBajas() {
         var r = analizar(conVigasComoBloques(portico(1.1)));
-        // las columnas de 1,1 m solas sí dan derivas bajas: justamente el caso engañoso
         assertThat(r.estaticoX().cumple() && r.estaticoY().cumple() && r.espectralX().cumple() && r.espectralY().cumple()).isTrue();
         assertThat(r.conexion().sueltas()).hasSize(r.conexion().vigas());
         assertThat(r.conexion().pisosSinPortico()).containsExactly(1, 2, 3);
@@ -85,7 +77,6 @@ class ModeloIncompletoTest {
         assertThat(v.get(0).texto()).startsWith("Modelo incompleto").contains("NO son válidas");
         assertThat(v.get(0).correccion()).isEqualTo(GuiaSismica.Correccion.MODELO);
         assertThat(v.get(0).consejo()).contains("«Largo eje X» es su longitud");
-        // ninguna deriva aparece en verde
         assertThat(v.stream().filter(x -> x.texto().startsWith("Deriva")))
                 .hasSize(4).allMatch(x -> x.nivel() == GuiaSismica.Nivel.ALERTA && x.texto().contains("no válida"));
     }
@@ -106,14 +97,11 @@ class ModeloIncompletoTest {
         var actuales = portico(0.45);
         var vx = actuales.stream().filter(e -> e.getNombre().equals("VX-100")).findFirst().orElseThrow();
         var vy = actuales.stream().filter(e -> e.getNombre().equals("VY-100")).findFirst().orElseThrow();
-        // medida fija «Largo X = 0,6» a una viga en X (se acorta) y a una en Y (solo se ensancha): se suelta solo la de X
         var cambiados = ModeloController.yefriLermaAplicarAjustes(List.of(vx, vy), ModeloController.yefriLermaLeerAjuste("0,6"), null, null);
         assertThat(ModeloController.yefriLermaVigasQueSeSueltan(actuales, cambiados)).containsExactly("VX-100");
-        // agrandar columnas no suelta ninguna viga
         var columnas = actuales.stream().filter(e -> e.getTipo().equals("COLUMNA")).toList();
         var mas = ModeloController.yefriLermaAplicarAjustes(columnas, ModeloController.yefriLermaLeerAjuste("+0,3"), ModeloController.yefriLermaLeerAjuste("+0,3"), null);
         assertThat(ModeloController.yefriLermaVigasQueSeSueltan(actuales, mas)).isEmpty();
-        // proyecto sin vigas: nada que avisar
         assertThat(ModeloController.yefriLermaVigasQueSeSueltan(columnas, List.of())).isEmpty();
     }
 

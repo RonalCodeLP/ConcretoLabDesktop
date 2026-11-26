@@ -41,10 +41,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
-/** Exportación e importación de proyectos, siempre sobre una base SQLite temporal (nunca la real). */
 @SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class IntercambioProyectoTest {
-
     @DynamicPropertySource
     static void propiedades(DynamicPropertyRegistry registro) throws Exception {
         File db = Files.createTempFile("intercambio-test", ".db").toFile();
@@ -134,8 +132,6 @@ class IntercambioProyectoTest {
         vinculos.save(v);
     }
 
-    // ---- utilidades de comparación ----
-
     private record Forma(String tipo, String nombre, double largo, double ancho, double altura, double x, double y, double z) { }
 
     private List<Forma> formas(Long id) {
@@ -180,8 +176,6 @@ class IntercambioProyectoTest {
         assertThat(total).isEqualTo(3);
         assertThat(ms.get(0).getResistencia()).isEqualTo(23);
     }
-
-    // ---- casos ----
 
     @Test
     void exportaEImportaSinCifrarConservaTodo() {
@@ -233,7 +227,7 @@ class IntercambioProyectoTest {
         Map<String, byte[]> entradas = leerZip(Files.readAllBytes(archivo));
         byte[] datos = entradas.get("datos.json");
         for (int i = 0; i < datos.length; i++) {
-            if (datos[i] == 'Z') { // un caracter de nombre o tipo: el JSON sigue siendo valido
+            if (datos[i] == 'Z') {
                 datos[i] = 'Y';
                 break;
             }
@@ -317,8 +311,6 @@ class IntercambioProyectoTest {
         }
     }
 
-    // ---- ayudas de zip ----
-
     private static Map<String, byte[]> leerZip(byte[] zip) throws Exception {
         Map<String, byte[]> r = new LinkedHashMap<>();
         try (ZipInputStream in = new ZipInputStream(new ByteArrayInputStream(zip))) {
@@ -340,7 +332,6 @@ class IntercambioProyectoTest {
         return salida.toByteArray();
     }
 
-    /** Zip valido (hash correcto) con el datos.json dado y la version de formato indicada. */
     private static byte[] zipConDatos(String datosJson, int version) throws Exception {
         byte[] datos = datosJson.getBytes(StandardCharsets.UTF_8);
         StringBuilder hex = new StringBuilder();

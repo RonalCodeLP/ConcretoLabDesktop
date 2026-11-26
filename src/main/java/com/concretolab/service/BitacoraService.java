@@ -10,15 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Bitácora de cambios importantes (crear o eliminar proyectos, importar, exportar, copias y restauraciones).
- * Se une a la transacción de la operación registrada (SQLite trabaja con una sola conexión, así que no puede abrir otra):\n * el evento se confirma o se revierte junto con ella. Si falla al guardar, lo anota en el registro técnico.
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class BitacoraService {
-
     private final BitacoraRepository erickDelgadoRepositorio;
 
     @Transactional

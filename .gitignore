@@ -20,3 +20,6 @@ dist/
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Archivos intermedios de LaTeX (doc\latex\compilar.ps1)
+doc/latex/build/

@@ -12,9 +12,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Robustez del lector DXF: archivos dañados, codificación, unidades y ubicación del conversor DWG. */
 class PlanoDxfRobustezTest {
-
     private final FernandoHuancaPlanoDxf lector = new FernandoHuancaPlanoDxf();
 
     private static Elemento el(String tipo, double largo, double ancho, double alto, double x, double y, double z) {
@@ -43,7 +41,6 @@ class PlanoDxfRobustezTest {
     }
 
     @Test void respetaTildesYEnesSegunLaVersionDelDxf(@TempDir Path dir) throws Exception {
-        // AutoCAD 2007 en adelante guarda en UTF-8; las versiones anteriores, en Windows-1252.
         Path utf8 = dir.resolve("nuevo.dxf");
         Files.write(utf8, dxfLineaSimple("AC1027", "COLUMNAS_ÁREA_Ñ").getBytes(StandardCharsets.UTF_8));
         Path antiguo = dir.resolve("antiguo.dxf");
@@ -60,7 +57,7 @@ class PlanoDxfRobustezTest {
         assertEquals(0.01, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("5"));
         assertEquals(0.0254, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("1"), 1e-12);
         assertEquals(0.3048, FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("2"), 1e-12);
-        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("0")));   // sin unidad declarada
+        assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("0")));
         assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("")));
         assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad(null)));
         assertTrue(Double.isNaN(FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad("99")));
@@ -73,7 +70,7 @@ class PlanoDxfRobustezTest {
         assertEquals(3.0, enM.get(0).getAltura(), 1e-12);
         assertEquals(5.0, enM.get(0).getX(), 1e-12);
         assertEquals(1.5, enM.get(0).getZ(), 1e-12);
-        assertEquals(400, enMm.get(0).getLargo(), 0.0); // el original no se modifica
+        assertEquals(400, enMm.get(0).getLargo(), 0.0);
     }
 
     @Test void exportarEImportarConservaElModeloExacto(@TempDir Path dir) throws Exception {

@@ -1,13 +1,8 @@
 package com.concretolab.ui;
 
 import atlantafx.base.controls.ModalPane;
-import atlantafx.base.controls.Notification;
 import atlantafx.base.theme.Styles;
-import atlantafx.base.util.Animations;
-import javafx.animation.PauseTransition;
-import javafx.animation.Timeline;
 import javafx.geometry.Pos;
-import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -15,87 +10,57 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 import org.kordamp.ikonli.Ikon;
 import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.stereotype.Component;
 
-/**
- * Punto unico para la retroalimentacion visual de la aplicacion: notificaciones
- * flotantes, dialogo de confirmacion y panel lateral para formularios.
- * El {@code MainController} registra aqui las capas de la ventana principal.
- */
 @Component
 public class Notificador {
-
-    private static final Duration FERNANDO_HUANCA_DURACION_TOAST = Duration.seconds(3.5);
-
     private ModalPane modalPanel;
     private ModalPane modalDialogo;
-    private VBox fernandoHuancaZonaToasts;
+    private Label fernandoHuancaEstado;
 
-    public void fernandoHuancaRegistrar(ModalPane modalPanel, ModalPane modalDialogo, VBox zonaToasts) {
+    public void fernandoHuancaRegistrar(ModalPane modalPanel, ModalPane modalDialogo, Label estado) {
         this.modalPanel = modalPanel;
         this.modalDialogo = modalDialogo;
-        this.fernandoHuancaZonaToasts = zonaToasts;
+        this.fernandoHuancaEstado = estado;
     }
 
-    // ---------------------------------------------------------------- toasts
-
     public void exito(String mensaje) {
-        toast(mensaje, Feather.CHECK_CIRCLE, Styles.SUCCESS);
+        fernandoHuancaMensaje(mensaje, Feather.CHECK, "estado-exito");
     }
 
     public void fernandoHuancaAdvertencia(String mensaje) {
-        toast(mensaje, Feather.ALERT_TRIANGLE, Styles.WARNING);
+        fernandoHuancaMensaje(mensaje, Feather.ALERT_TRIANGLE, "estado-advertencia");
     }
 
     public void fernandoHuancaError(String mensaje) {
-        toast(mensaje, Feather.X_CIRCLE, Styles.DANGER);
+        fernandoHuancaMensaje(mensaje, Feather.X_CIRCLE, "estado-error");
     }
 
     public void fernandoHuancaInfo(String mensaje) {
-        toast(mensaje, Feather.INFO, Styles.ACCENT);
+        fernandoHuancaMensaje(mensaje, Feather.INFO, "estado-info");
     }
 
-    private void toast(String mensaje, Ikon icono, String estilo) {
-        Notification n = new Notification(mensaje, new FontIcon(icono));
-        n.getStyleClass().addAll(estilo, Styles.ELEVATED_2, "toast");
-        n.setPrefWidth(360);
-        n.setMaxWidth(360);
-        n.setOnClose(e -> fernandoHuancaCerrarToast(n));
-
-        fernandoHuancaZonaToasts.getChildren().add(n);
-        Animations.fadeInUp(n, Duration.millis(280)).play();
-
-        PauseTransition espera = new PauseTransition(FERNANDO_HUANCA_DURACION_TOAST);
-        espera.setOnFinished(e -> fernandoHuancaCerrarToast(n));
-        espera.play();
+    private void fernandoHuancaMensaje(String mensaje, Ikon icono, String estilo) {
+        if (fernandoHuancaEstado == null) return;
+        fernandoHuancaEstado.getStyleClass().removeAll("estado-exito", "estado-advertencia", "estado-error", "estado-info");
+        fernandoHuancaEstado.getStyleClass().add(estilo);
+        fernandoHuancaEstado.setGraphic(new FontIcon(icono));
+        fernandoHuancaEstado.setText(mensaje);
+        fernandoHuancaEstado.setTooltip(new javafx.scene.control.Tooltip(mensaje));
     }
 
-    private void fernandoHuancaCerrarToast(Notification n) {
-        if (!fernandoHuancaZonaToasts.getChildren().contains(n) || n.getProperties().containsKey("cerrando")) {
-            return;
-        }
-        n.getProperties().put("cerrando", true);
-        Timeline salida = Animations.fadeOutRight(n, Duration.millis(250));
-        salida.setOnFinished(e -> fernandoHuancaZonaToasts.getChildren().remove(n));
-        salida.play();
+    public String fernandoHuancaUltimoMensaje() {
+        return fernandoHuancaEstado == null ? "" : fernandoHuancaEstado.getText();
     }
 
-    // ---------------------------------------------------- dialogo confirmacion
-
-    /** Muestra un dialogo modal centrado; ejecuta {@code alConfirmar} solo si se acepta. */
     public void fernandoHuancaConfirmar(String titulo, String mensaje, String textoAccion, Runnable alConfirmar) {
         dialogo(Feather.TRASH_2, "peligro", titulo, mensaje,
                 "Cancelar", null, textoAccion, Styles.DANGER, alConfirmar);
     }
 
-    /**
-     * Dialogo de resultado exitoso con dos acciones (p. ej. "Nueva venta" e "Imprimir").
-     * Cualquiera de las dos cierra el dialogo antes de ejecutarse.
-     */
     public void fernandoHuancaExitoConAcciones(String titulo, String mensaje,
                                  String textoSecundario, Runnable secundaria,
                                  String textoPrincipal, Runnable principal) {
@@ -148,13 +113,17 @@ public class Notificador {
         aceptar.requestFocus();
     }
 
-    // ------------------------------------------------------------ panel lateral
+    public void fernandoHuancaMostrarDialogo(Node contenido) {
+        modalDialogo.usePredefinedTransitionFactories(null);
+        modalDialogo.show(contenido);
+    }
 
-    /** Desliza un formulario desde la derecha. */
+    public void fernandoHuancaCerrarDialogo() {
+        modalDialogo.hide();
+    }
+
     public void fernandoHuancaAbrirPanel(Node contenido) {
-        // Se renuevan las transiciones: el ModalPane las cachea para el primer nodo mostrado.
-        modalPanel.usePredefinedTransitionFactories(Side.RIGHT,
-                Duration.millis(320), Duration.millis(220));
+        modalPanel.usePredefinedTransitionFactories(null);
         modalPanel.show(contenido);
     }
 
@@ -162,7 +131,6 @@ public class Notificador {
         modalPanel.hide();
     }
 
-    /** Hay un panel lateral o un diálogo a la vista (el ModalPane conserva su contenido aunque esté oculto). */
     public boolean fernandoHuancaHayVentanaAbierta() {
         return (modalPanel != null && modalPanel.isDisplay()) || (modalDialogo != null && modalDialogo.isDisplay());
     }

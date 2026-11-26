@@ -2,8 +2,8 @@
 
 <?import atlantafx.base.controls.ModalPane?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.input.KeyCodeCombination?>
 <?import javafx.scene.layout.*?>
-<?import org.kordamp.ikonli.javafx.FontIcon?>
 
 <StackPane xmlns="http://javafx.com/javafx/17"
            xmlns:fx="http://javafx.com/fxml/1"
@@ -12,102 +12,69 @@
            styleClass="app"
            prefWidth="1280.0" prefHeight="800.0">
 
-    <fx:define>
-        <ToggleGroup fx:id="menu"/>
-    </fx:define>
-
     <BorderPane>
-        <!-- ============ MENU LATERAL ============ -->
-        <left>
-            <VBox fx:id="sidebar" styleClass="sidebar" prefWidth="248.0" minWidth="248.0">
+        <top>
+            <MenuBar fx:id="barraMenu">
+                <Menu text="_Archivo">
+                    <MenuItem fx:id="mnuDatos" text="Datos y copias..." onAction="#onMenuDatos"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Salir" onAction="#onSalir"/>
+                </Menu>
+                <Menu text="_Ver">
+                    <MenuItem text="Inicio" onAction="#onMenuInicio"/>
+                    <SeparatorMenuItem/>
+                    <CheckMenuItem fx:id="mnuOscuro" text="Modo oscuro" onAction="#onCambiarTema"/>
+                </Menu>
+                <Menu text="_Proyecto">
+                    <MenuItem text="Modelo 3D y metrado" onAction="#onMenuModelo"/>
+                </Menu>
+                <Menu text="A_nálisis">
+                    <MenuItem text="Análisis sísmico E.030" onAction="#onMenuSismo"/>
+                </Menu>
+                <Menu text="_Concreto">
+                    <MenuItem text="Materiales y ensayos" onAction="#onMenuMateriales"/>
+                    <MenuItem text="Granulometría" onAction="#onMenuGranulometria"/>
+                    <MenuItem text="Balance de volúmenes" onAction="#onMenuBalance"/>
+                    <MenuItem text="Mezclas y probetas" onAction="#onMenuMezclas"/>
+                </Menu>
+                <Menu fx:id="mnuAyuda" text="A_yuda">
+                    <MenuItem text="Manual de usuario" onAction="#onManual"/>
+                    <MenuItem text="Ayuda de esta pantalla" onAction="#onAyudaPantalla">
+                        <accelerator><KeyCodeCombination code="F1" alt="UP" control="UP" meta="UP" shift="UP" shortcut="UP"/></accelerator>
+                    </MenuItem>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Recorrido de bienvenida" onAction="#onBienvenida"/>
+                    <MenuItem text="Agregar proyecto de ejemplo" onAction="#onEjemplo"/>
+                    <SeparatorMenuItem/>
+                    <MenuItem text="Acerca de ConcretoLab" onAction="#onAcercaDe"/>
+                </Menu>
+            </MenuBar>
+        </top>
 
-                <HBox styleClass="marca" spacing="12.0">
-                    <StackPane styleClass="marca-logo">
-                        <FontIcon iconLiteral="fth-layers"/>
-                    </StackPane>
-                    <VBox fx:id="marcaTextos" spacing="1.0">
-                        <Label text="ConcretoLab" styleClass="marca-titulo"/>
-                        <Label text="Cálculo y ensayos" styleClass="marca-subtitulo"/>
-                    </VBox>
-                </HBox>
-
-                <StackPane alignment="TOP_LEFT">
-                    <Region fx:id="indicador" styleClass="nav-indicador"
-                            prefHeight="42.0" maxHeight="-Infinity"/>
-                    <VBox spacing="3.0">
-                        
-                        <Label text="GENERAL" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navInicio" text="Inicio" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-home"/></graphic>
-                        </ToggleButton>
-
-                        <Label text="PROYECTO" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navModelo" text="Modelo 3D y metrado" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-box"/></graphic>
-                        </ToggleButton>
-
-                        <Label text="ANÁLISIS ESTRUCTURAL" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navSismo" text="Análisis sísmico E.030" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-activity"/></graphic>
-                        </ToggleButton>
-
-                        <Label text="DISEÑO DE CONCRETO" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navMateriales" text="Materiales y ensayos" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-layers"/></graphic>
-                        </ToggleButton>
-                        <ToggleButton fx:id="navGranulometria" text="Granulometría" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-bar-chart-2"/></graphic>
-                        </ToggleButton>
-                        <ToggleButton fx:id="navBalance" text="Balance de volúmenes" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-sliders"/></graphic>
-                        </ToggleButton>
-                        <ToggleButton fx:id="navMezclas" text="Mezclas y probetas" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-droplet"/></graphic>
-                        </ToggleButton>
-
-                        <Label text="SISTEMA" styleClass="nav-seccion"/>
-                        <ToggleButton fx:id="navDatos" text="Datos y copias" toggleGroup="$menu"
-                                      styleClass="nav-item" maxWidth="Infinity">
-                            <graphic><FontIcon iconLiteral="fth-database"/></graphic>
-                        </ToggleButton>
-                    </VBox>
-                </StackPane>
-
-                <Region VBox.vgrow="ALWAYS"/>
-
-                <Separator styleClass="nav-separador"/>
-                <Button fx:id="btnTema" text="Modo oscuro" onAction="#onCambiarTema"
-                        styleClass="nav-item" maxWidth="Infinity">
-                    <graphic><FontIcon iconLiteral="fth-moon"/></graphic>
-                </Button>
-                <Button fx:id="btnAcerca" text="Acerca de" onAction="#onAcercaDe"
-                        styleClass="nav-item" maxWidth="Infinity">
-                    <graphic><FontIcon iconLiteral="fth-info"/></graphic>
-                </Button>
-                <Button fx:id="btnContraer" text="Contraer menu" onAction="#onContraerMenu"
-                        styleClass="nav-item" maxWidth="Infinity">
-                    <graphic><FontIcon iconLiteral="fth-chevrons-left"/></graphic>
-                </Button>
-            </VBox>
-        </left>
-
-        <!-- ============ CONTENIDO ============ -->
         <center>
-            <StackPane fx:id="contenido" styleClass="contenido"/>
+            <TabPane fx:id="pestanas" styleClass="pestanas-principales" tabClosingPolicy="UNAVAILABLE">
+                <Tab fx:id="tabInicio" text="Inicio"/>
+                <Tab fx:id="tabModelo" text="Modelo 3D y metrado"/>
+                <Tab fx:id="tabSismo" text="Análisis sísmico"/>
+                <Tab fx:id="tabMateriales" text="Materiales"/>
+                <Tab fx:id="tabGranulometria" text="Granulometría"/>
+                <Tab fx:id="tabBalance" text="Balance"/>
+                <Tab fx:id="tabMezclas" text="Mezclas y probetas"/>
+                <Tab fx:id="tabDatos" text="Datos y copias"/>
+            </TabPane>
         </center>
+
+        <bottom>
+            <HBox styleClass="barra-estado" spacing="0.0">
+                <Label fx:id="lblMensaje" styleClass="estado-mensaje" text="Listo" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Separator orientation="VERTICAL"/>
+                <Label fx:id="lblProyectoActivo" styleClass="estado-celda" text="Sin proyecto"/>
+                <Separator orientation="VERTICAL"/>
+                <Label fx:id="lblVersion" styleClass="estado-celda"/>
+            </HBox>
+        </bottom>
     </BorderPane>
 
-    <!-- Capas flotantes: panel de formulario, dialogos y notificaciones -->
     <ModalPane fx:id="modalPanel"/>
     <ModalPane fx:id="modalDialogo"/>
-    <VBox fx:id="zonaNotificaciones" styleClass="zona-notificaciones" spacing="10.0"
-          pickOnBounds="false" alignment="BOTTOM_RIGHT" viewOrder="-100"
-          StackPane.alignment="BOTTOM_RIGHT" maxWidth="-Infinity" maxHeight="-Infinity"/>
 </StackPane>

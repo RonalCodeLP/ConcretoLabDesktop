@@ -12,7 +12,6 @@
       fx:controller="com.concretolab.controller.MaterialesController"
       styleClass="pagina">
 
-    <!-- ============ Formulario (se muestra en el panel lateral) ============ -->
     <fx:define>
         <VBox fx:id="panelFormulario" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
@@ -33,7 +32,6 @@
 
                     <VBox styleClass="campo">
                         <Label text="Tipo *" styleClass="campo-label"/>
-                        <!-- Los tipos los carga el controlador desde MaterialService (cementos NTP, agregados y aditivos) -->
                         <ComboBox fx:id="cmbTipo" maxWidth="Infinity"/>
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
@@ -108,8 +106,6 @@
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
 
-                    <Label text="Ingrese los valores medidos y sus unidades; deje vacío lo que aún no conozca."
-                           styleClass="campo-ayuda" wrapText="true"/>
                 </VBox>
             </ScrollPane>
 
@@ -122,7 +118,6 @@
         </VBox>
     </fx:define>
 
-    <!-- ============ Cabecera ============ -->
     <HBox styleClass="pagina-cabecera">
         <VBox spacing="4.0" HBox.hgrow="ALWAYS">
             <Label text="Biblioteca de materiales" styleClass="pagina-titulo"/>
@@ -134,7 +129,6 @@
         </Button>
     </HBox>
 
-    <!-- ============ Tabla ============ -->
     <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
         <TableView fx:id="tabla" VBox.vgrow="ALWAYS">
             <columns>
@@ -148,7 +142,6 @@
         <Paginador fx:id="paginador"/>
     </VBox>
 
-    <!-- ============ Ficha del material seleccionado ============ -->
     <VBox styleClass="tarjeta">
         <Label text="Datos del material" styleClass="grafico-titulo"/>
         <Label fx:id="lblDetalle" text="Seleccione un material para ver sus datos de laboratorio."

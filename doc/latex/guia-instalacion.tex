@@ -1,0 +1,39 @@
+% ConcretoLab Desktop - Guía de instalación
+% Basado en «Template-Informe» de Pablo Pizarro R. (licencia MIT, ver LICENCIA-PLANTILLA.md).
+% Compilar con compilar.ps1 (pdflatex, tres pasadas). Codificación: UTF-8
+
+\documentclass[a4paper,oneside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\def\titulodelinforme {Guía de instalación}
+\def\temaatratar {Cómo instalar ConcretoLab Desktop en Windows, paso a paso}
+\def\departamentouniversidad {Guía de instalación}
+
+\input{comun/datos}
+\def\nombredelcurso {Desktop}
+\input{template}
+\input{comun/concretolab}
+\usepackage{qrcode}
+
+\begin{document}
+
+\portadaSimple
+\templatePagecfg
+
+\begin{resumen}
+\input{contenido/guia/00-presentacion}
+\end{resumen}
+
+\templateIndex
+\templateFinalcfg
+
+\input{contenido/guia/01-antes-de-empezar}
+\input{contenido/guia/01b-descargar}
+\input{contenido/guia/02-instalar}
+\input{contenido/guia/03-primer-inicio}
+\input{contenido/guia/04-actualizar-desinstalar}
+\input{contenido/guia/05-problemas}
+\input{contenido/guia/06-anexo}
+
+\end{document}

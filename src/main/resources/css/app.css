@@ -1,15 +1,8 @@
-/* =====================================================================
-   Tema de la aplicacion (sobre AtlantaFX Primer Light / Dark).
-   Todos los colores de interfaz usan los tokens -color-* del tema, por lo
-   que el modo oscuro funciona sin reglas duplicadas. Solo la paleta de los
-   graficos (-serie-*) se redefine en modo oscuro.
-   ===================================================================== */
-
 .app {
     -fx-background-color: -color-bg-subtle;
-    -fx-font-size: 13px;
+    -fx-font-size: 12px;
+    -fx-font-family: "Segoe UI", "Tahoma", sans-serif;
 
-    /* Paleta categorica validada (modo claro) */
     -serie-1: #2a78d6;
     -serie-2: #eb6834;
     -serie-3: #1baf7a;
@@ -31,8 +24,6 @@
     -serie-principal: #3987e5;
 }
 
-/* ============================ MENU LATERAL ============================ */
-
 .sidebar {
     -fx-background-color: -color-bg-default;
     -fx-border-color: transparent -color-border-muted transparent transparent;
@@ -48,7 +39,7 @@
 
 .marca-logo {
     -fx-background-color: -color-accent-emphasis;
-    -fx-background-radius: 11;
+    -fx-background-radius: 0;
     -fx-min-width: 38;
     -fx-min-height: 38;
     -fx-max-width: 38;
@@ -83,7 +74,7 @@
 .sidebar .nav-item:selected {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 9;
+    -fx-background-radius: 0;
     -fx-border-color: transparent;
     -fx-border-width: 0;
     -fx-effect: null;
@@ -122,14 +113,12 @@
 
 .nav-indicador {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 9;
+    -fx-background-radius: 0;
 }
 
 .nav-separador {
     -fx-padding: 6 0 6 0;
 }
-
-/* ============================== PAGINAS =============================== */
 
 .contenido {
     -fx-background-color: -color-bg-subtle;
@@ -166,20 +155,20 @@
 
 .boton-principal {
     -fx-padding: 9 18 9 16;
-    -fx-background-radius: 9;
-    -fx-border-radius: 9;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-font-weight: bold;
     -fx-graphic-text-gap: 8;
 }
 
 .tarjeta {
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 16;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-muted;
-    -fx-border-radius: 16;
+    -fx-border-radius: 0;
     -fx-padding: 20 22 18 22;
     -fx-spacing: 16;
-    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.06), 18, 0, 0, 4);
+    -fx-effect: null;
 }
 
 .barra-herramientas {
@@ -188,22 +177,20 @@
 }
 
 .barra-herramientas .button {
-    -fx-background-radius: 9;
-    -fx-border-radius: 9;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-graphic-text-gap: 7;
 }
 
 .buscador {
     -fx-pref-height: 38;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .buscador .ikonli-font-icon {
     -fx-icon-color: -color-fg-subtle;
 }
-
-/* =============================== TABLAS =============================== */
 
 .tabla {
     -color-cell-bg: -color-bg-default;
@@ -219,7 +206,7 @@
 
 .tabla > .column-header-background {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-border-color: transparent;
 }
 
@@ -275,7 +262,7 @@
 
 .avatar {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 50;
+    -fx-background-radius: 0;
     -fx-min-width: 32;
     -fx-min-height: 32;
     -fx-max-width: 32;
@@ -291,7 +278,7 @@
 .chip {
     -fx-background-color: -color-accent-subtle;
     -fx-text-fill: -color-accent-fg;
-    -fx-background-radius: 20;
+    -fx-background-radius: 0;
     -fx-padding: 3 10 3 10;
     -fx-font-size: 11.5px;
     -fx-font-weight: bold;
@@ -318,8 +305,6 @@
     -fx-text-fill: -color-fg-muted;
 }
 
-/* ============================= PAGINADOR ============================== */
-
 .paginador {
     -fx-padding: 4 0 0 0;
 }
@@ -331,8 +316,8 @@
 
 .paginador-tamanio {
     -fx-pref-height: 32;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .pagina-btn,
@@ -341,7 +326,7 @@
     -fx-background-insets: 0;
     -fx-border-color: transparent;
     -fx-effect: null;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-min-width: 34;
     -fx-min-height: 34;
     -fx-pref-height: 34;
@@ -370,11 +355,9 @@
     -fx-opacity: 0.35;
 }
 
-/* ====================== FORMULARIO (panel lateral) ===================== */
-
 .drawer {
     -fx-background-color: -color-bg-default;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.22), 48, 0, -10, 0);
+    -fx-effect: null;
 }
 
 .drawer-header {
@@ -386,7 +369,7 @@
 
 .drawer-icono {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-min-width: 44;
     -fx-min-height: 44;
     -fx-max-width: 44;
@@ -431,8 +414,8 @@
 
 .drawer-footer .button {
     -fx-padding: 9 20 9 20;
-    -fx-background-radius: 9;
-    -fx-border-radius: 9;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-graphic-text-gap: 8;
 }
 
@@ -456,24 +439,24 @@
 .campo .text-field,
 .campo .combo-box {
     -fx-pref-height: 42;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .campo .text-area {
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .campo .text-field:focused,
 .campo .text-area:focused,
 .campo .combo-box:focused {
-    -fx-effect: dropshadow(gaussian, rgba(42, 120, 214, 0.28), 10, 0.35, 0, 0);
+    -fx-effect: null;
 }
 
 .campo .text-field:danger:focused,
 .campo .text-area:danger:focused {
-    -fx-effect: dropshadow(gaussian, rgba(227, 73, 72, 0.28), 10, 0.35, 0, 0);
+    -fx-effect: null;
 }
 
 .campo .ikonli-font-icon {
@@ -495,18 +478,16 @@
     -fx-wrap-text: true;
 }
 
-/* ====================== DIALOGOS Y NOTIFICACIONES ===================== */
-
 .dialogo {
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 18;
+    -fx-background-radius: 0;
     -fx-padding: 28;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.28), 44, 0, 0, 14);
+    -fx-effect: null;
 }
 
 .dialogo-icono {
     -fx-background-color: -color-danger-subtle;
-    -fx-background-radius: 50;
+    -fx-background-radius: 0;
     -fx-min-width: 52;
     -fx-min-height: 52;
     -fx-max-width: 52;
@@ -535,8 +516,8 @@
 
 .dialogo .button {
     -fx-padding: 9 18 9 18;
-    -fx-background-radius: 9;
-    -fx-border-radius: 9;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .zona-notificaciones {
@@ -544,10 +525,8 @@
 }
 
 .toast > .container {
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
 }
-
-/* ============================== DASHBOARD ============================= */
 
 .kpi {
     -fx-spacing: 8;
@@ -566,7 +545,7 @@
 
 .kpi-icono {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-min-width: 36;
     -fx-min-height: 36;
     -fx-max-width: 36;
@@ -604,8 +583,6 @@
     -fx-text-fill: -color-fg-muted;
     -fx-padding: 0 0 10 0;
 }
-
-/* --- Ejes y fondo de los graficos: recesivos --- */
 
 .grafico .chart {
     -fx-padding: 4 0 0 0;
@@ -652,23 +629,19 @@
     -fx-stroke: transparent;
 }
 
-/* --- Barras: finas, extremo redondeado, un solo tono --- */
-
 .grafico .chart-bar {
     -fx-bar-fill: -serie-principal;
-    -fx-background-radius: 4 4 0 0;
+    -fx-background-radius: 0;
     -fx-cursor: hand;
 }
 
 .grafico-horizontal .chart-bar {
-    -fx-background-radius: 0 4 4 0;
+    -fx-background-radius: 0;
 }
 
 .grafico .chart-bar:hover {
     -fx-opacity: 0.78;
 }
-
-/* --- Dona --- */
 
 .dona {
     -fx-padding: 0;
@@ -711,7 +684,7 @@
 
 .leyenda-fila {
     -fx-padding: 6 8 6 8;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
 }
 
 .leyenda-fila:hover {
@@ -719,7 +692,7 @@
 }
 
 .leyenda-punto {
-    -fx-background-radius: 3;
+    -fx-background-radius: 0;
     -fx-min-width: 10;
     -fx-min-height: 10;
     -fx-max-width: 10;
@@ -741,8 +714,6 @@
     -fx-alignment: CENTER_RIGHT;
 }
 
-/* --- Ranking y medidores --- */
-
 .ranking {
     -fx-spacing: 14;
     -fx-padding: 6 0 0 0;
@@ -750,7 +721,7 @@
 
 .ranking-posicion {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-min-width: 28;
     -fx-min-height: 28;
     -fx-alignment: CENTER;
@@ -800,18 +771,16 @@
 
 .barra-fina > .track {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 4;
+    -fx-background-radius: 0;
     -fx-pref-height: 6;
 }
 
 .barra-fina > .bar {
     -fx-background-color: -serie-principal;
-    -fx-background-radius: 4;
+    -fx-background-radius: 0;
     -fx-background-insets: 0;
     -fx-pref-height: 6;
 }
-
-/* ============================ COMPARTIDOS ============================= */
 
 .chip.exito {
     -fx-background-color: -color-success-subtle;
@@ -855,8 +824,8 @@
 .selector-fecha,
 .selector-periodo {
     -fx-pref-height: 38;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .tabla .table-row-cell:anulada .table-cell {
@@ -867,15 +836,13 @@
     -fx-cell-size: 40;
 }
 
-/* =========================== AUTOCOMPLETAR ============================ */
-
 .autocompletar {
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-default;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
     -fx-padding: 4;
-    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.18), 26, 0, 0, 8);
+    -fx-effect: null;
 }
 
 .autocompletar-lista,
@@ -888,7 +855,7 @@
 
 .autocompletar-lista .list-cell {
     -fx-background-color: transparent;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-padding: 7 10 7 10;
     -fx-cursor: hand;
 }
@@ -903,7 +870,7 @@
 
 .autocompletar-icono {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 9;
+    -fx-background-radius: 0;
     -fx-min-width: 34;
     -fx-min-height: 34;
     -fx-max-width: 34;
@@ -954,8 +921,6 @@
     -fx-padding: 12;
 }
 
-/* ============================ PUNTO DE VENTA =========================== */
-
 .pv-tarjeta {
     -fx-spacing: 14;
 }
@@ -967,7 +932,7 @@
 
 .pv-paso {
     -fx-background-color: -color-accent-emphasis;
-    -fx-background-radius: 50;
+    -fx-background-radius: 0;
     -fx-min-width: 28;
     -fx-min-height: 28;
     -fx-max-width: 28;
@@ -986,8 +951,8 @@
 .pv-boton-buscar {
     -fx-min-width: 42;
     -fx-min-height: 42;
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .pv-cliente-vacio {
@@ -995,9 +960,9 @@
     -fx-spacing: 12;
     -fx-padding: 14 16 14 16;
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-default;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
     -fx-border-style: segments(6, 5);
 }
 
@@ -1015,9 +980,9 @@
     -fx-spacing: 14;
     -fx-padding: 12 14 12 14;
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-border-color: -color-accent-muted;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
 }
 
 .pv-cliente .avatar {
@@ -1056,8 +1021,8 @@
 .stepper .text-field,
 .celda-precio {
     -fx-pref-height: 32;
-    -fx-background-radius: 8;
-    -fx-border-radius: 8;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-padding: 0 8 0 8;
 }
 
@@ -1070,7 +1035,7 @@
     -fx-min-height: 30;
     -fx-pref-width: 30;
     -fx-pref-height: 30;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
 }
 
 .pv-resumen {
@@ -1081,7 +1046,7 @@
     -fx-alignment: CENTER_LEFT;
     -fx-padding: 10 14 10 14;
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
 }
 
 .pv-numero .label {
@@ -1098,7 +1063,7 @@
     -fx-spacing: 10;
     -fx-padding: 12 14 12 14;
     -fx-border-color: -color-border-muted;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
 }
 
 .pv-opcion {
@@ -1133,7 +1098,7 @@
     -fx-spacing: 2;
     -fx-padding: 14 18 14 18;
     -fx-background-color: -color-accent-emphasis;
-    -fx-background-radius: 14;
+    -fx-background-radius: 0;
 }
 
 .pv-total-caja-etiqueta {
@@ -1159,12 +1124,10 @@
     -fx-pref-height: 48;
     -fx-font-size: 14.5px;
     -fx-font-weight: bold;
-    -fx-background-radius: 12;
-    -fx-border-radius: 12;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
     -fx-graphic-text-gap: 10;
 }
-
-/* ================================ VENTAS ================================ */
 
 .resumen-filtro {
     -fx-spacing: 16;
@@ -1174,9 +1137,9 @@
     -fx-spacing: 4;
     -fx-padding: 14 18 14 18;
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 14;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-muted;
-    -fx-border-radius: 14;
+    -fx-border-radius: 0;
 }
 
 .resumen-filtro-item.destacado {
@@ -1194,8 +1157,6 @@
     -fx-text-fill: -color-accent-fg;
 }
 
-/* ======================== DASHBOARD: VENTAS ============================ */
-
 .dashboard-seccion {
     -fx-font-size: 11px;
     -fx-font-weight: bold;
@@ -1210,7 +1171,7 @@
 .variacion {
     -fx-font-size: 11.5px;
     -fx-font-weight: bold;
-    -fx-background-radius: 20;
+    -fx-background-radius: 0;
     -fx-padding: 2 8 2 8;
 }
 
@@ -1225,8 +1186,8 @@
 }
 
 .grafico-area .default-color0.chart-series-area-fill {
-    -fx-fill: linear-gradient(to bottom, derive(-serie-principal, 0%) 0%, transparent 100%);
-    -fx-opacity: 0.28;
+    -fx-fill: -serie-principal;
+    -fx-opacity: 0.12;
 }
 
 .grafico-area .default-color0.chart-series-area-line {
@@ -1237,7 +1198,7 @@
 .grafico-area .default-color0.chart-area-symbol {
     -fx-background-color: -serie-principal, -color-bg-default;
     -fx-background-insets: 0, 2;
-    -fx-background-radius: 6;
+    -fx-background-radius: 0;
     -fx-padding: 5;
     -fx-opacity: 0;
     -fx-cursor: hand;
@@ -1253,7 +1214,7 @@
 
 .venta-fila {
     -fx-padding: 8 8 8 6;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
 }
 
 .venta-fila:hover {
@@ -1267,7 +1228,7 @@
 
 .venta-icono {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-min-width: 36;
     -fx-min-height: 36;
     -fx-max-width: 36;
@@ -1278,8 +1239,6 @@
     -fx-icon-color: -color-accent-fg;
     -fx-icon-size: 16px;
 }
-
-/* ======================== COMPRAS E INVENTARIO ========================= */
 
 .chip.advertencia {
     -fx-background-color: -color-warning-subtle;
@@ -1296,7 +1255,7 @@
     -fx-pref-height: 42;
     -fx-padding: 0 12 0 12;
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-font-weight: bold;
     -fx-text-fill: -color-fg-default;
 }
@@ -1384,12 +1343,10 @@
     -fx-alignment: CENTER_RIGHT;
 }
 
-/* ============ AVISOS Y ESTADO (pantallas de calculo de ConcretoLab) ============ */
-
 .aviso {
     -fx-background-color: -color-warning-subtle;
     -fx-text-fill: -color-warning-fg;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-padding: 12 14;
 }
 
@@ -1397,29 +1354,22 @@
     -fx-text-fill: -color-danger-fg;
 }
 
-/* ======================= VISTA MODELO 3D Y VISOR ======================= */
-/* =====================================================================
-   Estilos de la vista «Modelo 3D y metrado» (modelo-view.fxml) y del Visor3D.
-   ===================================================================== */
-
-/* ============================== VISOR 3D =============================== */
-
 .visor-fondo {
-    -fx-background-color: linear-gradient(to bottom, -color-accent-subtle, -color-bg-default);
-    -fx-background-radius: 8;
+    -fx-background-color: -color-bg-default;
+    -fx-background-radius: 0;
 }
 
 .visor-barra {
     -fx-background-color: -color-bg-default;
-    -fx-background-radius: 8;
-    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.15), 8, 0, 0, 2);
+    -fx-background-radius: 0;
+    -fx-effect: null;
 }
 
 .visor-boton,
 .visor-boton:focused {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-background-radius: 6;
+    -fx-background-radius: 0;
     -fx-border-color: transparent;
     -fx-border-width: 0;
     -fx-effect: null;
@@ -1458,11 +1408,9 @@
     -fx-text-fill: #3b82f6;
 }
 
-/* ============================ VISTA DE MODELO ========================== */
-
 .modelo-resumen {
     -fx-background-color: -color-accent-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-padding: 10 14 10 14;
     -fx-text-fill: -color-accent-fg;
     -fx-font-size: 12px;
@@ -1470,7 +1418,7 @@
 
 .modelo-aviso {
     -fx-background-color: -color-warning-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-padding: 10 12 10 12;
     -fx-text-fill: -color-warning-fg;
 }
@@ -1479,35 +1427,25 @@
     -fx-min-height: 240;
 }
 
-/* ============================ VISTA MEZCLAS ============================ */
-
 .resultado-lote {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-padding: 12 14 12 14;
     -fx-line-spacing: 3;
     -fx-text-fill: -color-fg-default;
 }
 
-/* ==================== VISTAS MATERIALES Y GRANULOMETRIA ================= */
-/* =====================================================================
-   Granulometria). Solo usan tokens -color-* y -serie-* del tema.
-   ===================================================================== */
-
-/* Texto de resultados / ficha de datos (varias lineas, ajustable). */
 .texto-resultado {
     -fx-text-fill: -color-fg-default;
     -fx-line-spacing: 3;
     -fx-wrap-text: true;
 }
 
-/* Contenido desplazable de la calculadora de granulometria. */
 .granulometria-contenido {
     -fx-padding: 4 6 14 6;
     -fx-spacing: 22;
 }
 
-/* Grafico de linea con la serie principal del tema. */
 .grafico-linea .default-color0.chart-series-line {
     -fx-stroke: -serie-principal;
     -fx-stroke-width: 2.5px;
@@ -1516,26 +1454,20 @@
 .grafico-linea .default-color0.chart-line-symbol {
     -fx-background-color: -serie-principal, -color-bg-default;
     -fx-background-insets: 0, 2;
-    -fx-background-radius: 6;
+    -fx-background-radius: 0;
     -fx-padding: 5;
 }
 
-/* ======================= VISTA ANALISIS SISMICO ======================== */
-/* =====================================================================
-   ===================================================================== */
-
-/* Aviso de limitaciones del analisis (recuadro de advertencia). */
 .sismo-aviso {
     -fx-background-color: -color-warning-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-border-color: -color-warning-muted;
-    -fx-border-radius: 10;
+    -fx-border-radius: 0;
     -fx-padding: 12 14 12 14;
     -fx-text-fill: -color-warning-fg;
     -fx-font-size: 12px;
 }
 
-/* Grafico del espectro: la curva sin marcadores y los periodos modales solo como puntos. */
 .grafico-espectro .default-color0.chart-series-line {
     -fx-stroke: -serie-1;
     -fx-stroke-width: 2.5px;
@@ -1554,7 +1486,7 @@
 .grafico-espectro .plot-content .default-color1.chart-line-symbol {
     -fx-background-color: -serie-2, -color-bg-default;
     -fx-background-insets: 0, 2;
-    -fx-background-radius: 6;
+    -fx-background-radius: 0;
     -fx-padding: 5;
 }
 
@@ -1566,18 +1498,11 @@
     -fx-background-color: -serie-2;
 }
 
-/* ================= VISTA ANALISIS SISMICO GUIADO ================= */
-/* =====================================================================
-   PENDIENTE DE FUSIONAR EN app.css: pantalla de analisis sismico guiado.
-   Solo tokens -color-* de AtlantaFX, sin colores literales.
-   ===================================================================== */
-
-/* ---- Tarjeta numerada de cada paso ---- */
 .paso-tarjeta {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-default;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
     -fx-padding: 14 14 14 14;
 }
 
@@ -1599,24 +1524,22 @@
     -fx-wrap-text: true;
 }
 
-/* Chip de zona sismica: ocupa todo el ancho y deja pasar el texto largo. */
 .paso-chip {
     -fx-max-width: 9999;
     -fx-padding: 6 12 6 12;
 }
 
 .paso-lista {
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-default;
-    -fx-border-radius: 8;
+    -fx-border-radius: 0;
 }
 
-/* ---- Avisos dentro de los pasos ---- */
 .paso-alerta {
     -fx-background-color: -color-warning-subtle;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-border-color: -color-warning-muted;
-    -fx-border-radius: 8;
+    -fx-border-radius: 0;
     -fx-padding: 8 10 8 10;
     -fx-text-fill: -color-warning-fg;
     -fx-font-size: 12px;
@@ -1625,9 +1548,9 @@
 
 .paso-alerta-roja {
     -fx-background-color: -color-danger-subtle;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-border-color: -color-danger-emphasis;
-    -fx-border-radius: 8;
+    -fx-border-radius: 0;
     -fx-border-width: 1.5;
     -fx-padding: 8 10 8 10;
     -fx-text-fill: -color-danger-fg;
@@ -1636,7 +1559,6 @@
     -fx-wrap-text: true;
 }
 
-/* Linea «Falta: ...» sobre el boton Calcular. */
 .paso-falta {
     -fx-font-size: 12px;
     -fx-text-fill: -color-fg-muted;
@@ -1647,7 +1569,6 @@
     -fx-padding: 8 4 8 4;
 }
 
-/* ---- Resultados: banner semaforo ---- */
 .sismo-resumen {
     -fx-padding: 4 8 4 4;
 }
@@ -1655,7 +1576,7 @@
 .sismo-banner {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-background-radius: 12;
+    -fx-background-radius: 0;
     -fx-padding: 14 18 14 18;
     -fx-graphic-text-gap: 10;
 }
@@ -1664,7 +1585,7 @@
     -fx-background-color: -color-success-subtle;
     -fx-text-fill: -color-success-fg;
     -fx-border-color: -color-success-emphasis;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
 }
 
 .sismo-banner-ok .ikonli-font-icon {
@@ -1676,7 +1597,7 @@
     -fx-background-color: -color-danger-subtle;
     -fx-text-fill: -color-danger-fg;
     -fx-border-color: -color-danger-emphasis;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
 }
 
 .sismo-banner-error .ikonli-font-icon {
@@ -1684,12 +1605,11 @@
     -fx-icon-color: -color-danger-fg;
 }
 
-/* ---- Resultados: lista de verificaciones ---- */
 .sismo-verificaciones {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 10;
+    -fx-background-radius: 0;
     -fx-border-color: -color-border-default;
-    -fx-border-radius: 10;
+    -fx-border-radius: 0;
     -fx-padding: 12 14 12 14;
 }
 
@@ -1726,12 +1646,6 @@
     -fx-icon-color: -color-accent-fg;
 }
 
-/* ================= SIMULACION TEMPORAL (tiempo-historia) ================= */
-/* =====================================================================
-   PENDIENTE DE FUSIONAR EN app.css: pestana «Simulacion temporal»
-   (analisis tiempo-historia con suelo movil). Solo tokens -color-* y -serie-*.
-   ===================================================================== */
-
 .th-contenido {
     -fx-padding: 4 10 10 4;
 }
@@ -1742,17 +1656,16 @@
 
 .th-lectura {
     -fx-background-color: -color-bg-subtle;
-    -fx-background-radius: 8;
+    -fx-background-radius: 0;
     -fx-padding: 6 12 6 12;
     -fx-font-size: 12px;
 }
 
-/* Banner NO CONCLUYENTE (ambar); CUMPLE y NO CUMPLE reutilizan sismo-banner-ok / sismo-banner-error. */
 .sismo-banner-alerta {
     -fx-background-color: -color-warning-subtle;
     -fx-text-fill: -color-warning-fg;
     -fx-border-color: -color-warning-emphasis;
-    -fx-border-radius: 12;
+    -fx-border-radius: 0;
 }
 
 .sismo-banner-alerta .ikonli-font-icon {
@@ -1760,12 +1673,10 @@
     -fx-icon-color: -color-warning-fg;
 }
 
-/* Filas finales de la tabla de resultados (promedio o maximo, y limite). */
 .th-fila-resumen {
     -fx-font-weight: bold;
 }
 
-/* ---- Graficas tiempo-historia: sin simbolos, paleta de series ---- */
 .grafico-th .default-color0.chart-series-line {
     -fx-stroke: -serie-1;
     -fx-stroke-width: 1.6px;
@@ -1802,7 +1713,6 @@
     -fx-background-color: -color-fg-muted;
 }
 
-/* Cursor vertical del instante actual (sincronizado con la animacion). */
 .grafico-th-aceleracion .default-color1.chart-series-line,
 .grafico-th-desplazamiento .default-color3.chart-series-line,
 .grafico-th-deriva .default-color2.chart-series-line {
@@ -1811,7 +1721,6 @@
     -fx-stroke-dash-array: 5 4;
 }
 
-/* Linea del limite de deriva. */
 .grafico-th-deriva .default-color1.chart-series-line {
     -fx-stroke: -color-danger-emphasis;
     -fx-stroke-width: 1.5px;
@@ -1828,4 +1737,171 @@
 
 .grafico-th-aceleracion .chart-legend-item-symbol.default-color1 {
     -fx-background-color: -color-fg-muted;
+}
+
+.dialogo-icono.bienvenida-icono {
+    -fx-background-color: -color-accent-subtle;
+}
+
+.dialogo-icono.bienvenida-icono .ikonli-font-icon {
+    -fx-icon-color: -color-accent-fg;
+}
+
+.bienvenida .dialogo-titulo {
+    -fx-font-size: 19px;
+}
+
+.bienvenida-puntos {
+    -fx-padding: 0 0 0 4;
+}
+
+.bienvenida-indicador {
+    -fx-min-width: 8;
+    -fx-min-height: 8;
+    -fx-max-width: 8;
+    -fx-max-height: 8;
+    -fx-background-radius: 0;
+    -fx-background-color: -color-border-default;
+}
+
+.bienvenida-indicador.activo {
+    -fx-min-width: 22;
+    -fx-max-width: 22;
+    -fx-background-color: -color-accent-emphasis;
+}
+
+
+/* ======================= ESTILO CLASICO (plano y cuadrado) ======================= */
+
+* {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+}
+
+.button, .toggle-button, .menu-button, .split-menu-button, .combo-box, .choice-box, .text-field, .text-area,
+.password-field, .date-picker, .spinner, .check-box > .box, .radio-button > .radio, .list-view, .table-view,
+.tree-view, .scroll-pane, .titled-pane > .title, .tab-pane > .tab-header-area > .headers-region > .tab,
+.progress-bar > .bar, .progress-bar > .track, .context-menu, .menu-bar, .tooltip {
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-effect: null;
+}
+
+.radio-button > .radio, .radio-button > .radio > .dot {
+    -fx-background-radius: 1em;
+    -fx-border-radius: 1em;
+}
+
+.button, .toggle-button, .menu-button {
+    -fx-padding: 4 12 4 12;
+}
+
+.tarjeta, .dialogo, .formulario-panel, .panel-lateral, .modal-pane > .modal-content {
+    -fx-effect: null;
+}
+
+.tarjeta {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1;
+    -fx-padding: 12;
+}
+
+.pagina {
+    -fx-padding: 12 14 14 14;
+}
+
+.pagina-titulo {
+    -fx-font-size: 16px;
+}
+
+.pagina-subtitulo {
+    -fx-font-size: 12px;
+}
+
+.dialogo {
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1;
+    -fx-padding: 16;
+}
+
+/* Avisos que dependen de los datos: solo texto, sin recuadro */
+.aviso, .modelo-aviso, .sismo-aviso, .paso-alerta, .paso-alerta-roja, .paso-detalle, .paso-ayuda, .campo-ayuda {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 2 0 2 0;
+}
+
+.paso-alerta, .aviso, .modelo-aviso, .sismo-aviso {
+    -fx-text-fill: -color-warning-fg;
+}
+
+.paso-alerta-roja {
+    -fx-text-fill: -color-danger-fg;
+}
+
+.paso-detalle, .paso-ayuda, .campo-ayuda {
+    -fx-text-fill: -color-fg-muted;
+}
+
+/* Pestañas de la ventana principal */
+.pestanas-principales > .tab-header-area {
+    -fx-padding: 4 6 0 6;
+}
+
+.pestanas-principales > .tab-header-area > .tab-header-background {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: transparent transparent -color-border-default transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.pestanas-principales > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-default;
+    -fx-border-width: 1 1 0 1;
+    -fx-padding: 3 12 3 12;
+}
+
+.pestanas-principales > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -color-bg-default;
+}
+
+.menu-bar {
+    -fx-background-color: -color-bg-default;
+    -fx-border-color: transparent transparent -color-border-default transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 0 2 0 2;
+}
+
+/* Barra de estado */
+.barra-estado {
+    -fx-background-color: -color-bg-subtle;
+    -fx-border-color: -color-border-default transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 2 6 2 6;
+    -fx-alignment: CENTER_LEFT;
+}
+
+.estado-mensaje, .estado-celda {
+    -fx-font-size: 11px;
+    -fx-padding: 0 8 0 4;
+    -fx-text-fill: -color-fg-default;
+}
+
+.estado-mensaje .ikonli-font-icon {
+    -fx-icon-size: 12px;
+}
+
+.estado-exito .ikonli-font-icon { -fx-icon-color: -color-success-fg; }
+.estado-advertencia { -fx-text-fill: -color-warning-fg; }
+.estado-advertencia .ikonli-font-icon { -fx-icon-color: -color-warning-fg; }
+.estado-error { -fx-text-fill: -color-danger-fg; }
+.estado-error .ikonli-font-icon { -fx-icon-color: -color-danger-fg; }
+.estado-info .ikonli-font-icon { -fx-icon-color: -color-accent-fg; }
+
+.paso-chip, .chip {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 2 0 2 0;
 }

@@ -2,7 +2,6 @@ package com.concretolab.service;
 import com.concretolab.model.Elemento;
 import java.util.*;
 
-/** Diagnóstico del inventario geométrico; no construye un modelo analítico. */
 public final class DiagnosticoSismico {
  private DiagnosticoSismico(){}
  public record Informe(int zapatas,int columnas,int vigas,List<String> faltantes){}

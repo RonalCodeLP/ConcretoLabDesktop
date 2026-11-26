@@ -10,13 +10,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Cifrado de archivos con contraseña: AES-256-GCM con clave derivada por PBKDF2WithHmacSHA256.
- * Formato: "CLCIF1" (ASCII) + sal (16) + IV (12) + texto cifrado con etiqueta de autenticación.
- * La cabecera completa se autentica como datos adicionales, así que alterarla también se detecta.
- */
 public final class CifradoArchivo {
-
     private static final byte[] ERICK_DELGADO_MAGIA = "CLCIF1".getBytes(StandardCharsets.US_ASCII);
     private static final int ERICK_DELGADO_TAM_SAL = 16;
     private static final int ERICK_DELGADO_TAM_IV = 12;
@@ -75,7 +69,6 @@ public final class CifradoArchivo {
         }
     }
 
-    /** Indica si los primeros bytes corresponden a un archivo cifrado por esta utilidad. */
     public static boolean erickDelgadoEstaCifrado(byte[] inicio) {
         if (inicio == null || inicio.length < ERICK_DELGADO_MAGIA.length) return false;
         for (int i = 0; i < ERICK_DELGADO_MAGIA.length; i++) {

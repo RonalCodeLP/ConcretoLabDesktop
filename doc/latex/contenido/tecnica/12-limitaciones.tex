@@ -1,0 +1,178 @@
+% ------------------------------------------------------------------------------
+\section{Limitaciones conocidas y pendientes}
+\label{sec:lim-limitaciones}
+% ------------------------------------------------------------------------------
+
+Este capítulo reúne, sin adornos, lo que ConcretoLab Desktop \versionapp{} no hace, lo que hace solo en parte y las
+inconsistencias encontradas al revisar el código para escribir esta documentación. Sirve para decidir qué se puede
+prometer a un cliente y por dónde seguir.
+
+\begin{advertencia}[No está validado para obras]
+Ningún resultado de ConcretoLab sustituye el criterio ni la firma de un ingeniero civil colegiado. El análisis sísmico
+es \textbf{preliminar} (anteproyecto y enseñanza): el resumen dice «CUMPLE (preliminar)», el PDF advierte que no es una
+memoria de cálculo y el diálogo «Acerca de» repite el aviso. Las pruebas automáticas verifican la programación contra
+valores conocidos; no son una validación profesional de los métodos ni de su aplicación a un edificio real.
+\end{advertencia}
+
+\subsection{Análisis sísmico}
+
+\begin{itemize}
+	\item \textbf{Solo pórticos.} El motor (\ruta{FernandoHuancaAnalisisSismico}) modela columnas y vigas como barras
+	      con base empotrada y un diafragma rígido por piso. Los sistemas \ruta{DUAL}, \ruta{MUROS},
+	      \ruta{MUROS\_DUCTILIDAD\_LIMITADA} y \ruta{ALBANILERIA} de \ruta{SistemaEstructural} están marcados «Aún no
+	      modelable en la aplicación».
+	\item \textbf{Los muros no entran en la rigidez.} Un elemento \ruta{MURO} se dibuja y se metra, pero el análisis no
+	      incluye su rigidez ni su aporte al cortante; el resultado lo avisa.
+	\item \textbf{Losas y zapatas.} Las losas solo se usan para el metrado (el piso se supone diafragma rígido) y las
+	      zapatas no se modelan (base empotrada). No hay zonas rígidas en los nudos, interacción suelo-estructura ni diseño
+	      de elementos.
+	\item \textbf{Tabla 9 y aislamiento.} En categoría A (zonas 2 a 4) y A1 (todas) la E.030 no permite pórticos como
+	      único sistema, y para A1 en zonas 3 y 4 exige aislamiento sísmico, que la aplicación no modela. La pantalla lo
+	      avisa, pero calcula igual a modo referencial.
+	\item \textbf{Cargas.} Las cargas vivas de «Industria o taller común», «Depósito o almacén» y «Edificación esencial»
+	      no figuran literalmente en la E.020 (\ruta{verificado = false} en \ruta{UsoEdificacion}); la carga muerta
+	      adicional es siempre un valor típico sugerido, no de la norma.
+	\item \textbf{Zonificación.} La ubicación por distrito solo existe para el texto 2026 (Anexo II); con la versión 2018
+	      la zona se elige a mano.
+	\item \textbf{Datos de entrada.} Los parámetros del análisis no se guardan en la base: se ingresan en cada sesión.
+	\item \textbf{Recomendación.} «Cómo corregir» solo propone agrandar columnas, en pasos de 5~cm y hasta +60~cm;
+	      peraltar vigas o agregar placas queda a criterio del ingeniero.
+\end{itemize}
+
+\subsection{Análisis tiempo-historia}
+
+\begin{itemize}
+	\item Es \textbf{lineal elástico}, con base empotrada, sin interacción suelo-estructura y con amortiguamiento de
+	      Rayleigh del 5~\% ajustado en T1 y 0,2~T1 (entre ambos queda algo por debajo). Las derivas son elásticas.
+	\item Es una verificación complementaria y conservadora (R~=~1); \textbf{no sustituye} el análisis modal espectral.
+	\item \textbf{No incluye acelerogramas reales}: genera siete sintéticos espectro-compatibles o importa registros del
+	      usuario (texto, hasta 10~MB). Con registros que no son espectro-compatibles, el criterio del art. 47.6 (90~\%
+	      del espectro en cada registro) se informa como aviso y no bloquea el resultado.
+	\item El número mínimo de conjuntos (7 en 2026, 3 en 2018) se comprueba y se avisa si no se alcanza.
+\end{itemize}
+
+\subsection{Intercambio CAD y BIM}
+
+\begin{itemize}
+	\item \textbf{ETABS (\ruta{.e2k}) es experimental}: nunca se verificó importándolo en ETABS. Los pisos salen de las
+	      cotas de vigas y losas y las zapatas no se exportan. El botón, el diálogo y el propio archivo lo indican.
+	\item \textbf{IFC2X3} solo se verificó con comprobaciones estructurales del archivo (\ruta{ExportacionIfcEtabsTest}:
+	      entidades, referencias resueltas, GUID reproducibles), no abriéndolo en un visor IFC. Todos los elementos
+	      cuelgan de un único nivel en la cota 0 y las vigas y losas se extruyen en vertical.
+	\item \textbf{DWG no se lee de forma nativa.} Se convierte a DXF con el programa externo \ruta{dwgread.exe} (GNU
+	      LibreDWG), que \textbf{no se distribuye} con el instalador: el usuario debe conseguirlo y seleccionarlo o
+	      colocarlo en una carpeta \ruta{tools}. Sin él, hay que guardar el plano como DXF ASCII desde AutoCAD.
+	\item \textbf{RVT no se lee}: la aplicación explica cómo exportar a DXF desde Revit.
+	\item La importación DXF reproduce plantas de pórticos rectangulares con la misma distribución en cada piso. De un
+	      bloque solo se toma el punto de inserción, y los textos, cotas, sombreados y el espacio papel se ignoran (el
+	      diagnóstico lo muestra).
+\end{itemize}
+
+\subsection{Metrado y concreto}
+
+\begin{itemize}
+	\item \textbf{Las cantidades de acero son referenciales.} Se estiman con cuantías por tipo (por defecto 60, 150,
+	      120, 70 y 80~kg/m$^3$ para zapata, columna, viga, muro y losa), editables en «Cuantías de acero\ldots». No son un
+	      metrado de obra.
+	\item El \textbf{encofrado} es la superficie de contacto con el molde y no descuenta los contactos entre elementos.
+	\item El \textbf{diseño de mezclas} ACI~211.1 cubre concreto de peso normal, f'cr hasta 45~MPa (35 con aire
+	      incorporado) y sin aditivos reductores de agua. Los límites de durabilidad se tomaron de ACI~318 / E.060 cap.~4
+	      y deben contrastarse con la edición vigente. El resultado es una dosificación de partida que exige mezclas de
+	      prueba.
+	\item La \textbf{evaluación de resistencia} (E.060, art. 5.6) supone que cada «ensayo» es el promedio de al menos
+	      dos probetas; con probetas sueltas el resultado es orientativo.
+\end{itemize}
+
+\subsection{Datos}
+
+\begin{itemize}
+	\item El esquema \textbf{no tiene claves foráneas}; la integridad depende de los servicios. La entidad
+	      \ruta{VinculoGeometrico} declara un \ruta{@UniqueConstraint} (columna, viga) que la migración no crea.
+	\item Desde la interfaz \textbf{solo se pueden eliminar proyectos y elementos}: no hay botón para borrar materiales,
+	      mezclas, ensayos ni tamizados.
+	\item \ruta{ExpedienteEstructural} no tiene pantalla: solo se guarda con \ruta{ExpedienteService} (usado en las
+	      pruebas) y viaja en la exportación de proyectos.
+	\item La biblioteca de materiales y los tamizados \textbf{no viajan} en el archivo \ruta{.concretolab}.
+	\item La \textbf{bitácora} no registra las ediciones de elementos, mezclas o materiales, la eliminación de copias, la
+	      restauración ya aplicada ni la conversión de una base con contraseña.
+	\item El mensaje de error de la importación para un tipo de elemento inválido dice «use ZAPATA, COLUMNA o VIGA»,
+	      aunque también se aceptan \ruta{LOSA} y \ruta{MURO}.
+\end{itemize}
+
+\subsection{Distribución}
+
+\begin{itemize}
+	\item \textbf{El instalador no está firmado.} Windows SmartScreen muestra «Windows protegió su PC» y el usuario debe
+	      pulsar «Más información» y «Ejecutar de todas formas». Hace falta un certificado de firma de código.
+	\item Solo hay distribución para \textbf{Windows}. El JAR que se compila incluye las bibliotecas JavaFX de la
+	      plataforma donde se construyó.
+	\item \ruta{main.wxs}, \ruta{ShortcutPromptDlg.wxs} e \ruta{InstallDirNotEmptyDlg.wxs} son copias de las plantillas
+	      del \ruta{jpackage} del JDK~17, y el instalador depende de WiX~3.x. Cambiar de JDK exige revisarlas.
+	\item Si una dependencia nueva necesita un módulo del JDK que no está en la lista de \ruta{jlink}, la versión
+	      instalada fallará aunque \ruta{java -jar} funcione: \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1 -Verificar} y
+	      \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1} sirven para detectarlo.
+\end{itemize}
+
+\subsection{Pruebas}
+
+\begin{itemize}
+	\item \ruta{ui/VisorMovimientoTest} no se omite sin pantalla: falla, a diferencia de las otras pruebas gráficas.
+	\item Las pruebas con Spring no fijan \ruta{concretolab.datos}: al refrescar «Datos y copias» y el resumen de metrado,
+	      \ruta{VistasFxmlTest} \textbf{lee} (sin escribir) la carpeta de datos por defecto.
+	\item \ruta{EsquemaMigracionesTest} comprueba en el historial de Flyway las versiones 1 y 2, no la 3; V3 solo se
+	      ejercita de forma indirecta en \ruta{CompatibilidadMezclaTest}.
+\end{itemize}
+
+\subsection{Código sin uso o heredado}
+
+Estas piezas compilan y algunas tienen pruebas, pero ninguna pantalla las usa. Conviene decidir si se conectan o se
+retiran:
+
+\begin{longtable}{L{5.2cm}L{9.6cm}}
+	\caption{Código sin uso en la aplicación.} \label{tab:lim-sin-uso} \\
+	\hline
+	\textbf{Elemento} & \textbf{Situación} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Elemento} & \textbf{Situación} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{AnalisisPortico}, \ruta{EdificioCortante}, \ruta{HistoriaPiso}, \ruta{OsciladorSismico} & Simulación de
+	pórtico inicial. Solo los usan sus pruebas (\ruta{HistoriaPiso} lo usa \ruta{EdificioCortante}). \\
+	\ruta{DiagnosticoSismico} & Ninguna clase ni prueba lo usa. \\
+	\ruta{ui.\allowbreak{}Autocompletar} & Componente de autocompletado sin uso. \\
+	\ruta{exception.\allowbreak{}NegocioException} & Tres controladores la capturan, pero nada la lanza. \\
+	\ruta{Exportador.Formato.EXCEL} & El \ruta{Exportador} declara el formato \ruta{.xlsx} y su Javadoc habla de Excel,
+	pero no hay generador de Excel ni dependencia para ello (Apache POI). \\
+	\ruta{BaseCifrada.\allowbreak{}erickDelgadoCifrarExistente}, \ruta{BaseCifrada.\allowbreak{}erickDelgadoCambiarClave} & De cuando la base se
+	cifraba; solo las usa \ruta{CifradoBaseTest}. \\
+\end{longtable}
+
+\subsection{Documentación desactualizada o inconsistente}
+
+\begin{itemize}
+	\item \textbf{La migración V3.} El README dice que el esquema lo gestiona Flyway en
+	      \ruta{src/main/resources/db/migration} y enumera «V1 tablas, V2 bitácora, V3 columnas faltantes». En esa carpeta
+	      solo hay V1 y V2; \textbf{V3 sí existe}, pero es una migración Java en
+	      \ruta{src/main/java/db/migration/V3\_\_Completar\_columnas.java}. El comentario de \ruta{application.properties}
+	      («se completa con V1 y V2») no la menciona.
+	\item \textbf{Párrafos antiguos del README.} Algunos párrafos iniciales contradicen las secciones posteriores: dicen
+	      que la suma de volúmenes es bruta y no descuenta intersecciones (hoy existe el metrado neto), que el módulo de
+	      mezclas no diseña una mezcla ACI ni dictamina conformidad (hoy existen «Diseñar mezcla» y la evaluación E.060)
+	      y que la granulometría no calcula el módulo de finura (hoy lo calcula y verifica el huso).
+	\item \ruta{doc/REFACTORIZACION\_PREFIJOS.md} nombra la clase \ruta{ClaveBaseService}, que ya no existe.
+	\item \textbf{«Tú» en lugar de «usted».} La convención es tratar de «usted», pero varios textos usan «tú»: casi toda
+	      la pantalla «Datos y copias» (vista y controlador), las indicaciones de \ruta{inicio-view},
+	      \ruta{granulometria-view}, \ruta{mezclas-view} y la plantilla de \ruta{modelo-view}, el diálogo de ejes y
+	      niveles, el panel «Mover en 3D», el asistente de importación CAD y algunos mensajes de \ruta{ModeloController}.
+	      El README también usa «tú».
+\end{itemize}
+
+\subsection{Marcadores en el código}
+
+Para completar esta lista se buscó en \ruta{src/main} \ruta{TODO}, \ruta{FIXME}, «pendiente», «experimental», «no
+verificado», «preliminar» y «referencial». No hay ningún \ruta{TODO} ni \ruta{FIXME}. Los demás marcadores coinciden con
+lo descrito arriba: «experimental» solo aparece en la exportación ETABS; «NO VERIFICADO» en las cargas de
+\ruta{UsoEdificacion}; «Aún no modelable» en \ruta{SistemaEstructural}; «preliminar» y «referencial» en los avisos del
+análisis sísmico, el metrado y la guía sísmica.

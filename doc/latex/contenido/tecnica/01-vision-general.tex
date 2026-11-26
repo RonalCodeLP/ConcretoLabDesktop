@@ -1,0 +1,96 @@
+% ------------------------------------------------------------------------------
+\section{Visión general}
+% ------------------------------------------------------------------------------
+
+\subsection{Propósito y alcance}
+
+ConcretoLab Desktop apoya el anteproyecto y la enseñanza de estructuras de concreto armado en el Perú. Integra cuatro
+grupos de funciones que comparten el mismo proyecto activo:
+
+\begin{enumerate}
+	\item \textbf{Modelo y metrado:} geometría del edificio con elementos prismáticos (zapata, columna, viga, losa y muro),
+	      generación por ejes y niveles, importación DXF, edición en lote, movimiento con vínculos viga--columna, metrado
+	      neto y exportación IFC, ETABS (\ruta{.e2k}) y DXF.
+	\item \textbf{Análisis sísmico:} pórtico tridimensional de barras con diafragma rígido por piso, análisis estático y
+	      modal espectral según la NTE~E.030 (texto 2026 y versión 2018), verificación de derivas, junta sísmica,
+	      recomendación de mejora y análisis tiempo-historia.
+	\item \textbf{Concreto:} biblioteca de materiales y ensayos, granulometría con husos NTP~400.037 / ASTM~C33, balance de
+	      volúmenes absolutos, diseño de mezclas ACI~211.1 con requisitos de la E.060, registro de probetas y evaluación
+	      de resistencias.
+	\item \textbf{Datos:} base SQLite local, copias de seguridad automáticas y manuales, restauración, intercambio de
+	      proyectos (\ruta{.concretolab}, con cifrado opcional del archivo) y bitácora de cambios.
+\end{enumerate}
+
+\subsection{Módulos y pantallas}
+
+\begin{longtable}{L{3.6cm}L{3.9cm}L{6.3cm}}
+	\caption{Pantallas, vistas FXML y controladores.} \label{tab:t-pantallas} \\
+	\hline
+	\textbf{Pantalla} & \textbf{Vista (\ruta{view/})} & \textbf{Controlador (\ruta{controller/})} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Pantalla} & \textbf{Vista} & \textbf{Controlador} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Ventana principal y menú & \ruta{main-view.fxml} & \ruta{MainController} \\
+	Inicio & \ruta{inicio-view.fxml} & \ruta{InicioController} \\
+	Modelo 3D y metrado & \ruta{modelo-view.fxml} & \ruta{ModeloController} \\
+	Análisis sísmico E.030 & \ruta{sismo-view.fxml} & \ruta{WalterQuispesayhuaSismoController} \\
+	Simulación temporal & \ruta{tiempo-historia-view.fxml} & \ruta{TiempoHistoriaController} (incluida en la vista sísmica) \\
+	Materiales y ensayos & \ruta{materiales-view.fxml} & \ruta{MaterialesController} \\
+	Granulometría & \ruta{granulometria-view.fxml} & \ruta{GranulometriaController} \\
+	Balance de volúmenes & \ruta{balance-view.fxml} & \ruta{BalanceController} \\
+	Mezclas y probetas & \ruta{mezclas-view.fxml} & \ruta{MezclasController} \\
+	Datos y copias & \ruta{datos-view.fxml} & \ruta{DatosController} \\
+\end{longtable}
+
+\subsection{Normas y métodos implementados}
+
+\begin{longtable}{L{4.3cm}L{9.5cm}}
+	\caption{Normas, métodos y dónde se implementan.} \label{tab:t-normas} \\
+	\hline
+	\textbf{Norma o método} & \textbf{Uso en ConcretoLab} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Norma o método} & \textbf{Uso en ConcretoLab} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	NTE E.030 (2026, R.M. 183-2026-VIVIENDA) & Parámetros Z, U, S, Tp, TL, R0, Ia, Ip, CT; análisis estático y modal espectral;
+	combinación direccional 100~\%~+~30~\%; derivas; junta; tiempo-historia (\ruta{NormaE030},
+	\ruta{FernandoHuancaAnalisisSismico}, \ruta{AnalisisTiempoHistoria}). \\
+	NTE E.030 (2018, R.M. 355-2018-VIVIENDA) & Mismas verificaciones con las tablas de esa versión, sin combinación direccional. \\
+	NTE E.020 & Cargas vivas sugeridas por uso (valores marcados como «no verificado» cuando no son literales). \\
+	NTE E.060 & Módulo de elasticidad, f'cr, criterios de aceptación de resistencia y requisitos de durabilidad. \\
+	ACI 211.1 & Diseño de mezclas por volumen absoluto (\ruta{DisenoMezclaACI}). \\
+	NTP 400.037 / ASTM C33 & Husos granulométricos y módulo de finura (\ruta{HusosGranulometricos}). \\
+	NTP 334.009 / 334.090 / 334.082 & Tipos de cemento y aviso por exposición a sulfatos. \\
+	IFC2X3 (ISO 10303-21) & Exportación BIM de sólidos extruidos (\ruta{ExportadorIfc}). \\
+\end{longtable}
+
+\subsection{Tecnologías}
+
+\begin{table}[H]
+	\centering
+	\caption{Componentes principales (versiones del \ruta{pom.xml}).}
+	\label{tab:t-tecnologias}
+	\begin{tabular}{L{4.4cm}L{2.2cm}L{7.2cm}}
+		\hline
+		\textbf{Componente} & \textbf{Versión} & \textbf{Para qué} \\ \hline
+		Java (OpenJDK, Temurin) & 17 & Lenguaje y entorno de ejecución. \\
+		Spring Boot & 3.3.4 & Inyección de dependencias, configuración, JPA y arranque (sin servidor web). \\
+		JavaFX & 21.0.4 & Interfaz gráfica, FXML y visor 3D. \\
+		AtlantaFX & 2.0.1 & Tema visual (Primer claro y oscuro) y controles extra. \\
+		Ikonli (Feather) & 12.3.1 & Íconos. \\
+		Hibernate + dialecto SQLite & (Spring Boot) & Persistencia JPA sobre SQLite. \\
+		sqlite-jdbc (willena) & 3.46.1.0 & Controlador SQLite con SQLite3MultipleCiphers (para abrir bases antiguas con
+		contraseña). \\
+		Flyway & (Spring Boot) & Migraciones de esquema. \\
+		Apache Commons Math & 3.6.1 & Álgebra lineal y valores propios del análisis modal. \\
+		OpenPDF & 1.3.43 & Reportes PDF. \\
+		Apache PDFBox & 3.0.8 & Mostrar el manual de usuario dentro de la aplicación (ayuda integrada). \\
+		Lombok & (Spring Boot) & Constructores y registros de bitácora. \\
+		JUnit 5 + AssertJ & (Spring Boot) & Pruebas automáticas. \\ \hline
+	\end{tabular}
+\end{table}

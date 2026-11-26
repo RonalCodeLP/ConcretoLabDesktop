@@ -71,7 +71,7 @@
 
         <VBox styleClass="tarjeta" spacing="8.0">
             <Label text="Resultado" styleClass="seccion-form"/>
-            <Label fx:id="lblResultado" text="Completa los datos para calcular." wrapText="true"/>
+            <Label fx:id="lblResultado" text="Complete los datos para calcular." wrapText="true"/>
             <HBox>
                 <Button fx:id="btnUsarEnMezcla" text="Usar en una mezcla" onAction="#onUsarEnMezcla" styleClass="button-outlined" disable="true">
                     <graphic><FontIcon iconLiteral="fth-droplet"/></graphic>
@@ -79,7 +79,5 @@
             </HBox>
         </VBox>
 
-        <Label styleClass="aviso" wrapText="true"
-               text="Es un balance matemático sin aditivos ni materiales cementantes adicionales. No selecciona agua, a/c ni agregado grueso; no garantiza f’c, trabajabilidad, durabilidad o cumplimiento ACI. Requiere revisión profesional y mezcla de prueba."/>
     </VBox>
 </ScrollPane>

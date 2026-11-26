@@ -1,0 +1,16 @@
+Este documento describe cómo está construido ConcretoLab Desktop \versionapp{} para que cualquier integrante del equipo
+pueda entenderlo, compilarlo, probarlo, distribuirlo y ampliarlo. Cubre la arquitectura (JavaFX, Spring Boot, JPA y
+SQLite), la organización del código, cada módulo de cálculo con sus normas, fórmulas, supuestos y límites, la base de
+datos y sus copias de seguridad, las pruebas automáticas, el instalador para Windows y las convenciones del proyecto.
+
+La aplicación es de escritorio y funciona sin conexión: una sola ventana JavaFX cuyas pantallas (FXML) tienen
+controladores administrados por Spring, servicios de cálculo sin dependencias gráficas y una base SQLite local con
+esquema versionado por Flyway. Se distribuye como instalador \ruta{.exe} por usuario que incluye su propio entorno Java.
+
+\begin{importante}[Estado de validación]
+Los módulos de cálculo implementan las normas tal como se describen en este documento y están cubiertos por pruebas
+automáticas que comprueban la programación contra valores conocidos. \textbf{Eso no equivale a una validación
+profesional}: el análisis sísmico es preliminar, no está validado para diseñar ni construir obras, y el capítulo de
+cálculo de este documento debe ser revisado por un ingeniero civil con formación en estructuras antes de presentarlo
+como referencia técnica.
+\end{importante}

@@ -2,20 +2,6 @@ package com.concretolab.service;
 
 import com.concretolab.service.NormaE030.Categoria;
 
-/**
- * Uso de la edificación en lenguaje simple: categoría sísmica (E.030 texto 2026, Tabla 7, p. 10 impresa) y cargas vivas mínimas
- * (Norma E.020 «Cargas», RNE, Tabla 1, art. 6.1; techos art. 7.1). Valores de E.020 en kN/m² (kPa).
- *
- * <p>VERIFICACIÓN: las cargas vivas se contrastaron con el texto oficial de la E.020 publicado por el MVCS
- * (ww3.vivienda.gob.pe, «50 E.020 CARGAS.pdf»). Un uso con {@code verificado = false} tiene al menos un valor que no figura
- * literalmente en la Tabla 1 (se supuso por analogía o criterio conservador); su {@code fuente} lo indica.
- *
- * <p>La carga muerta adicional (acabados + tabiquería equivalente) NO está en la E.020, que exige usar pesos reales (arts. 3 y 4,
- * Anexo 1): es un valor típico SUGERIDO, nunca verificado contra la norma.
- *
- * <p>La categoría A se representa con {@link Categoria#A} (U = 1,5, %CV = 50 %). Para A1 (salud de 2.º y 3.er nivel) la Tabla 7 indica
- * «ver nota»: en zonas 3 y 4 lleva aislamiento sísmico y U = 1; en zonas 1 y 2, U mínimo 1,5.
- */
 public enum UsoEdificacion {
     VIVIENDA("Vivienda", "Casa, departamento, edificio multifamiliar", Categoria.C, false,
             2.0, 2.0, 1.0, 2.0, true,
@@ -61,17 +47,11 @@ public enum UsoEdificacion {
     public final String ejemplos;
     private final Categoria categoria;
     private final boolean requiereAislamientoZ3Z4;
-    /** Carga viva de pisos en kN/m². */
     public final double cvPisos;
-    /** Carga viva de corredores y escaleras en kN/m². */
     public final double cvCorredoresEscaleras;
-    /** Carga viva de techo en kN/m² (azotea plana hasta 3°, E.020 art. 7.1a). */
     public final double cvTecho;
-    /** Carga muerta adicional (acabados + tabiquería equivalente) en kN/m²: valor típico SUGERIDO, no es de la norma. */
     public final double cargaMuertaAdicionalSugerida;
-    /** Verdadero si todas las cargas vivas figuran literalmente en la E.020 Tabla 1 / art. 7.1. */
     public final boolean verificado;
-    /** Fuente de las cargas vivas e indicación de su estado de verificación. */
     public final String fuente;
 
     UsoEdificacion(String etiqueta, String ejemplos, Categoria categoria, boolean aislamiento, double cvPisos, double cvCorredoresEscaleras,
@@ -89,10 +69,8 @@ public enum UsoEdificacion {
                 + ". Carga muerta adicional: valor típico sugerido, no es de la norma (E.020 arts. 3 y 4 piden pesos reales).";
     }
 
-    /** Categoría de la edificación según la Tabla 7 del texto 2026. */
     public Categoria categoria() { return categoria; }
 
-    /** Verdadero para A1 (salud de 2.º y 3.er nivel): lleva aislamiento sísmico en zonas 3 y 4 (nota de la Tabla 7). */
     public boolean requiereAislamientoZ3Z4() { return requiereAislamientoZ3Z4; }
 
     @Override public String toString() { return etiqueta; }

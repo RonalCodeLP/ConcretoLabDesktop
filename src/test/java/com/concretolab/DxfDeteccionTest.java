@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class DxfDeteccionTest {
-
     private static void g(StringBuilder sb, Object codigo, Object valor) {
         sb.append(codigo).append('\n').append(valor).append('\n');
     }
@@ -28,18 +27,17 @@ class DxfDeteccionTest {
         g(sb, 0, "LINE"); g(sb, 8, capa); g(sb, 10, x1); g(sb, 20, y1); g(sb, 30, 0); g(sb, 11, x2); g(sb, 21, y2); g(sb, 31, 0);
     }
 
-    /** Planta en milímetros, sin $INSUNITS, con columnas de 4 tipos de entidad y vigas de LINE y polilínea. */
     private Path plano(Path dir, double desvioViga) throws Exception { return plano(dir, desvioViga, false); }
 
     private Path plano(Path dir, double desvioViga, boolean extras) throws Exception {
         var sb = new StringBuilder();
         g(sb, 0, "SECTION"); g(sb, 2, "ENTITIES");
-        poli(sb, "S-COLUMNAS", 0, -200, -200, 200, -200, 200, 200, -200, 200, -200, -200); // rectángulo con vértice repetido
+        poli(sb, "S-COLUMNAS", 0, -200, -200, 200, -200, 200, 200, -200, 200, -200, -200);
         g(sb, 0, "INSERT"); g(sb, 8, "S-COLUMNAS"); g(sb, 2, "COL-40"); g(sb, 10, 5000); g(sb, 20, 0); g(sb, 30, 0);
         g(sb, 0, "CIRCLE"); g(sb, 8, "S-COLUMNAS"); g(sb, 10, 5000); g(sb, 20, 4000); g(sb, 30, 0); g(sb, 40, 200);
         g(sb, 0, "INSERT"); g(sb, 8, "S-COLUMNAS"); g(sb, 2, "COL-40"); g(sb, 10, 0); g(sb, 20, 4000); g(sb, 30, 0);
         linea(sb, "VIGAS 1", 0, 0, 5000, 0);
-        poli(sb, "VIGAS 1", 0, 5000 + desvioViga, 0, 5000, 4000);          // viga como polilínea de 2 puntos
+        poli(sb, "VIGAS 1", 0, 5000 + desvioViga, 0, 5000, 4000);
         linea(sb, "VIGAS 1", 5000, 4000, 0, 4000);
         linea(sb, "VIGAS 1", 0, 4000, 0, 0);
         if (extras) {
@@ -60,7 +58,7 @@ class DxfDeteccionTest {
     @Test
     void importaBloquesCirculosYPolilineasAnclandoVigasALasColumnas(@TempDir Path dir) throws Exception {
         var lector = new FernandoHuancaPlanoDxf();
-        var plano = lector.fernandoHuancaLeer(plano(dir, 100)); // la viga empieza a 10 cm del centro (dentro de la columna)
+        var plano = lector.fernandoHuancaLeer(plano(dir, 100));
         var modelo = lector.fernandoHuancaConvertir(plano, datos());
         assertThat(modelo.stream().filter(e -> e.getTipo().equals("COLUMNA"))).hasSize(8);
         assertThat(modelo.stream().filter(e -> e.getTipo().equals("VIGA"))).hasSize(8);
@@ -72,7 +70,7 @@ class DxfDeteccionTest {
     @Test
     void unaVigaQueNoCaeSobreNingunaColumnaSeRechazaConMensajeClaro(@TempDir Path dir) throws Exception {
         var lector = new FernandoHuancaPlanoDxf();
-        var plano = lector.fernandoHuancaLeer(plano(dir, 1000)); // 1 m de la columna
+        var plano = lector.fernandoHuancaLeer(plano(dir, 1000));
         assertThatThrownBy(() -> lector.fernandoHuancaConvertir(plano, datos()))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("extremo de viga");
     }
@@ -116,17 +114,15 @@ class DxfDeteccionTest {
         var losa = modelo.stream().filter(e -> e.getTipo().equals("LOSA")).findFirst().orElseThrow();
         assertThat(losa.getLargo()).isCloseTo(5.4, org.assertj.core.data.Offset.offset(1e-9));
         assertThat(losa.getAltura()).isEqualTo(0.20);
-        assertThat(losa.getZ()).isCloseTo(3.0 - 0.10, org.assertj.core.data.Offset.offset(1e-9)); // cara superior a nivel de piso
+        assertThat(losa.getZ()).isCloseTo(3.0 - 0.10, org.assertj.core.data.Offset.offset(1e-9));
         var muro = modelo.stream().filter(e -> e.getTipo().equals("MURO")).findFirst().orElseThrow();
-        assertThat(muro.getAncho()).isEqualTo(4.0).isNotEqualTo(0.15); // línea paralela a Y: largo en Y
+        assertThat(muro.getAncho()).isEqualTo(4.0).isNotEqualTo(0.15);
         assertThat(muro.getLargo()).isEqualTo(0.15);
         var neto = com.concretolab.service.MetradoNeto.yefriLermaCalcular(modelo);
         assertThat(neto.volumenNeto()).isLessThan(neto.volumenBruto());
         assertThat(neto.filas()).extracting(f -> f.tipo()).contains("COLUMNA", "VIGA", "MURO", "LOSA");
-        // sin capa de losas ni muros el resultado es el de siempre
         assertThat(lector.fernandoHuancaConvertir(plano, datos(), FernandoHuancaPlanoDxf.Extra.NINGUNA))
                 .hasSize(lector.fernandoHuancaConvertir(plano, datos()).size());
-        // espesor obligatorio
         assertThatThrownBy(() -> lector.fernandoHuancaConvertir(plano, datos(),
                 new FernandoHuancaPlanoDxf.Extra("LOSAS", "", Double.NaN, Double.NaN)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("espesor de losa");

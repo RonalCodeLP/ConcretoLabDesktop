@@ -21,9 +21,7 @@ import com.concretolab.service.UsoEdificacion;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** Logica no grafica de la pantalla sismica guiada (no necesita JavaFX). */
 class GuiaSismicaTest {
-
     @Test
     void tabla9PorticosNoPermitidosEnCategoriaAFueraDeZona1() {
         assertFalse(GuiaSismica.walterQuispesayhuaPorticosPermitidos(Categoria.A, Zona.Z4));
@@ -56,14 +54,12 @@ class GuiaSismicaTest {
         assertEquals(35, p.ct());
         assertEquals(250, p.vs30());
         assertEquals(0.9, p.ip());
-        // En 2018 el suelo se traduce al perfil de esa version y Vs30 se ignora
         Parametros p18 = GuiaSismica.walterQuispesayhuaParametros(Version.V2018, Zona.Z3, UsoEdificacion.EDUCATIVO, TipoSuelo.INTERMEDIO,
                 SistemaEstructural.PORTICOS, 1.0, 1.0, 40.0, 250);
         assertEquals(Suelo.S2_2018, p18.suelo());
         assertTrue(Double.isNaN(p18.vs30()));
         assertEquals(Categoria.A, p18.categoria());
         assertEquals(40, p18.ct());
-        // Vs30 no aplica a suelos que no interpolan
         assertTrue(Double.isNaN(GuiaSismica.walterQuispesayhuaParametros(Version.V2026, Zona.Z2, UsoEdificacion.OFICINAS, TipoSuelo.MUY_RIGIDO,
                 SistemaEstructural.PORTICOS, 1, 1, null, 600).vs30()));
     }
@@ -99,7 +95,6 @@ class GuiaSismicaTest {
         assertTrue(v.stream().anyMatch(x -> x.nivel() == Nivel.INFO && x.texto().contains("Junta sísmica")));
         assertTrue(v.stream().anyMatch(x -> x.nivel() == Nivel.ERROR && x.texto().contains("Tabla 9")));
         assertEquals(4, v.stream().filter(x -> x.texto().startsWith("Deriva")).count());
-        // Categoria C: Tabla 9 en verde
         Parametros c = GuiaSismica.walterQuispesayhuaParametros(Version.V2026, Zona.Z4, UsoEdificacion.VIVIENDA, TipoSuelo.RIGIDO,
                 SistemaEstructural.PORTICOS, 1, 1, null, Double.NaN);
         var vc = GuiaSismica.walterQuispesayhuaVerificaciones(c, FernandoHuancaAnalisisSismico.fernandoHuancaAnalizar(SismoE030Test.entrada(el, 3, c)), UsoEdificacion.VIVIENDA);
@@ -110,7 +105,7 @@ class GuiaSismicaTest {
     @Test void categoriaA1NoPermitePorticosEnNingunaZona() {
         for (var z : com.concretolab.service.NormaE030.Zona.values())
             assertFalse(GuiaSismica.walterQuispesayhuaPorticosPermitidos(com.concretolab.service.NormaE030.Categoria.A, z, true), z.name());
-        assertTrue(GuiaSismica.walterQuispesayhuaPorticosPermitidos(com.concretolab.service.NormaE030.Categoria.A, com.concretolab.service.NormaE030.Zona.Z1, false)); // A2 en zona 1: cualquier sistema
+        assertTrue(GuiaSismica.walterQuispesayhuaPorticosPermitidos(com.concretolab.service.NormaE030.Categoria.A, com.concretolab.service.NormaE030.Zona.Z1, false));
         assertNotNull(GuiaSismica.walterQuispesayhuaAvisoTabla9(com.concretolab.service.NormaE030.Categoria.A, com.concretolab.service.NormaE030.Zona.Z1, com.concretolab.service.NormaE030.Version.V2026, true));
         assertNull(GuiaSismica.walterQuispesayhuaAvisoTabla9(com.concretolab.service.NormaE030.Categoria.A, com.concretolab.service.NormaE030.Zona.Z1, com.concretolab.service.NormaE030.Version.V2026, false));
     }

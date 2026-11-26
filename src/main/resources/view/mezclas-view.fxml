@@ -11,7 +11,6 @@
 
     <fx:define>
 
-        <!-- ============ Panel lateral: registrar dosificacion ============ -->
         <VBox fx:id="panelMezcla" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -139,7 +138,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel lateral: asistente de diseño (ACI 211.1 + E.060) ============ -->
         <VBox fx:id="panelDiseno" styleClass="drawer"
               prefWidth="500.0" maxWidth="500.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -265,7 +263,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel lateral: registrar ensayo fisico ============ -->
         <VBox fx:id="panelEnsayo" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -335,7 +332,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel lateral: elegir elementos del modelo ============ -->
         <VBox fx:id="panelElementos" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -371,11 +367,10 @@
         </VBox>
     </fx:define>
 
-    <!-- ============ Cabecera ============ -->
     <HBox styleClass="pagina-cabecera">
         <VBox spacing="4.0" HBox.hgrow="ALWAYS">
             <Label text="Mezclas y ensayos" styleClass="pagina-titulo"/>
-            <Label text="1. Selecciona un proyecto   2. Registra una dosificación   3. Calcula el lote   4. Registra las pruebas físicas"
+            <Label text="1. Seleccione un proyecto   2. Registre una dosificación   3. Calcule el lote   4. Registre las pruebas físicas"
                    styleClass="pagina-subtitulo" wrapText="true"/>
         </VBox>
         <Button text="Diseñar mezcla" onAction="#onDisenar" styleClass="accent,boton-principal">
@@ -386,7 +381,6 @@
         </Button>
     </HBox>
 
-    <!-- ============ Mezclas del proyecto ============ -->
     <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
         <HBox styleClass="barra-herramientas">
             <Label text="Mezclas del proyecto" styleClass="grafico-titulo"/>
@@ -404,7 +398,6 @@
         </TableView>
     </VBox>
 
-    <!-- ============ Calculo del lote ============ -->
     <VBox styleClass="tarjeta">
         <HBox styleClass="barra-herramientas">
             <Label text="Volumen del lote (m³):"/>
@@ -425,7 +418,6 @@
                wrapText="true" maxWidth="Infinity"/>
     </VBox>
 
-    <!-- ============ Ensayos de la mezcla ============ -->
     <VBox styleClass="tarjeta" VBox.vgrow="ALWAYS">
         <HBox styleClass="barra-herramientas">
             <Label text="Ensayos registrados" styleClass="grafico-titulo"/>

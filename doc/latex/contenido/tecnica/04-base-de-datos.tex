@@ -1,0 +1,462 @@
+% ------------------------------------------------------------------------------
+\section{Base de datos, copias e intercambio}
+\label{sec:bd-base}
+% ------------------------------------------------------------------------------
+
+Todos los datos del usuario viven en un único archivo SQLite, \ruta{concretolab.db}, dentro de la carpeta de datos
+(capítulo de arquitectura). Este capítulo describe su esquema, cómo se versiona con Flyway, cómo se hacen y restauran
+las copias de seguridad, cómo se convierten las bases antiguas protegidas con contraseña, el formato de intercambio de
+proyectos, la bitácora, los datos de demostración y la pantalla «Datos y copias».
+
+\subsection{Conexión}
+
+La configuración está en \ruta{src/main/resources/application.properties}:
+
+\begin{table}[H]
+	\centering
+	\caption{Propiedades de la base de datos y de los registros.}
+	\label{tab:bd-propiedades}
+	\begin{tabular}{L{7.0cm}L{7.8cm}}
+		\hline
+		\textbf{Propiedad} & \textbf{Valor y motivo} \\ \hline
+		\ruta{spring.datasource.url} & \ruta{jdbc:sqlite:\allowbreak \$\{concretolab.datos:\allowbreak \$\{user.home\}/.concretolab\}/\allowbreak concretolab.db}:
+		la carpeta se puede cambiar con \ruta{-Dconcretolab.datos}. \\
+		\ruta{spring.datasource.hikari.\allowbreak maximum-pool-size} & \ruta{1}: SQLite admite un solo escritor; con una sola
+		conexión no hay bloqueos entre hilos. \\
+		\ruta{spring.jpa.database-platform} & \ruta{org.hibernate.community.dialect.\allowbreak{}SQLiteDialect}. \\
+		\ruta{spring.jpa.hibernate.ddl-auto} & \ruta{none}: el esquema lo gestiona solo Flyway. \\
+		\ruta{spring.jpa.open-in-view} & \ruta{false}. \\
+		\ruta{spring.jpa.properties.\allowbreak hibernate.jdbc.time\_zone} & \ruta{UTC}. \\
+		\ruta{logging.file.name} & \ruta{<datos>/logs/concretolab.log}; rota a los 5~MB, conserva 7 días y como
+		máximo 50~MB. \\ \hline
+	\end{tabular}
+\end{table}
+
+El controlador JDBC es \ruta{io.github.willena:sqlite-jdbc} 3.46.1.0, que mantiene el paquete \ruta{org.sqlite.JDBC}
+e incluye SQLite3MultipleCiphers. La aplicación actual abre la base \textbf{sin cifrar}; el cifrado solo se usa para
+reconocer y convertir bases de versiones anteriores (sección~\ref{sec:bd-cifrada}).
+
+\subsection{Tablas y columnas}
+
+El esquema lo crean las migraciones \ruta{V1\_\_esquema\_base.sql} (nueve tablas) y \ruta{V2\_\_bitacora.sql} (tabla
+\ruta{bitacora}). Las columnas \ruta{id} son \ruta{integer primary key}, que en SQLite es un alias del \ruta{rowid} y se
+autoincrementa; en las entidades son \ruta{Long} con \ruta{GenerationType.IDENTITY}. Los nombres de columna siguen la
+estrategia de nombres de Spring (\ruta{proyectoId} $\rightarrow$ \ruta{proyecto\_id}).
+
+\begin{importante}[Sin claves foráneas]
+El esquema no declara claves foráneas: las relaciones (\ruta{proyecto\_id}, \ruta{mezcla\_id}, \ruta{material\_id},
+\ruta{columna\_id}, \ruta{viga\_id}) son números que mantienen los servicios. Por ejemplo,
+\ruta{YefriLermaProyectoService.\allowbreak yefriLermaEliminarProyecto} borra a mano los ensayos, las mezclas, los elementos (con sus
+vínculos), la cuadrícula y el expediente antes del proyecto. Quien borre filas por otro camino debe hacer lo mismo.
+\end{importante}
+
+\begin{longtable}{L{4.7cm}L{3.1cm}L{6.8cm}}
+	\caption{Tablas, columnas y significado.} \label{tab:bd-tablas} \\
+	\hline
+	\textbf{Columna} & \textbf{Tipo SQL} & \textbf{Significado} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Columna} & \textbf{Tipo SQL} & \textbf{Significado} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\multicolumn{3}{l}{\textbf{\ruta{proyectos}} (\ruta{Proyecto})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{nombre} & varchar(120), no nulo & Nombre del proyecto. \\
+	\ruta{ubicacion} & varchar(200) & Texto libre. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{elementos}} (\ruta{Elemento})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{proyecto\_id} & bigint, no nulo & Proyecto dueño. \\
+	\ruta{tipo} & varchar(255), no nulo & \ruta{ZAPATA}, \ruta{COLUMNA}, \ruta{VIGA}, \ruta{LOSA} o \ruta{MURO}
+	(lo valida el servicio). \\
+	\ruta{nombre} & varchar(255), no nulo & Nombre visible (por ejemplo \ruta{C1}). \\
+	\ruta{largo}, \ruta{ancho}, \ruta{altura} & float, no nulo & Dimensiones del prisma en X, Y y Z (m). \\
+	\ruta{x}, \ruta{y}, \ruta{z} & float, no nulo & Centro del prisma (m). \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{cuadriculas\_proyecto}} (\ruta{CuadriculaProyecto})} \\ \hline
+	\ruta{proyecto\_id} & bigint, PK & Un registro por proyecto. \\
+	\ruta{separacionesx}, \ruta{separacionesy} & varchar(2000), no nulo & Separaciones entre ejes, unidas con
+	«\ruta{; }». \\
+	\ruta{niveles} & varchar(2000), no nulo & Cotas de nivel, unidas con «\ruta{; }». \\
+	\ruta{origenx}, \ruta{origeny} & float, no nulo & Origen de la cuadrícula (m). \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{vinculos\_geometricos}} (\ruta{VinculoGeometrico})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{columna\_id}, \ruta{viga\_id} & bigint, no nulo & Columna y viga vinculadas. La entidad declara un
+	\ruta{@UniqueConstraint} sobre el par, pero la migración no lo crea. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{expedientes\_estructurales}} (\ruta{ExpedienteEstructural})} \\ \hline
+	\ruta{proyecto\_id} & bigint, PK & Un expediente por proyecto. \\
+	\ruta{ubicacion}, \ruta{uso}, \ruta{fecha\_proyecto}, \ruta{estado\_proyecto}, \ruta{profesional}, \ruta{norma},
+	\ruta{justificacion\_norma}, \ruta{estudio\_suelos}, \ruta{observaciones} & varchar(255) & Datos administrativos;
+	\ruta{ExpedienteService} exige la fecha como \ruta{AAAA-MM-DD}. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{materiales}} (\ruta{Material})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{nombre} & varchar(255), no nulo & Nombre del material. \\
+	\ruta{tipo} & varchar(255), no nulo & Uno de \ruta{MaterialService.YEFRI\_LERMA\_TIPOS}: \ruta{CEMENTO}, siete
+	tipos de cemento (I, IP, ICo, II, V, MS, HS), \ruta{AGREGADO FINO}, \ruta{AGREGADO GRUESO} o \ruta{ADITIVO}. \\
+	\ruta{procedencia}, \ruta{referencia\_ensayo}, \ruta{fecha\_ensayo}, \ruta{observaciones} & varchar(255) & Origen
+	de los datos. \\
+	\ruta{densidad\_relativa}, \ruta{absorcion}, \ruta{humedad}, \ruta{modulo\_finura}, \ruta{tamano\_maximo\_mm},
+	\ruta{peso\_unitario\_compactado} & float (admite nulo) & Propiedades medidas (\ruta{Double} en la entidad). \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{granulometrias}} (\ruta{RegistroGranulometria})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{material\_id} & bigint & Agregado ensayado. \\
+	\ruta{identificacion}, \ruta{fecha} & varchar(255) & Datos del ensayo. \\
+	\ruta{masa\_inicial}, \ruta{fondo} & float, no nulo & Masa seca inicial y masa del fondo (g). \\
+	\ruta{mediciones} & varchar(10000) & Una línea por tamiz: \ruta{abertura; masa retenida}. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{mezclas}} (\ruta{Mezcla})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{proyecto\_id} & bigint & Proyecto de la mezcla. \\
+	\ruta{nombre}, \ruta{referencia}, \ruta{observaciones} & varchar(255) & Descripción. \\
+	\ruta{material\_fino}, \ruta{material\_grueso} & varchar(255) & Instantánea en texto del agregado elegido (no es
+	una referencia a \ruta{materiales}). \\
+	\ruta{resistencia} & float, no nulo & f'c especificada (MPa). \\
+	\ruta{cemento}, \ruta{agua}, \ruta{fino\_sss}, \ruta{grueso\_sss} & float, no nulo & Cantidades por m$^3$ (kg),
+	agregados en condición SSS. \\
+	\ruta{absorcion\_fino}, \ruta{humedad\_fino}, \ruta{absorcion\_grueso}, \ruta{humedad\_grueso} & float, no nulo &
+	Porcentajes sobre masa seca. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{ensayos}} (\ruta{Ensayo})} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{mezcla\_id} & bigint & Mezcla ensayada. \\
+	\ruta{fecha}, \ruta{identificacion}, \ruta{observaciones} & varchar(255) & Datos de la probeta. \\
+	\ruta{edad\_dias}, \ruta{resistencia\_mpa}, \ruta{asentamiento\_mm} & float, no nulo & Edad, resistencia a
+	compresión y asentamiento. \\ \hline
+	\multicolumn{3}{l}{\textbf{\ruta{bitacora}} (\ruta{RegistroBitacora}, migración V2)} \\ \hline
+	\ruta{id} & integer, PK & Identificador. \\
+	\ruta{fecha} & varchar(30), no nulo & Fecha y hora local ISO-8601 al segundo. \\
+	\ruta{accion} & varchar(40), no nulo & Código de la acción (tabla~\ref{tab:bd-acciones}). \\
+	\ruta{detalle} & varchar(400) & Descripción legible. \\
+\end{longtable}
+
+Flyway agrega su propia tabla, \ruta{flyway\_schema\_history}, con las migraciones aplicadas.
+
+\subsection{Migraciones con Flyway}
+\label{sec:bd-flyway}
+
+\begin{table}[H]
+	\centering
+	\caption{Migraciones existentes.}
+	\label{tab:bd-migraciones}
+	\begin{tabular}{L{1.4cm}L{5.6cm}L{6.7cm}}
+		\hline
+		\textbf{Versión} & \textbf{Archivo} & \textbf{Qué hace} \\ \hline
+		V1 & \ruta{src/main/resources/db/migration/} \ruta{V1\_\_esquema\_base.sql} & Crea las nueve tablas de las
+		entidades con \ruta{CREATE TABLE IF NOT EXISTS} (se generó a partir de las entidades). \\
+		V2 & \ruta{src/main/resources/db/migration/} \ruta{V2\_\_bitacora.sql} & Crea la tabla \ruta{bitacora}. \\
+		V3 & \ruta{src/main/java/db/migration/} \ruta{V3\_\_Completar\_columnas.java} & Migración Java
+		(\ruta{BaseJavaMigration}): lee las sentencias \ruta{CREATE TABLE} de V1, compara con \ruta{PRAGMA table\_info}
+		y agrega con \ruta{ALTER TABLE \ldots{} ADD COLUMN} las columnas que falten; a las \ruta{not null} les pone un
+		valor por defecto (\ruta{''} o \ruta{0}) para poder agregarlas sobre filas existentes. En una base nueva no hace
+		nada. \\ \hline
+	\end{tabular}
+\end{table}
+
+Flyway busca en su ubicación por defecto, \ruta{classpath:db/migration}, que abarca tanto los \ruta{.sql} de
+\ruta{resources/db/migration} como las clases Java del paquete \ruta{db.migration}.
+
+\begin{nota}[V3 sí existe, pero en otra carpeta]
+La migración V3 existe y se compila (\ruta{target/classes/db/migration/V3\_\_Completar\_columnas.class}), pero es una
+clase Java en \ruta{src/main/java/db/migration}, no un \ruta{.sql}. Por eso no aparece al listar
+\ruta{src/main/resources/db/migration}. El README la menciona («V3 columnas faltantes») junto a esa carpeta de recursos;
+el comentario de \ruta{application.properties} solo nombra V1 y V2. \ruta{EsquemaMigracionesTest} comprueba en
+\ruta{flyway\_schema\_history} que se aplicaron las versiones 1 y 2, pero no la 3. V3 se ejercita de forma indirecta en
+\ruta{CompatibilidadMezclaTest}: crea una tabla \ruta{mezclas} sin \ruta{material\_fino} ni \ruta{material\_grueso} y
+comprueba que la entidad \ruta{Mezcla} se puede leer después de migrar.
+\end{nota}
+
+Las propiedades de Flyway son:
+
+\begin{itemize}
+	\item \ruta{spring.flyway.enabled=true}.
+	\item \ruta{spring.flyway.baseline-on-migrate=true} y \ruta{spring.flyway.baseline-version=0}. Las primeras versiones
+	      de ConcretoLab creaban el esquema con \ruta{ddl-auto=update} y no tienen la tabla
+	      \ruta{flyway\_schema\_history}. Flyway se niega a migrar una base no vacía sin historial; con estas opciones la
+	      toma como punto de partida (versión 0) y aplica V1, V2 y V3 encima. V1 no falla porque usa
+	      \ruta{IF NOT EXISTS}, y V3 completa las columnas que esas bases no tuvieran.
+	\item \ruta{spring.jpa.hibernate.ddl-auto=none}. Hibernate ya no modifica el esquema: \textbf{cada cambio en una
+	      entidad necesita una migración nueva}. No se usa \ruta{validate} porque Hibernate espera \ruta{bigint} en los
+	      \ruta{id}, mientras que SQLite necesita \ruta{integer} para que la clave primaria se autoincremente; la validación
+	      fallaría siempre. En su lugar, \ruta{EsquemaMigracionesTest} consulta cada entidad sobre una base migrada (nueva
+	      y «antigua») y falla si falta una tabla o una columna.
+\end{itemize}
+
+\begin{advertencia}[Antes de migrar se guarda una copia]
+\ruta{JavaFxApplication.init()} guarda la copia «inicio» \textbf{antes} de levantar Spring, es decir, antes de que
+Flyway toque la base. Si una migración nueva fallara en la computadora de un cliente, esa copia conserva los datos tal
+como estaban.
+\end{advertencia}
+
+\subsection{Copias de seguridad}
+\label{sec:bd-copias}
+
+Hay dos clases complementarias:
+
+\begin{itemize}
+	\item \ruta{RespaldoDatos}: utilidad \textbf{sin Spring} (solo JDK y \ruta{System.Logger}), porque se usa en
+	      \ruta{init()} y \ruta{stop()}, cuando el contexto todavía no existe o ya se cerró. Su regla es que ninguna
+	      operación de arranque lanza excepciones: una copia que falla se registra y no impide abrir la aplicación.
+	\item \ruta{RespaldoService}: bean de Spring para la base \textbf{abierta} (copias manuales, listado, eliminación y
+	      programación de la restauración).
+\end{itemize}
+
+\subsubsection{Nombres y rotación}
+
+Cada copia se llama \ruta{concretolab-AAAAMMDD-HHMMSS-<motivo>.db} y se guarda en \ruta{<datos>/backups}. El patrón
+\ruta{ERICK\_DELGADO\_PATRON\_NOMBRE} reconoce la marca de tiempo y el motivo; los archivos que no lo cumplen se
+ignoran al listar. El motivo se normaliza (minúsculas, sin tildes, solo letras y guiones; vacío = «manual»). Si ya
+existe una copia con la misma marca, se avanza un segundo hasta encontrar un nombre libre.
+
+\begin{table}[H]
+	\centering
+	\caption{Motivos de copia, cuándo se crean y cuántas se conservan.}
+	\label{tab:bd-motivos}
+	\begin{tabular}{L{3.7cm}L{2.8cm}L{4.4cm}L{2.2cm}}
+		\hline
+		\textbf{Motivo} & \textbf{Texto en pantalla} & \textbf{Cuándo} & \textbf{Se conservan} \\ \hline
+		\ruta{inicio} & Al abrir la aplicación & \ruta{init()}, antes de Spring y Flyway & 10 \\
+		\ruta{cierre} & Al cerrarla & \ruta{stop()}, con el contexto ya cerrado & 10 \\
+		\ruta{manual} & Manual & Botón «Crear copia ahora» & Todas \\
+		\ruta{previa-restauracion} & Antes de restaurar & Al aplicar una restauración & 20 \\
+		\ruta{antes-de-quitar-clave} & Base anterior con contraseña & Al convertir una base antigua & Todas \\ \hline
+	\end{tabular}
+\end{table}
+
+La rotación (\ruta{erickDelgadoRotar}) ordena las copias de un motivo por nombre, de la más reciente a la más antigua
+(la marca de tiempo está en el nombre), y borra las que exceden el límite. Solo se rotan \ruta{inicio}, \ruta{cierre}
+y \ruta{previa-restauracion}.
+
+\subsubsection{Cómo se copia}
+
+\begin{itemize}
+	\item \textbf{Copias de arranque y cierre} (\ruta{RespaldoDatos.\allowbreak{}erickDelgadoRespaldarArchivo}): copian el archivo
+	      \ruta{.db} cuando la base no está abierta. Primero se copia a un \ruta{.tmp} en la misma carpeta y luego se
+	      renombra, de modo que nunca queda una copia a medias con un nombre válido. Si la base no existe o está vacía, no
+	      hacen nada.
+	\item \textbf{Copias manuales} (\ruta{RespaldoService.\allowbreak erickDelgadoCrearCopia}): la base está abierta, así que se
+	      usa \ruta{VACUUM INTO '<destino>'}, que escribe un archivo coherente aunque haya conexiones activas. El método
+	      no es transaccional (\ruta{VACUUM} no puede ejecutarse dentro de una transacción) y libera la conexión antes de
+	      escribir en la bitácora, porque el pool tiene una sola. Si falla, borra el destino incompleto.
+\end{itemize}
+
+\subsubsection{Restauración diferida}
+
+La base no se reemplaza en caliente. El proceso tiene dos fases:
+
+\begin{enumerate}
+	\item \textbf{Programar} (\ruta{erickDelgadoProgramarRestauracion}): valida la copia y escribe su ruta absoluta en
+	      el marcador \ruta{<datos>/restaurar.pendiente}. La pantalla lo registra en la bitácora
+	      (\ruta{RESTAURACION\_PROGRAMADA}) y cierra la aplicación con \ruta{Platform.exit()}.
+	\item \textbf{Aplicar} (\ruta{erickDelgadoAplicarRestauracionPendiente}, primera instrucción de \ruta{init()} después
+	      de crear la carpeta): lee el marcador, comprueba que la copia existe y es válida, guarda la base actual como
+	      \ruta{previa-restauracion} (si esa copia falla, cancela), copia la elegida a \ruta{concretolab.db.restaurando},
+	      borra los archivos \ruta{-wal}, \ruta{-shm} y \ruta{-journal} y la mueve sobre \ruta{concretolab.db}. El marcador
+	      se borra siempre, haya salido bien o mal, para no entrar en un bucle.
+\end{enumerate}
+
+La validación (\ruta{erickDelgadoEsSqliteValido}) acepta un archivo que empieza con la cabecera
+\ruta{SQLite format 3\textbackslash{}0}. También acepta uno sin esa cabecera si mide al menos 4~KB y es múltiplo de 512
+bytes: es el aspecto de una base cifrada de una versión anterior, que luego se convierte en el arranque.
+
+\begin{consejo}[Eliminar copias]
+\ruta{erickDelgadoEliminarCopia} solo borra archivos situados directamente en la carpeta \ruta{backups}; cualquier otra
+ruta lanza \ruta{IllegalArgumentException}. La eliminación no se anota en la bitácora.
+\end{consejo}
+
+\subsection{Bases antiguas protegidas con contraseña}
+\label{sec:bd-cifrada}
+
+Las versiones anteriores de ConcretoLab cifraban la base (AES-256, modo SQLCipher~4 de SQLite3MultipleCiphers). La
+actual abre sin contraseña y convierte esas bases \textbf{una sola vez}. Intervienen \ruta{BaseCifrada},
+\ruta{DialogoClaveBase} y \ruta{JavaFxApplication}.
+
+\begin{enumerate}
+	\item \textbf{Detección.} \ruta{BaseCifrada.\allowbreak{}erickDelgadoInspeccionar} lee los primeros 16 bytes:
+	      \ruta{NO\_EXISTE} (no hay archivo o está vacío), \ruta{SIN\_CIFRAR} (cabecera SQLite) o \ruta{CIFRADA}
+	      (cualquier otra cosa).
+	\item \textbf{Contraseña.} Si está cifrada, \ruta{JavaFxApplication} pide la contraseña con
+	      \ruta{DialogoClaveBase.\allowbreak{}erickDelgadoPedirActual}, hasta 3 intentos. En el primer intento usa la variable de
+	      entorno \ruta{CONCRETOLAB\_DB\_CLAVE} si existe (para automatizar). La contraseña se comprueba leyendo
+	      \ruta{sqlite\_master}; si es incorrecta, no se modifica nada. Si la persona pulsa «Salir» o se agotan los
+	      intentos, la aplicación se cierra sin tocar la base.
+	\item \textbf{Conversión} (\ruta{BaseCifrada.\allowbreak{}erickDelgadoQuitarClave}):
+	      \begin{enumerate}
+		      \item cuenta las filas de cada tabla con la contraseña;
+		      \item copia el archivo cifrado a \ruta{backups} con el motivo \ruta{antes-de-quitar-clave} y comprueba que la
+		            copia tiene el mismo tamaño y sigue cifrada (si no, aborta sin tocar la base);
+		      \item ejecuta \ruta{PRAGMA rekey=''} para quitar la contraseña;
+		      \item verifica que la cabecera ahora es SQLite, que \ruta{PRAGMA integrity\_check} devuelve \ruta{ok} y que
+		            cada tabla tiene las mismas filas que antes;
+		      \item si cualquier paso falla, \textbf{vuelve a copiar la base cifrada en su lugar} y la deja como estaba.
+	      \end{enumerate}
+	\item \textbf{Arranque.} Luego se guarda la copia «inicio» y Spring abre la base con
+	      \ruta{BaseCifrada.\allowbreak{}erickDelgadoPropiedadesSpring(null)} (\ruta{cipher=sqlcipher}, \ruta{legacy=4}, sin clave,
+	      es decir, sin cifrar). El arreglo \ruta{char[]} con la contraseña se llena de ceros al terminar.
+\end{enumerate}
+
+\ruta{BaseCifrada} conserva además \ruta{erickDelgadoCifrarExistente} y \ruta{erickDelgadoCambiarClave}, de cuando la
+aplicación cifraba la base. Ninguna pantalla las usa; solo las ejercita \ruta{CifradoBaseTest}.
+
+\subsection{Exportar e importar proyectos}
+\label{sec:bd-intercambio}
+
+\ruta{IntercambioProyectoService} lleva un proyecto de una computadora a otra con un archivo \ruta{.concretolab}.
+
+\subsubsection{Formato}
+
+Un \ruta{.concretolab} es un ZIP con exactamente dos entradas:
+
+\begin{itemize}
+	\item \ruta{manifiesto.json}: \ruta{formato} (\ruta{concretolab-proyecto}), \ruta{version} (1),
+	      \ruta{aplicacion}, \ruta{fecha} (instante ISO), \ruta{sha256} de \ruta{datos.json} y \ruta{conteos}
+	      (elementos, vínculos, mezclas y ensayos).
+	\item \ruta{datos.json}: el proyecto (nombre y ubicación), sus elementos, la cuadrícula, los vínculos (referidos por
+	      la \textbf{posición} del elemento en la lista, no por su \ruta{id}), las mezclas con sus ensayos y el expediente.
+\end{itemize}
+
+No viajan la biblioteca de materiales ni los tamizados, porque no pertenecen a un proyecto; las mezclas conservan como
+texto el nombre de sus agregados. El archivo se escribe de forma atómica: primero un temporal en la misma carpeta y
+luego \ruta{Files.move} con \ruta{ATOMIC\_MOVE} (o un movimiento normal si el sistema de archivos no lo admite).
+
+\subsubsection{Cifrado opcional del archivo}
+
+Si al exportar se marca «Proteger este archivo con contraseña», el ZIP completo se cifra con \ruta{CifradoArchivo}.
+\textbf{Solo afecta al archivo exportado}, no a la base local.
+
+\begin{table}[H]
+	\centering
+	\caption{Formato de un archivo cifrado por \ruta{CifradoArchivo}.}
+	\label{tab:bd-cifrado}
+	\begin{tabular}{L{4.4cm}L{9.4cm}}
+		\hline
+		\textbf{Parte} & \textbf{Detalle} \\ \hline
+		Cabecera & \ruta{CLCIF1} (6 bytes ASCII) + sal (16 bytes) + IV (12 bytes). \\
+		Clave & PBKDF2WithHmacSHA256, 210\,000 iteraciones, 256 bits, con la sal. \\
+		Cuerpo & AES/GCM/NoPadding con etiqueta de 16 bytes; la cabecera se autentica como datos adicionales (AAD), así
+		que alterarla también se detecta. \\
+		Errores & Contraseña incorrecta, archivo truncado o modificado dan el mismo mensaje genérico: «Contraseña
+		incorrecta o archivo dañado.» \\ \hline
+	\end{tabular}
+\end{table}
+
+\ruta{CifradoArchivo} solo exige que la contraseña no esté vacía; la pantalla «Datos y copias» pide al menos 8
+caracteres y una confirmación al exportar.
+
+\subsubsection{Importación}
+
+\ruta{erickDelgadoImportar} es \ruta{@Transactional} y valida todo antes de guardar:
+
+\begin{enumerate}
+	\item el archivo no supera 50~MB; si empieza con \ruta{CLCIF1}, se descifra con la contraseña;
+	\item el ZIP solo puede contener \ruta{manifiesto.json} (hasta 1~MB) y \ruta{datos.json} (hasta 100~MB), una vez cada
+	      uno; se rechazan rutas con \ruta{..}, \ruta{/}, \ruta{\textbackslash}, \ruta{:} y directorios;
+	\item el manifiesto debe tener el formato correcto y una versión no mayor que la soportada (si es mayor, se pide
+	      actualizar ConcretoLab); el SHA-256 de \ruta{datos.json} debe coincidir (comparación de tiempo constante);
+	\item los datos se validan: hasta 20\,000 elementos, 2\,000 mezclas y 20\,000 ensayos; tipos válidos; dimensiones
+	      positivas y finitas; vínculos que unan una columna con una viga existentes (los repetidos se omiten con aviso);
+	      textos acotados; humedades y absorciones entre 0 y 100~\%; fechas de ensayo ISO;
+	\item se crea \textbf{siempre un proyecto nuevo}, nunca se reemplaza uno existente. Si el nombre ya existe se agrega
+	      « (importado)», « (importado 2)», etc., sin pasar de 120 caracteres, y se devuelve un aviso.
+\end{enumerate}
+
+Si algo falla durante el guardado, la transacción revierte todo y no queda un proyecto a medias.
+
+\subsection{Bitácora de cambios}
+
+\ruta{BitacoraService.\allowbreak{}erickDelgadoRegistrar(accion, detalle)} guarda un \ruta{RegistroBitacora}. Es
+\ruta{@Transactional} y se une a la transacción de la operación que registra (SQLite trabaja con una sola conexión y no
+puede abrir otra), así que el evento se confirma o se revierte junto con ella. Recorta la acción a 40 caracteres y el
+detalle a 400 (terminando en «\ldots»). Si no puede guardar, lo anota en el registro técnico y no interrumpe la
+operación. \ruta{erickDelgadoRecientes()} devuelve los últimos 200 eventos.
+
+\begin{table}[H]
+	\centering
+	\caption{Acciones que se registran hoy.}
+	\label{tab:bd-acciones}
+	\begin{tabular}{L{5.0cm}L{8.8cm}}
+		\hline
+		\textbf{Acción} & \textbf{Dónde se registra} \\ \hline
+		\ruta{PROYECTO\_CREADO} & \ruta{YefriLermaProyectoService.\allowbreak yefriLermaCrearProyecto} \\
+		\ruta{PROYECTO\_ELIMINADO} & \ruta{YefriLermaProyectoService.\allowbreak yefriLermaEliminarProyecto} \\
+		\ruta{PROYECTO\_EXPORTADO} & \ruta{IntercambioProyectoService.\allowbreak erickDelgadoExportar} (indica si lleva contraseña) \\
+		\ruta{PROYECTO\_IMPORTADO} & \ruta{IntercambioProyectoService.\allowbreak erickDelgadoImportar} (con los conteos) \\
+		\ruta{COPIA\_CREADA} & \ruta{RespaldoService.\allowbreak erickDelgadoCrearCopia} (solo copias manuales) \\
+		\ruta{RESTAURACION\_PROGRAMADA} & \ruta{RespaldoService.\allowbreak erickDelgadoProgramarRestauracion} \\ \hline
+	\end{tabular}
+\end{table}
+
+No se registran las ediciones de elementos, mezclas o materiales, la eliminación de copias, la restauración ya
+aplicada ni la conversión de una base con contraseña (esta última queda en el registro técnico y en la copia
+\ruta{antes-de-quitar-clave}).
+
+\subsection{Datos de demostración (seeders)}
+
+Los seeders del paquete \ruta{seeder} crean proyectos y datos ficticios para aprender y probar.
+\ruta{DatabaseSeeder} es un \ruta{ApplicationRunner} anotado con
+\ruta{@ConditionalOnProperty} sobre la propiedad \ruta{app.seeder.enabled} con valor \ruta{true}: si la propiedad no vale
+\ruta{true}, el bean ni siquiera existe. En \ruta{application.properties} está en \ruta{false}.
+
+\begin{advertencia}[Apagados por defecto]
+Al activar los seeders sobre la carpeta de datos real, los proyectos de demostración se crean en la base del usuario,
+y si se borran vuelven a aparecer en cada arranque mientras la opción siga activa. Actívelos solo con una carpeta de
+prueba (\ruta{-Dconcretolab.datos}).
+\end{advertencia}
+
+Formas de activarlos: \ruta{app.seeder.enabled=true} en \ruta{application.properties},
+\ruta{java -Dapp.seeder.enabled=true -jar target/concretolab-desktop-0.1.0.jar}, o
+\ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1 -ConDatosDemostracion}, que agrega esa opción al lanzador generado.
+
+\ruta{DatabaseSeeder.\allowbreak{}fernandoHuancaSembrar()} los ejecuta en orden de dependencias y devuelve cuántos registros creó.
+Todos son idempotentes: buscan por nombre y no duplican.
+
+\begin{table}[H]
+	\centering
+	\caption{Datos que crea cada seeder, en orden de ejecución.}
+	\label{tab:bd-seeders}
+	\begin{tabular}{L{4.4cm}L{9.4cm}}
+		\hline
+		\textbf{Seeder} & \textbf{Crea} \\ \hline
+		\ruta{ProyectoSeeder} & «DEMO - Edificación de práctica» con la plantilla rectangular (4 zapatas, 4 columnas,
+		4 vigas). \\
+		\ruta{MaterialSeeder} & Una arena, una piedra y un cemento (omite los que ya existen por nombre). \\
+		\ruta{GranulometriaSeeder} & Un tamizado de la arena DEMO. \\
+		\ruta{MezclaSeeder} & Una dosificación de 21~MPa con un ensayo a 28 días en el proyecto DEMO. \\
+		\ruta{EdificiosSismicosSeeder} & «DEMO - Pórtico regular de 3 pisos», «DEMO - Edificio asimétrico de 4 pisos» y
+		«DEMO - Torre flexible de 6 pisos» (cumple, torsión y deriva excesiva). \\
+		\ruta{EdificioPracticaSeeder} & «Práctica - Edificio de dos pisos incompleto», con cuadrícula y elementos
+		faltantes para completar. \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{La pantalla «Datos y copias»}
+
+La vista \ruta{resources/view/datos-view.fxml} y su controlador \ruta{DatosController} están pensados para el
+cliente. Tiene tres bloques y un panel lateral:
+
+\begin{longtable}{L{3.8cm}L{10.0cm}}
+	\caption{Bloques de la pantalla «Datos y copias».} \label{tab:bd-pantalla} \\
+	\hline
+	\textbf{Bloque} & \textbf{Controles y comportamiento} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Bloque} & \textbf{Controles y comportamiento} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Copias de seguridad & «Crear copia ahora» (\ruta{onCrearCopia}, motivo \ruta{manual}); tabla Fecha, Tipo y
+	Tamaño (\ruta{tablaCopias}); «Restaurar la seleccionada\ldots» pide confirmación con
+	\ruta{Notificador.\allowbreak{}fernandoHuancaConfirmar}, programa la restauración y cierra la aplicación; «Eliminar copia» pide
+	confirmación. Un aviso (\ruta{lblRestauracionPendiente}) muestra si hay una restauración programada. \\
+	Llevar un proyecto a otra computadora & Selector de proyecto (\ruta{cmbProyecto}, preseleccionado con el de
+	\ruta{SesionProyecto}), «Exportar\ldots» e «Importar\ldots». Al importar, el proyecto nuevo pasa a ser el activo. \\
+	Opciones avanzadas & Panel plegado (\ruta{panelAvanzado}): rutas de la base, de las copias y de los registros,
+	tamaño de la base, «Abrir carpeta de datos», «Abrir carpeta de registros» y el historial de cambios (los 200
+	eventos más recientes de la bitácora, con «Actualizar»). \\
+	Panel de contraseña & \ruta{panelContrasena}, abierto con \ruta{Notificador.\allowbreak{}fernandoHuancaAbrirPanel}. Al exportar:
+	casilla «Proteger este archivo con contraseña (opcional)», contraseña de al menos 8 caracteres y confirmación; luego
+	se elige el destino. Al importar un archivo cifrado: solo la contraseña. Los campos se vacían al terminar y los
+	\ruta{char[]} se borran. \\
+\end{longtable}
+
+Exportar, importar y crear copias se ejecutan fuera del hilo de JavaFX, en un \ruta{Task} sobre un hilo \emph{daemon}
+llamado \ruta{datos} (\ruta{erickDelgadoEnSegundoPlano}). Los \ruta{IllegalArgumentException} se muestran tal cual,
+porque sus mensajes están escritos para el usuario; los demás errores se anotan en el registro técnico y se muestran con
+un prefijo genérico. La acción de cerrar la aplicación está en un campo (\ruta{erickDelgadoCerrarAplicacion}, por
+defecto \ruta{Platform::exit}).

@@ -8,7 +8,6 @@ echo   ConcretoLab Desktop - compilar y abrir
 echo ==================================================
 echo.
 
-rem ---- Java 17 o superior -------------------------------------------------
 if not defined JAVA_HOME (
     for /d %%D in ("C:\Program Files\Eclipse Adoptium\jdk-17*") do set "JAVA_HOME=%%~fD"
 )
@@ -25,9 +24,9 @@ if errorlevel 1 (
     goto :fin_error
 )
 
-rem ---- Maven: el del PATH o el que dejo el wrapper en .m2 ------------------
 set "MVN="
-where mvn >nul 2>&1 && set "MVN=mvn"
+if exist "%~dp0mvnw.cmd" set "MVN=%~dp0mvnw.cmd"
+if not defined MVN where mvn >nul 2>&1 && set "MVN=mvn"
 if not defined MVN (
     for /f "delims=" %%M in ('dir /b /s "%USERPROFILE%\.m2\wrapper\dists\mvn.cmd" 2^>nul') do set "MVN=%%M"
 )
@@ -36,7 +35,6 @@ if not defined MVN (
     goto :fin_error
 )
 
-rem ---- Compilar (sin pruebas; sin conexion si ya estan las dependencias) ---
 echo Compilando...
 call "%MVN%" -q -o -DskipTests package >nul 2>&1
 if errorlevel 1 (
@@ -55,9 +53,6 @@ if not defined JAR (
     goto :fin_error
 )
 
-rem ---- Abrir la aplicacion -------------------------------------------------
-rem Opciones extra de Java (por ejemplo otra carpeta de datos):
-rem   set CONCRETOLAB_JAVA_OPTS=-Dconcretolab.datos=C:\ruta\de\prueba
 echo Abriendo ConcretoLab...
 start "ConcretoLab Desktop" "%JAVAW%" %CONCRETOLAB_JAVA_OPTS% -jar "%JAR%"
 exit /b 0

@@ -1,0 +1,42 @@
+% ConcretoLab Desktop - Documentación técnica
+% Basado en «Template-Informe» de Pablo Pizarro R. (licencia MIT, ver LICENCIA-PLANTILLA.md).
+% Compilar con compilar.ps1 (pdflatex, tres pasadas). Codificación: UTF-8
+
+\documentclass[a4paper,oneside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+
+\def\titulodelinforme {Documentación técnica}
+\def\temaatratar {Arquitectura, módulos, cálculos, datos, pruebas y distribución de ConcretoLab Desktop}
+\def\departamentouniversidad {Documentación técnica}
+
+\input{comun/datos}
+\input{template}
+\input{comun/concretolab}
+\def\nameabstract {Resumen}
+
+\begin{document}
+
+\portadaConcretoLab{Versión \versionapp \,·\, para el equipo de desarrollo}
+\templatePagecfg
+
+\begin{resumen}
+\input{contenido/tecnica/00-resumen}
+\end{resumen}
+
+\templateIndex
+\templateFinalcfg
+
+\input{contenido/tecnica/01-vision-general}
+\input{contenido/tecnica/02-arquitectura}
+\input{contenido/tecnica/03-estructura-del-codigo}
+\input{contenido/tecnica/04-base-de-datos}
+\input{contenido/tecnica/05-modelo-y-metrado}
+\input{contenido/tecnica/06-analisis-sismico}
+\input{contenido/tecnica/07-concreto}
+\input{contenido/tecnica/09-pruebas}
+\input{contenido/tecnica/10-distribucion}
+\input{contenido/tecnica/11-como-ampliar}
+\input{contenido/tecnica/12-limitaciones}
+
+\end{document}

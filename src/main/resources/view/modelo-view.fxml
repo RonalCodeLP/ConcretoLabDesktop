@@ -11,7 +11,6 @@
 
     <fx:define>
 
-        <!-- ============ Panel: nuevo proyecto ============ -->
         <VBox fx:id="panelProyecto" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -48,7 +47,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel: nuevo / editar elemento ============ -->
         <VBox fx:id="panelElemento" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -127,7 +125,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel: editar varios elementos a la vez ============ -->
         <VBox fx:id="panelLote" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -146,23 +143,21 @@
                     <Label fx:id="lblAvisoLote" styleClass="modelo-resumen" wrapText="true" maxWidth="Infinity"
                            minHeight="-Infinity" visible="false" managed="false"/>
                     <Label fx:id="lblDetalleLote" styleClass="pagina-subtitulo" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
-                    <Label text="Deje vacío para no cambiar. Escriba 0,50 para fijar la medida, o +0,05 / -0,05 para sumar o restar a cada elemento."
-                           styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"/>
 
                     <Label text="DIMENSIONES (m)" styleClass="seccion-form"/>
                     <VBox styleClass="campo">
                         <Label text="Largo eje X" styleClass="campo-label"/>
-                        <TextField fx:id="txtLoteLargo" promptText="Sin cambio"/>
+                        <TextField fx:id="txtLoteLargo" promptText="Sin cambio"><tooltip><Tooltip text="Vacío: no cambia. 0,50: fija la medida. +0,05 o -0,05: suma o resta a cada elemento."/></tooltip></TextField>
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
                     <VBox styleClass="campo">
                         <Label text="Ancho eje Y" styleClass="campo-label"/>
-                        <TextField fx:id="txtLoteAncho" promptText="Sin cambio"/>
+                        <TextField fx:id="txtLoteAncho" promptText="Sin cambio"><tooltip><Tooltip text="Vacío: no cambia. 0,50: fija la medida. +0,05 o -0,05: suma o resta a cada elemento."/></tooltip></TextField>
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
                     <VBox styleClass="campo">
                         <Label text="Altura eje Z" styleClass="campo-label"/>
-                        <TextField fx:id="txtLoteAltura" promptText="Sin cambio"/>
+                        <TextField fx:id="txtLoteAltura" promptText="Sin cambio"><tooltip><Tooltip text="Vacío: no cambia. 0,50: fija la medida. +0,05 o -0,05: suma o resta a cada elemento."/></tooltip></TextField>
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
                 </VBox>
@@ -176,7 +171,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Panel: plantilla rectangular ============ -->
         <VBox fx:id="panelPlantilla" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -192,8 +186,6 @@
 
             <ScrollPane fitToWidth="true" styleClass="drawer-scroll" VBox.vgrow="ALWAYS">
                 <VBox styleClass="drawer-body">
-                    <Label text="Plantilla geométrica: ingresa medidas del proyecto. No diseña ni verifica la estructura. Las vigas llegan hasta las caras de las columnas."
-                           styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
 
                     <Label text="SEPARACIÓN ENTRE EJES" styleClass="seccion-form"/>
                     <VBox styleClass="campo">
@@ -259,7 +251,6 @@
         </VBox>
     </fx:define>
 
-    <!-- ============ Cabecera ============ -->
     <HBox styleClass="pagina-cabecera">
         <VBox spacing="4.0" HBox.hgrow="ALWAYS">
             <Label text="Modelo 3D y metrado" styleClass="pagina-titulo"/>
@@ -276,10 +267,8 @@
                 styleClass="danger,button-outlined"/>
     </HBox>
 
-    <!-- ============ Contenido ============ -->
     <HBox spacing="16.0" VBox.vgrow="ALWAYS">
 
-        <!-- Elementos del proyecto -->
         <VBox styleClass="tarjeta" prefWidth="440.0" minWidth="380.0" maxWidth="480.0">
             <Label text="Elementos" styleClass="grafico-titulo"/>
 
@@ -340,7 +329,6 @@
             </HBox>
         </VBox>
 
-        <!-- Visor 3D -->
         <VBox styleClass="tarjeta" spacing="10.0" HBox.hgrow="ALWAYS">
             <HBox alignment="CENTER_LEFT" spacing="12.0">
                 <Label text="Vista 3D esquemática" styleClass="grafico-titulo"/>
@@ -352,12 +340,10 @@
                 <Button fx:id="btnExportarDxf" text="Exportar DXF…" onAction="#onExportarDxf"
                         styleClass="button-outlined"/>
             </HBox>
-            <Label text="Clic: seleccionar · Ctrl+clic: seleccionar varios · Doble clic: editar · Arrastra para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Medidas en metros"
+            <Label text="Clic: seleccionar · Ctrl+clic: seleccionar varios · Doble clic: editar · Arrastre para girar · Clic derecho o Shift+arrastrar para desplazar · Rueda para acercar · Medidas en metros"
                    styleClass="pagina-subtitulo" wrapText="true" minHeight="-Infinity"/>
             <StackPane fx:id="contenedorVisor" styleClass="modelo-visor" VBox.vgrow="ALWAYS"/>
             <VBox fx:id="panelMovimiento" visible="false" managed="false"/>
-            <Label text="La vista no realiza análisis estructural. El metrado descuenta cruces entre elementos; el encofrado y el acero son referenciales."
-                   styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity"/>
         </VBox>
     </HBox>
 </VBox>

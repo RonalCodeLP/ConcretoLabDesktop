@@ -28,13 +28,17 @@ public class ErickDelgadoImportacionDxf {
         selector.getExtensionFilters().add(new FileChooser.ExtensionFilter("AutoCAD o Revit", "*.dxf", "*.dxf.txt", "*.dwg", "*.rvt"));
         var archivo = selector.showOpenDialog(ventana);
         if (archivo == null) return Optional.empty();
+        return erickDelgadoAbrirArchivo(ventana, activo, archivo);
+    }
+
+    public Optional<Proyecto> erickDelgadoAbrirArchivo(Window ventana, Proyecto activo, java.io.File archivo) {
         FernandoHuancaPlanoDxf.Plano plano;
         try {
             String extension = archivo.getName().toLowerCase(Locale.ROOT);
             if (extension.endsWith(".rvt")) {
                 var aviso = new Alert(Alert.AlertType.INFORMATION,
-                        "Abre el RVT en Revit y usa Archivo → Exportar → Formatos CAD → DXF. "
-                        + "Prepara los centros de columnas y los ejes de vigas en capas separadas e importa el DXF.");
+                        "Abra el RVT en Revit y use Archivo → Exportar → Formatos CAD → DXF. "
+                        + "Prepare los centros de columnas y los ejes de vigas en capas separadas e importe el DXF.");
                 aviso.initOwner(ventana);
                 aviso.showAndWait();
                 return Optional.empty();
@@ -129,8 +133,8 @@ public class ErickDelgadoImportacionDxf {
         inventario.setPrefRowCount(8);
         inventario.setMinHeight(150);
         var estado = new Label(modeloCompleto
-                ? "Modelo 3D recuperado del DXF (unidad: " + FernandoHuancaPlanoDxf.fernandoHuancaNombreUnidad(plano.unidad()) + (Double.isNaN(factorUnidad) ? "; se asumen metros" : "; escala a metros ×" + java.math.BigDecimal.valueOf(factorUnidad).stripTrailingZeros().toPlainString()) + "). Revisa el conteo y las dimensiones antes de guardar."
-                : "Revisa las capas y completa las dimensiones de la planta que se repetirá en altura.");
+                ? "Modelo 3D recuperado del DXF (unidad: " + FernandoHuancaPlanoDxf.fernandoHuancaNombreUnidad(plano.unidad()) + (Double.isNaN(factorUnidad) ? "; se asumen metros" : "; escala a metros ×" + java.math.BigDecimal.valueOf(factorUnidad).stripTrailingZeros().toPlainString()) + "). Revise el conteo y las dimensiones antes de guardar."
+                : "Revise las capas y complete las dimensiones de la planta que se repetirá en altura.");
         estado.setWrapText(true);
         estado.setMinHeight(Region.USE_PREF_SIZE);
         var contenido = new VBox(10,new Label("Capas y entidades del archivo"),inventario,usarExistente,
@@ -143,7 +147,7 @@ public class ErickDelgadoImportacionDxf {
                 String[] valores = {"3","3","0.40","0.30","0.50","1.50","0.50"};
                 escala.setText("0.001");
                 for (int i=0;i<valores.length;i++) campos.get(i).setText(valores[i]);
-                estado.setText("Valores de demostración cargados. Pulsa Revisar modelo.");
+                estado.setText("Valores de demostración cargados. Pulse «Revisar modelo».");
             });
             contenido.getChildren().add(2, completar);
         }
@@ -160,7 +164,7 @@ public class ErickDelgadoImportacionDxf {
                 .addEventFilter(ActionEvent.ACTION,evento->{
                     try {
                         if (!modeloCompleto && (columnas.getValue()==null || vigas.getValue()==null))
-                            throw new IllegalArgumentException("Selecciona las capas de columnas y vigas.");
+                            throw new IllegalArgumentException("Seleccione las capas de columnas y vigas.");
                         String z = zapatas.getValue();
                         var candidatos = modeloCompleto ? FernandoHuancaPlanoDxf.fernandoHuancaEscalar(plano.modelo3d(), Double.isNaN(factorUnidad) ? 1.0 : factorUnidad) : erickDelgadoLector.fernandoHuancaConvertir(plano,
                                 new Datos(columnas.getValue(),vigas.getValue(),z,erickDelgadoNumero(escala),
@@ -174,17 +178,17 @@ public class ErickDelgadoImportacionDxf {
                                     com.concretolab.model.Elemento::getTipo,TreeMap::new,Collectors.counting()));
                             var metrado = com.concretolab.service.MetradoNeto.yefriLermaCalcular(candidatos);
                             estado.setText("Geometría propuesta · "+conteo+String.format(Locale.ROOT," · concreto neto %.2f m³ (bruto %.2f)",metrado.volumenNeto(),metrado.volumenBruto())
-                                    +". Revisa dimensiones y unidades antes de guardar.");
+                                    +". Revise dimensiones y unidades antes de guardar.");
                             evento.consume();
                         } else {
                             if (usarExistente.isSelected() && disponibles.getValue()==null)
-                                throw new IllegalArgumentException("Selecciona un proyecto existente.");
+                                throw new IllegalArgumentException("Seleccione un proyecto existente.");
                             resultado[0] = proyectos.yefriLermaGuardarPlano(
                                     usarExistente.isSelected()?disponibles.getValue().getId():null,
                                     nombre.getText(), candidatos);
                         }
                     } catch (NumberFormatException ex) {
-                        estado.setText("Completa los campos con números válidos. La cantidad de pisos debe ser entera.");
+                        estado.setText("Complete los campos con números válidos. La cantidad de pisos debe ser entera.");
                         evento.consume();
                     } catch (RuntimeException ex) {
                         estado.setText(ex.getMessage());
@@ -199,7 +203,7 @@ public class ErickDelgadoImportacionDxf {
         var encontrado = FernandoHuancaPlanoDxf.fernandoHuancaLocalizarDwgread();
         if (encontrado.isPresent()) return erickDelgadoConvertirDwg(ventana,archivo,encontrado.get());
         var instrucciones = new Alert(Alert.AlertType.CONFIRMATION,
-                "No se encontró el conversor DWG (dwgread.exe de LibreDWG). Colócalo en la carpeta tools junto a la aplicación o selecciónalo ahora. También puedes guardar una copia DXF desde AutoCAD, que es la vía más confiable.",
+                "No se encontró el conversor DWG (dwgread.exe de LibreDWG). Colóquelo en la carpeta tools junto a la aplicación o selecciónelo ahora. También puede guardar una copia DXF desde AutoCAD, que es la vía más confiable.",
                 ButtonType.OK, ButtonType.CANCEL);
         instrucciones.initOwner(ventana);
         if (instrucciones.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return Optional.empty();
@@ -275,7 +279,7 @@ public class ErickDelgadoImportacionDxf {
     private static ComboBox<String> erickDelgadoCapa(List<String> capas,String detectada,String... sugeridas) {
         var combo = new ComboBox<String>();
         combo.getItems().setAll(capas);
-        combo.setPromptText("Selecciona capa");
+        combo.setPromptText("Seleccione una capa");
         if (detectada != null && capas.contains(detectada)) { combo.setValue(detectada); return combo; }
         capas.stream().filter(c->Arrays.stream(sugeridas).anyMatch(c::equalsIgnoreCase)).findFirst().ifPresent(combo::setValue);
         return combo;

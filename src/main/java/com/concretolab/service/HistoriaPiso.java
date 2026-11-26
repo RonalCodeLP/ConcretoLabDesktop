@@ -4,7 +4,6 @@ import com.concretolab.model.Elemento;
 import java.util.HashSet;
 import java.util.List;
 
-/** Traslación elástica de un piso, diafragma rígido y giros impedidos en ambos extremos. */
 public final class HistoriaPiso {
     private HistoriaPiso() {}
     public record Piso(double altura, double rigidez, int columnas) {}
@@ -28,12 +27,11 @@ public final class HistoriaPiso {
             double inercia = ejeX ? y*Math.pow(x,3)/12 : x*Math.pow(y,3)/12;
             rigidez += 12*moduloMPa*1000*inercia/Math.pow(h,3);
         }
-        if (posiciones.isEmpty()) throw new IllegalArgumentException("Agrega columnas al proyecto.");
+        if (posiciones.isEmpty()) throw new IllegalArgumentException("Agregue columnas al proyecto.");
         yefriLermaPositivo(rigidez,"Rigidez");
         return new Piso(altura, rigidez, posiciones.size());
     }
 
-    // Newmark de aceleración media. Entrada de base en m/s², respuesta relativa en m.
     public static Respuesta yefriLermaResolver(double masa, double k, double amortiguamiento, double dt, double[] ag) {
         yefriLermaPositivo(masa,"Masa"); yefriLermaPositivo(k,"Rigidez"); yefriLermaPositivo(dt,"Paso de tiempo");
         if (!Double.isFinite(amortiguamiento) || amortiguamiento<0 || amortiguamiento>=1)

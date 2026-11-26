@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PerfilesNormaTest {
-
     @Test
     void sueloMapeaAPerfilesDeCadaVersion() {
         assertThat(TipoSuelo.ROCA.suelo2026()).isEqualTo(Suelo.S0);
@@ -52,7 +51,6 @@ class PerfilesNormaTest {
         assertThat(TipoSuelo.NO_SE.suelo2026()).isEqualTo(Suelo.S3);
         assertThat(TipoSuelo.NO_SE.suelo2018()).isEqualTo(Suelo.S3_2018);
         assertThat(Double.isNaN(TipoSuelo.NO_SE.vs30Min())).isTrue();
-        // tabulado en las cuatro zonas (S4 en zona 4 no lo está)
         for (NormaE030.Zona z : NormaE030.Zona.values()) {
             assertThat(TipoSuelo.NO_SE.suelo2026().s(z, Double.NaN)).isGreaterThan(0);
             assertThat(TipoSuelo.NO_SE.suelo2018().s(z, Double.NaN)).isGreaterThan(0);

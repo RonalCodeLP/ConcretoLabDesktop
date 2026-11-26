@@ -10,7 +10,6 @@
       fx:controller="com.concretolab.controller.WalterQuispesayhuaSismoController"
       styleClass="pagina">
 
-    <!-- ============ Cabecera ============ -->
     <HBox styleClass="pagina-cabecera">
         <VBox spacing="4.0" HBox.hgrow="ALWAYS">
             <Label text="Análisis sísmico · E.030" styleClass="pagina-titulo"/>
@@ -20,7 +19,6 @@
         <VBox spacing="4"><Label text="Proyecto a analizar"/><ComboBox fx:id="cmbProyecto" promptText="Seleccione un proyecto" prefWidth="300"/></VBox>
     </HBox>
 
-    <!-- ============ Sin proyecto activo ============ -->
     <VBox fx:id="panelVacio" styleClass="tarjeta" alignment="CENTER" VBox.vgrow="ALWAYS"
           visible="false" managed="false">
         <FontIcon iconLiteral="fth-activity" styleClass="vacio-icono"/>
@@ -29,10 +27,8 @@
                styleClass="vacio-detalle" wrapText="true"/>
     </VBox>
 
-    <!-- ============ Contenido ============ -->
     <HBox fx:id="panelContenido" spacing="22.0" VBox.vgrow="ALWAYS">
 
-        <!-- ====== Asistente ====== -->
         <VBox styleClass="tarjeta" prefWidth="500.0" minWidth="-Infinity" maxWidth="-Infinity">
             <ScrollPane fitToWidth="true" hbarPolicy="NEVER" styleClass="pagina-scroll" VBox.vgrow="ALWAYS">
                 <VBox spacing="14.0">
@@ -40,11 +36,8 @@
                         <Insets right="10.0"/>
                     </padding>
 
-                    <!-- ===== Paso 1 ===== -->
                     <VBox styleClass="paso-tarjeta" spacing="8.0">
                         <Label text="Paso 1 · ¿Dónde está la obra?" styleClass="paso-titulo"/>
-                        <Label text="Elija el departamento, la provincia y el distrito, o escriba el distrito: la zona sísmica sale sola."
-                               styleClass="paso-ayuda" wrapText="true"/>
                         <VBox styleClass="campo">
                             <Label text="Buscar distrito" styleClass="campo-label"/>
                             <TextField fx:id="txtBuscarDistrito" promptText="Escriba el distrito...">
@@ -79,11 +72,8 @@
                         <Label fx:id="lblNotaZona" styleClass="paso-ayuda" wrapText="true" visible="false" managed="false"/>
                     </VBox>
 
-                    <!-- ===== Paso 2 ===== -->
                     <VBox styleClass="paso-tarjeta" spacing="8.0">
                         <Label text="Paso 2 · ¿Para qué se usará?" styleClass="paso-titulo"/>
-                        <Label text="El uso define qué tan importante es la edificación y qué cargas se precargan en la tabla de pisos."
-                               styleClass="paso-ayuda" wrapText="true"/>
                         <VBox styleClass="campo">
                             <ComboBox fx:id="cmbUso" maxWidth="Infinity" promptText="Seleccione el uso">
                                 <tooltip><Tooltip text="Al elegirlo se rellenan la carga muerta y la carga viva de todos los pisos (puede editarlas)."/></tooltip>
@@ -95,11 +85,8 @@
                         <Label fx:id="lblAvisoAislamiento" styleClass="paso-alerta" wrapText="true" visible="false" managed="false"/>
                     </VBox>
 
-                    <!-- ===== Paso 3 ===== -->
                     <VBox styleClass="paso-tarjeta" spacing="8.0">
                         <Label text="Paso 3 · ¿Cómo es el suelo?" styleClass="paso-titulo"/>
-                        <Label text="Elija el que más se parezca al terreno. Lo ideal es contar con un estudio de suelos."
-                               styleClass="paso-ayuda" wrapText="true"/>
                         <VBox styleClass="campo">
                             <ComboBox fx:id="cmbTipoSuelo" maxWidth="Infinity" promptText="Seleccione el suelo">
                                 <tooltip><Tooltip text="Se traduce al perfil S0 a S4 de la E.030 según la versión elegida."/></tooltip>
@@ -110,11 +97,8 @@
                         <Label fx:id="lblAvisoSuelo" styleClass="paso-alerta" wrapText="true" visible="false" managed="false"/>
                     </VBox>
 
-                    <!-- ===== Paso 4 ===== -->
                     <VBox styleClass="paso-tarjeta" spacing="8.0">
                         <Label text="Paso 4 · ¿Qué sistema estructural tiene?" styleClass="paso-titulo"/>
-                        <Label text="Es la forma en que el edificio resiste el sismo. Esta aplicación modela pórticos de concreto armado."
-                               styleClass="paso-ayuda" wrapText="true"/>
                         <VBox styleClass="campo">
                             <ComboBox fx:id="cmbSistema" maxWidth="Infinity" promptText="Seleccione el sistema">
                                 <tooltip><Tooltip text="Define el coeficiente básico R0 y el coeficiente CT del periodo aproximado."/></tooltip>
@@ -126,7 +110,6 @@
                         <Label fx:id="lblAvisoTabla9" styleClass="paso-alerta-roja" wrapText="true" visible="false" managed="false"/>
                     </VBox>
 
-                    <!-- ===== Opciones avanzadas ===== -->
                     <TitledPane fx:id="panelAvanzado" text="Opciones avanzadas (ya tienen valores seguros)" expanded="false" animated="false">
                         <VBox spacing="12.0" styleClass="avanzado-cuerpo">
                             <VBox styleClass="campo">
@@ -142,7 +125,6 @@
                                     <tooltip><Tooltip text="Solo texto 2026 y suelos S2/S3 (350–550 y 200–350 m/s): interpola S, Tp y TL (Tablas 4 y 5)."/></tooltip>
                                 </TextField>
                                 <Label styleClass="campo-error" visible="false" managed="false"/>
-                                <Label text="Velocidad de ondas de corte medida en el terreno; si no la conoce, déjelo vacío." styleClass="campo-ayuda" wrapText="true"/>
                             </VBox>
                             <HBox spacing="14.0">
                                 <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
@@ -151,7 +133,6 @@
                                         <tooltip><Tooltip text="1,0 si el edificio es regular en altura; si no, el menor valor aplicable de la tabla de irregularidades."/></tooltip>
                                     </ComboBox>
                                     <Label styleClass="campo-error" visible="false" managed="false"/>
-                                    <Label text="1,0 = sin irregularidad." styleClass="campo-ayuda" wrapText="true"/>
                                 </VBox>
                                 <VBox styleClass="campo" HBox.hgrow="ALWAYS" prefWidth="190.0" minWidth="0.0">
                                     <Label text="Ip (irregularidad en planta)" styleClass="campo-label" wrapText="true"/>
@@ -159,7 +140,6 @@
                                         <tooltip><Tooltip text="1,0 si el edificio es regular en planta; si no, el menor valor aplicable de la tabla de irregularidades."/></tooltip>
                                     </ComboBox>
                                     <Label styleClass="campo-error" visible="false" managed="false"/>
-                                    <Label text="1,0 = sin irregularidad." styleClass="campo-ayuda" wrapText="true"/>
                                 </VBox>
                             </HBox>
                             <Label fx:id="lblAvisoIrregularidad" styleClass="paso-alerta" wrapText="true" visible="false" managed="false"/>
@@ -207,7 +187,6 @@
                         </VBox>
                     </TitledPane>
 
-                    <!-- ===== Pisos ===== -->
                     <Label text="Pisos detectados (editable)" styleClass="seccion-form"/>
 
                     <TableView fx:id="tablaPisos" editable="true" prefHeight="230.0" minHeight="230.0">
@@ -238,7 +217,6 @@
                    styleClass="pagina-subtitulo" wrapText="true"/>
         </VBox>
 
-        <!-- ====== Resultados ====== -->
         <VBox styleClass="tarjeta" HBox.hgrow="ALWAYS">
             <TabPane fx:id="tabsResultados" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
                 <tabs>
@@ -249,8 +227,6 @@
                     </Tab>
                 </tabs>
             </TabPane>
-            <Label text="Resultado educativo y preliminar: base empotrada, losa como diafragma rígido, sin muros ni zonas rígidas. Se ofrecen el texto 2026 (R.M. 183-2026-VIVIENDA) y la versión 2018 (R.M. 355-2018-VIVIENDA); verifique cuál rige para su proyecto, pues los trámites iniciados pueden seguir con la anterior. Haga validar el análisis por un ingeniero civil colegiado."
-                   styleClass="sismo-aviso" wrapText="true" minHeight="-Infinity"/>
         </VBox>
     </HBox>
 </VBox>

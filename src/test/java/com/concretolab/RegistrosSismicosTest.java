@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
-/** Registros sísmicos (acelerogramas) para el análisis tiempo-historia (E.030, arts. 46 a 49). Sin Spring. */
 class RegistrosSismicosTest {
     static final NormaE030.Parametros NORMA = new NormaE030.Parametros(NormaE030.Zona.Z4, NormaE030.Categoria.C, NormaE030.Suelo.S2, 8, 1, 1, 35);
     static final double T = 0.6;
@@ -33,8 +32,6 @@ class RegistrosSismicosTest {
 
     @BeforeAll
     static void generar() { conjuntos = GeneradorAcelerograma.fernandoHuancaGenerarConjuntos(NORMA, 7, T, 2026L); }
-
-    // ------------------------------------------------------------ record
 
     @Test
     void validacionesDelRegistro() {
@@ -69,9 +66,6 @@ class RegistrosSismicosTest {
         assertThatThrownBy(() -> r.velocidad(2)).isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ------------------------------------------------------------ integración
-
-    /** Desplazamiento conocido d = D·sin⁴(πt/L), con d y d' nulos en los extremos: la corrección casi no debe alterarlo. */
     @Test
     void integracionRecuperaVelocidadYDesplazamientoConocidos() {
         double L = 4, dt = 0.002, D = 0.1;
@@ -98,7 +92,7 @@ class RegistrosSismicosTest {
         for (int i = 0; i < n; i++) {
             double t = i * dt, th = Math.PI * t / L, s = Math.sin(th), c = Math.cos(th), k = Math.PI / L;
             limpia[i] = 4 * D * k * k * (3 * s * s * c * c - Math.pow(s, 4));
-            a[i] = limpia[i] + 0.05 + 0.03 * (t - L / 2); // desfase constante + deriva lineal
+            a[i] = limpia[i] + 0.05 + 0.03 * (t - L / 2);
         }
         RegistroSismico sucio = new RegistroSismico("sucio", "prueba", dt, a, a);
         RegistroSismico bueno = new RegistroSismico("limpio", "prueba", dt, limpia, limpia);
@@ -117,8 +111,6 @@ class RegistrosSismicosTest {
         assertThat(r.aceleracionMaxima(0)).isEqualTo(1.0);
     }
 
-    // ------------------------------------------------------------ espectro de respuesta
-
     @Test
     void espectroDeSenoEnResonanciaCoincideConLaSolucionAnalitica() {
         double dt = 0.005, periodo = 1.0, w = 2 * Math.PI / periodo, xi = 0.05, amp = 1.0;
@@ -126,7 +118,6 @@ class RegistrosSismicosTest {
         for (int i = 0; i < a.length; i++) a[i] = amp * Math.sin(w * i * dt);
         double sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
         assertThat(sa).isCloseTo(amp / (2 * xi), within(0.01 * amp / (2 * xi)));
-        // fuera de resonancia (r = 0,5): amplitud estacionaria 1/√((1−r²)²+(2ξr)²); el máximo puede superarla algo por el transitorio
         double r = 0.5;
         double[] b = new double[a.length];
         for (int i = 0; i < b.length; i++) b[i] = Math.sin(r * w * i * dt);
@@ -151,13 +142,12 @@ class RegistrosSismicosTest {
     void espectroDeUnImpulsoCoincideConLaSolucionAnalitica() {
         double dt = 0.001, a0 = 1.0, xi = 0.05, periodo = 1.0;
         double[] a = new double[2001];
-        a[10] = a0; // pulso triangular de área a0·dt
+        a[10] = a0;
         double dv = a0 * dt, w = 2 * Math.PI / periodo, wd = w * Math.sqrt(1 - xi * xi);
         double tPico = Math.atan2(wd, xi * w) / wd;
         double umax = dv / wd * Math.exp(-xi * w * tPico) * Math.sin(wd * tPico);
         double sa = EspectroRespuesta.fernandoHuancaPseudoAceleracion(a, dt, new double[]{periodo}, xi)[0];
         assertThat(sa).isCloseTo(w * w * umax, within(0.01 * w * w * umax));
-        // periodo mucho menor que dt: se interpola internamente y el resultado sigue siendo finito y positivo
         double[] grueso = EspectroRespuesta.fernandoHuancaPseudoAceleracion(new double[]{0, 1, 0, -1, 0, 1, 0}, 0.1, new double[]{0.05, 0.1}, 0.05);
         assertThat(grueso[0]).isPositive().isFinite();
     }
@@ -172,8 +162,6 @@ class RegistrosSismicosTest {
         assertThatThrownBy(() -> EspectroRespuesta.fernandoHuancaRejillaPeriodos(1, 0.5, 5)).isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ------------------------------------------------------------ importador
-
     private Path archivo(String nombre, String contenido) throws IOException {
         Path p = tmp.resolve(nombre);
         Files.writeString(p, contenido);
@@ -186,9 +174,7 @@ class RegistrosSismicosTest {
         Componente c = ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.CM_S2, null);
         assertThat(c.dt()).isEqualTo(0.005);
         assertThat(c.a()).containsExactly(0.10, -0.20, 0.30, 0.40);
-        // el dt del usuario manda sobre el del encabezado
         assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.M_S2, 0.01).dt()).isEqualTo(0.01);
-        // variantes del encabezado
         assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("b.txt", "Estacion X\ndt: 0.02\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.02);
         assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("c.txt", "DELTA T 0.01\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.01);
         assertThat(ImportadorRegistro.fernandoHuancaImportarUnaComponente(archivo("d.txt", "INTERVALO 0.005\n1\n2\n3\n"), UnidadAceleracion.M_S2, null).dt()).isEqualTo(0.005);
@@ -281,8 +267,6 @@ class RegistrosSismicosTest {
         assertThatThrownBy(() -> ImportadorRegistro.fernandoHuancaImportarUnaComponente(p, UnidadAceleracion.M_S2, 0.01)).hasMessageContaining("10 MB");
     }
 
-    // ------------------------------------------------------------ generador
-
     @Test
     void generadorEsReproducibleYLaSemillaCambiaElResultado() {
         List<RegistroSismico> igual = GeneradorAcelerograma.fernandoHuancaGenerarConjuntos(NORMA, 2, T, 2026L);
@@ -290,7 +274,6 @@ class RegistrosSismicosTest {
         assertThat(igual.get(0).ax()).isEqualTo(conjuntos.get(0).ax());
         assertThat(igual.get(1).ay()).isEqualTo(conjuntos.get(1).ay());
         assertThat(otra.get(0).ax()).isNotEqualTo(conjuntos.get(0).ax());
-        // componentes X e Y independientes y conjuntos distintos
         assertThat(conjuntos.get(0).ax()).isNotEqualTo(conjuntos.get(0).ay());
         assertThat(conjuntos.get(0).ax()).isNotEqualTo(conjuntos.get(1).ax());
     }
@@ -326,8 +309,6 @@ class RegistrosSismicosTest {
         }
     }
 
-    // ------------------------------------------------------------ escalado
-
     @Test
     void escaladoCumpleElPromedioSrssYUsaElMismoFactorEnAmbasComponentes() {
         ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(conjuntos, NORMA, T);
@@ -340,14 +321,13 @@ class RegistrosSismicosTest {
         assertThat(res.factores()).hasSize(7);
         for (int j = 0; j < res.periodos().length; j++)
             assertThat(res.espectroPromedioSrss()[j]).isGreaterThanOrEqualTo(0.999 * res.espectroDiseno()[j]);
-        // el promedio SRSS reportado coincide con el calculado de los registros escalados
         double[] prom = new double[res.periodos().length];
         for (int i = 0; i < 7; i++) {
             RegistroSismico orig = conjuntos.get(i), esc = res.escalados().get(i);
             double f = res.factores()[i];
             for (int k = 0; k < orig.pasos(); k += 97) {
                 assertThat(esc.ax()[k]).isCloseTo(orig.ax()[k] * f, within(1e-9));
-                assertThat(esc.ay()[k]).isCloseTo(orig.ay()[k] * f, within(1e-9)); // mismo factor en X e Y
+                assertThat(esc.ay()[k]).isCloseTo(orig.ay()[k] * f, within(1e-9));
             }
             double[] sx = EspectroRespuesta.fernandoHuancaPseudoAceleracion(esc.ax(), esc.dt(), res.periodos(), 0.05);
             double[] sy = EspectroRespuesta.fernandoHuancaPseudoAceleracion(esc.ay(), esc.dt(), res.periodos(), 0.05);
@@ -372,14 +352,13 @@ class RegistrosSismicosTest {
 
     @Test
     void escaladoDeRegistrosNoCompatiblesAjustaFactorYReportaAvisos() {
-        // un seno de 2 Hz no sigue la forma del espectro: el escalado debe igualmente cumplir el promedio y avisar del art. 47.6
         double dt = 0.01;
         double[] a = new double[3001], b = new double[3001];
         for (int i = 0; i < a.length; i++) { a[i] = Math.sin(2 * Math.PI * 1.2 * i * dt); b[i] = 0.5 * Math.sin(2 * Math.PI * 0.8 * i * dt); }
         RegistroSismico r = new RegistroSismico("seno", "prueba", dt, a, b);
         ResultadoEscalado res = EscaladoRegistros.fernandoHuancaEscalar(List.of(r, r, r), NormaE030.Parametros.v2018(NormaE030.Zona.Z3, NormaE030.Categoria.C, NormaE030.Suelo.S2_2018, 8, 1, 1, 35), T);
         assertThat(res.razonMinima()).isGreaterThanOrEqualTo(0.999);
-        assertThat(res.cumple()).isTrue(); // 3 conjuntos bastan en la versión 2018
+        assertThat(res.cumple()).isTrue();
         assertThat(res.avisos()).anyMatch(s -> s.contains("47.6"));
     }
 
@@ -399,8 +378,6 @@ class RegistrosSismicosTest {
         assertThat(minimo).isGreaterThanOrEqualTo(0.9 - 1e-6);
         System.out.println("COMPAT razonMinima=" + res.razonMinima() + " factores=" + Arrays.toString(res.factores()) + " minComp=" + minimo);
     }
-
-    // ------------------------------------------------------------ utilidades
 
     private static double maxAbs(double[] v) { return Arrays.stream(v).map(Math::abs).max().orElse(0); }
 

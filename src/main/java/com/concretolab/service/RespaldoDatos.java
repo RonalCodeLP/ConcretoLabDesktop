@@ -18,21 +18,10 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-/**
- * Utilidad SIN Spring para las copias de seguridad del archivo de la base de datos.
- * Se usa antes de que arranque Spring (en {@code JavaFxApplication.init()} y {@code stop()}),
- * por eso solo depende del JDK y registra con {@link System.Logger}.
- *
- * <p>Regla de oro: ninguna operación de arranque lanza excepciones; una copia que falla no impide abrir la app.
- */
 public final class RespaldoDatos {
-
-    /** Propiedad de sistema para cambiar la carpeta de datos (pruebas). */
     public static final String ERICK_DELGADO_PROPIEDAD_DATOS = "concretolab.datos";
 
-    /** Motivos automáticos: se conservan solo las últimas {@link #ERICK_DELGADO_MAXIMO_AUTOMATICAS} de cada uno. */
     public static final int ERICK_DELGADO_MAXIMO_AUTOMATICAS = 10;
-    /** Máximo de copias «previa-restauracion» conservadas. */
     public static final int ERICK_DELGADO_MAXIMO_PREVIAS = 20;
 
     public static final String ERICK_DELGADO_MOTIVO_INICIO = "inicio";
@@ -40,10 +29,8 @@ public final class RespaldoDatos {
     public static final String ERICK_DELGADO_MOTIVO_MANUAL = "manual";
     public static final String ERICK_DELGADO_MOTIVO_PREVIA = "previa-restauracion";
 
-    /** Formato de la marca de tiempo del nombre de la copia. */
     public static final DateTimeFormatter ERICK_DELGADO_FORMATO_MARCA = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
-    /** Patrón del nombre: grupo 1 = marca de tiempo, grupo 2 = motivo. */
     public static final Pattern ERICK_DELGADO_PATRON_NOMBRE =
             Pattern.compile("concretolab-(\\d{8}-\\d{6})-([a-z]+(?:-[a-z]+)*)\\.db");
 
@@ -56,9 +43,6 @@ public final class RespaldoDatos {
     private RespaldoDatos() {
     }
 
-    // ---------------------------------------------------------------- Rutas
-
-    /** Carpeta de datos: {@code ~/.concretolab}, o la indicada en la propiedad {@code concretolab.datos}. */
     public static Path erickDelgadoCarpetaDatos() {
         String sobrescrita = System.getProperty(ERICK_DELGADO_PROPIEDAD_DATOS);
         if (sobrescrita != null && !sobrescrita.isBlank()) {
@@ -83,9 +67,6 @@ public final class RespaldoDatos {
         return erickDelgadoCarpetaDatos().resolve(ERICK_DELGADO_NOMBRE_MARCADOR);
     }
 
-    // ---------------------------------------------------------------- Nombres
-
-    /** Normaliza el motivo: minúsculas, sin acentos ni espacios (solo a-z y guiones). Vacío = «manual». */
     public static String erickDelgadoNormalizarMotivo(String motivo) {
         if (motivo == null) return ERICK_DELGADO_MOTIVO_MANUAL;
         String texto = Normalizer.normalize(motivo.trim().toLowerCase(), Normalizer.Form.NFD)
@@ -97,23 +78,14 @@ public final class RespaldoDatos {
         return texto.isEmpty() ? ERICK_DELGADO_MOTIVO_MANUAL : texto;
     }
 
-    /** Nombre de archivo de una copia: {@code concretolab-AAAAMMdd-HHmmss-<motivo>.db}. */
     public static String erickDelgadoNombreCopia(LocalDateTime momento, String motivo) {
         return "concretolab-" + ERICK_DELGADO_FORMATO_MARCA.format(momento) + "-" + erickDelgadoNormalizarMotivo(motivo) + ".db";
     }
 
-    // ---------------------------------------------------------------- Copias
-
-    /** Copia el archivo de la base con el momento actual. Devuelve vacío si no hay nada que copiar o falla. */
     public static Optional<Path> erickDelgadoRespaldarArchivo(String motivo) {
         return erickDelgadoRespaldarArchivo(motivo, LocalDateTime.now());
     }
 
-    /**
-     * Copia el archivo .db (si existe y no está vacío) a {@code backups/} con la marca indicada y aplica la rotación.
-     * Si ya existe una copia con esa marca, avanza un segundo hasta encontrar un nombre libre.
-     * Nunca lanza excepciones: ante un error lo registra y devuelve vacío.
-     */
     public static Optional<Path> erickDelgadoRespaldarArchivo(String motivo, LocalDateTime momento) {
         try {
             Path base = erickDelgadoArchivoBaseDatos();
@@ -130,7 +102,6 @@ public final class RespaldoDatos {
                 marca = marca.plusSeconds(1);
                 destino = carpeta.resolve(erickDelgadoNombreCopia(marca, motivoNormal));
             }
-            // Se copia a un temporal y luego se renombra: nunca queda una copia a medias con nombre válido.
             Path temporal = carpeta.resolve(destino.getFileName() + ".tmp");
             try {
                 Files.copy(base, temporal, StandardCopyOption.REPLACE_EXISTING);
@@ -146,7 +117,6 @@ public final class RespaldoDatos {
         }
     }
 
-    /** Borra las copias más antiguas del motivo según el límite (las manuales nunca se borran). */
     private static void erickDelgadoRotar(String motivo) {
         int limite;
         if (ERICK_DELGADO_MOTIVO_INICIO.equals(motivo) || ERICK_DELGADO_MOTIVO_CIERRE.equals(motivo)) {
@@ -166,7 +136,6 @@ public final class RespaldoDatos {
             ERICK_DELGADO_LOG.log(System.Logger.Level.WARNING, "No se pudo aplicar la rotación de copias: " + e);
             return;
         }
-        // La marca de tiempo está en el nombre: el orden alfabético inverso es del más reciente al más antiguo.
         copias.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
         for (int i = limite; i < copias.size(); i++) {
             try {
@@ -177,9 +146,6 @@ public final class RespaldoDatos {
         }
     }
 
-    // ---------------------------------------------------------------- Restauración
-
-    /** Indica si el archivo existe, no está vacío y empieza con la cabecera «SQLite format 3\0». */
     public static boolean erickDelgadoEsSqliteValido(Path archivo) {
         if (archivo == null) return false;
         try {
@@ -188,7 +154,6 @@ public final class RespaldoDatos {
                 byte[] leido = in.readNBytes(ERICK_DELGADO_CABECERA_SQLITE.length);
                 if (Arrays.equals(leido, ERICK_DELGADO_CABECERA_SQLITE)) return true;
             }
-            // Base cifrada: no tiene cabecera legible; se admite un archivo con páginas completas (múltiplo de 512, mínimo 4 KB).
             long tamano = Files.size(archivo);
             return tamano >= 4096 && tamano % 512 == 0;
         } catch (IOException | RuntimeException e) {
@@ -196,12 +161,6 @@ public final class RespaldoDatos {
         }
     }
 
-    /**
-     * Deja programada una restauración para el próximo arranque (escribe el marcador con la ruta de la copia).
-     *
-     * @throws IllegalArgumentException si la copia no existe o no es un archivo SQLite válido
-     * @throws UncheckedIOException     si no se puede escribir el marcador
-     */
     public static void erickDelgadoProgramarRestauracion(Path copia) {
         if (!erickDelgadoEsSqliteValido(copia)) {
             throw new IllegalArgumentException("La copia no existe o no es una base de datos SQLite válida: " + copia);
@@ -214,7 +173,6 @@ public final class RespaldoDatos {
         }
     }
 
-    /** Ruta de la copia pendiente de restaurar, si hay marcador legible. */
     public static Optional<Path> erickDelgadoRestauracionPendiente() {
         try {
             Path marcador = erickDelgadoArchivoMarcador();
@@ -226,13 +184,6 @@ public final class RespaldoDatos {
         }
     }
 
-    /**
-     * Aplica la restauración pendiente (llamar ANTES de abrir la base). Valida la copia, respalda la base actual
-     * como «previa-restauracion», la reemplaza y borra el marcador. Si algo falla no toca la base actual,
-     * borra el marcador y devuelve false. Nunca lanza excepciones.
-     *
-     * @return true si la base fue reemplazada
-     */
     public static boolean erickDelgadoAplicarRestauracionPendiente() {
         Path marcador = erickDelgadoArchivoMarcador();
         try {
@@ -247,7 +198,6 @@ public final class RespaldoDatos {
             try {
                 Files.deleteIfExists(marcador);
             } catch (IOException | RuntimeException ignorada) {
-                // sin más opciones: se reintentará borrar en el próximo arranque
             }
             return false;
         }
@@ -278,7 +228,6 @@ public final class RespaldoDatos {
                 return false;
             }
 
-            // Se copia primero a un temporal junto a la base y luego se mueve: el reemplazo es casi atómico.
             Files.createDirectories(base.getParent());
             temporal = base.resolveSibling(ERICK_DELGADO_NOMBRE_BASE + ".restaurando");
             Files.copy(copia, temporal, StandardCopyOption.REPLACE_EXISTING);
@@ -297,7 +246,6 @@ public final class RespaldoDatos {
                 try {
                     Files.deleteIfExists(temporal);
                 } catch (IOException | RuntimeException ignorada) {
-                    // limpieza best-effort
                 }
             }
         }

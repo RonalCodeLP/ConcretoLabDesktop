@@ -11,32 +11,19 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Importa acelerogramas desde archivos de texto (CISMID, IGP, CSMIP, PEER-NGA y similares).
- *
- * <p>Formatos admitidos: una columna (solo aceleración; dt del usuario o del encabezado: «DT=0.005», «dt: 0.005», «DELTA T 0.01»,
- * «INTERVALO 0.005»), dos columnas (tiempo, aceleración) o tres columnas (tiempo, ax, ay). Separadores: espacio, tabulación, coma
- * o punto y coma; se admite coma decimal. Las líneas de texto previas a los datos (encabezado) se omiten. Si hay más de tres columnas
- * y se conoce dt, todos los valores se leen como una sola serie (formato PEER-NGA, varias aceleraciones por línea).
- * El tamaño máximo del archivo es de 10 MB.
- */
 public final class ImportadorRegistro {
     private ImportadorRegistro() {}
 
-    /** Tamaño máximo del archivo (bytes). */
     public static final long FERNANDO_HUANCA_TAMANO_MAXIMO = 10L * 1024 * 1024;
 
-    /** Unidad de la aceleración del archivo, con su factor de conversión a m/s². */
     public enum UnidadAceleracion {
         M_S2("m/s²", 1.0), CM_S2("cm/s² (gal)", 0.01), G("g", 9.80665);
         public final String etiqueta;
-        /** Factor que convierte a m/s². */
         public final double factor;
         UnidadAceleracion(String e, double f) { etiqueta = e; factor = f; }
         @Override public String toString() { return etiqueta; }
     }
 
-    /** Una componente de aceleración (m/s²) con su paso de tiempo. */
     public record Componente(double dt, double[] a) {}
 
     private record Leido(String nombre, int columnas, double[][] cols, double dtArchivo, UnidadAceleracion sugerida) {}
@@ -46,7 +33,6 @@ public final class ImportadorRegistro {
     private static final Pattern FERNANDO_HUANCA_DT = Pattern.compile(
             "(?i)(?<![A-Za-z])(?:DT|DELTA\\s*T|DELTAT|INTERVALO(?:\\s+DE\\s+MUESTREO)?)\\s*[=:]?\\s*([0-9]*[.,]?[0-9]+(?:[eE][+-]?[0-9]+)?)");
 
-    /** Importa un registro de dos componentes desde un archivo de tres columnas (tiempo, ax, ay). */
     public static RegistroSismico fernandoHuancaImportar(Path archivo, UnidadAceleracion unidad, Double dtOpcional) {
         Leido l = fernandoHuancaLeer(archivo, unidad, dtOpcional);
         if (l.columnas != 3)
@@ -57,7 +43,6 @@ public final class ImportadorRegistro {
         return new RegistroSismico(l.nombre, "Archivo importado: " + fernandoHuancaNombreArchivo(archivo) + " (" + unidad.etiqueta + ")", dt, ax, ay);
     }
 
-    /** Importa un registro con una componente por archivo (X e Y). */
     public static RegistroSismico fernandoHuancaImportarPar(Path componenteX, Path componenteY, UnidadAceleracion unidad, Double dtOpcional) {
         Componente cx = fernandoHuancaImportarUnaComponente(componenteX, unidad, dtOpcional);
         Componente cy = fernandoHuancaImportarUnaComponente(componenteY, unidad, dtOpcional);
@@ -72,7 +57,6 @@ public final class ImportadorRegistro {
                 cx.dt, Arrays.copyOf(cx.a, n), Arrays.copyOf(cy.a, n));
     }
 
-    /** Importa un archivo con una sola componente (1 columna, o tiempo y aceleración); la aceleración sale en m/s². */
     public static Componente fernandoHuancaImportarUnaComponente(Path archivo, UnidadAceleracion unidad, Double dtOpcional) {
         Leido l = fernandoHuancaLeer(archivo, unidad, dtOpcional);
         if (l.columnas == 3)
@@ -85,8 +69,6 @@ public final class ImportadorRegistro {
         double[] a = fernandoHuancaConvertir(l.cols[l.columnas == 2 ? 1 : 0], unidad);
         return new Componente(dt, a);
     }
-
-    // ---------------------------------------------------------------- lectura
 
     private static Leido fernandoHuancaLeer(Path archivo, UnidadAceleracion unidad, Double dtOpcional) {
         if (archivo == null) throw new IllegalArgumentException("Seleccione un archivo de registro sísmico.");
@@ -177,7 +159,7 @@ public final class ImportadorRegistro {
             try {
                 double v = Double.parseDouble(m.group(1).replace(',', '.'));
                 if (v > 0) return v;
-            } catch (NumberFormatException ignorada) { /* sigue buscando */ }
+            } catch (NumberFormatException ignorada) {  }
         }
         return null;
     }
@@ -199,9 +181,6 @@ public final class ImportadorRegistro {
         return s == null || s == elegida ? "" : " El encabezado sugiere unidades de " + s.etiqueta + " (se eligió " + elegida.etiqueta + ").";
     }
 
-    // ---------------------------------------------------------------- utilidades
-
-    /** dt de la columna de tiempo: mediana de los incrementos, con uniformidad ±1 %. */
     private static double fernandoHuancaDtDeTiempo(double[] t, Double dtOpcional, Path archivo) {
         int n = t.length;
         double[] d = new double[n - 1];

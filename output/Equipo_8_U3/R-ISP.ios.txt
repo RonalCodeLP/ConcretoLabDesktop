@@ -1,0 +1,13 @@
+enable
+configure terminal
+hostname R-ISP
+interface GigabitEthernet0/0
+ip address 203.0.113.1 255.255.255.252
+no shutdown
+exit
+interface Loopback0
+ip address 198.51.100.1 255.255.255.255
+no shutdown
+exit
+end
+write memory

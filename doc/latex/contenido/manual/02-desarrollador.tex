@@ -1,0 +1,29 @@
+\section{Levantar como desarrollador}
+\label{sec:m-desarrollador}
+
+\pasotexto{1}{Instale JDK 17 (Eclipse Temurin): \href{https://adoptium.net/temurin/releases/?version=17}{\ruta{adoptium.net}}.}
+
+\pasotexto{2}{Descargue el código:}
+
+\begin{verbatim}
+git clone https://github.com/RonalCodeLP/ConcretoLabDesktop.git
+\end{verbatim}
+
+\noindent o en GitHub: \boton{Code} $\rightarrow$ \boton{Download ZIP} y descomprima.
+
+\pasotexto{3}{Doble clic en \ruta{INICIAR\_CONCRETOLAB.bat}. Compila y abre la aplicación (la primera vez tarda unos minutos).}
+
+\pasotexto{4}{Por consola, desde la carpeta del proyecto:}
+
+\begin{verbatim}
+mvnw.cmd javafx:run          abrir la aplicacion
+mvnw.cmd test                pruebas
+.\CREAR_DISTRIBUCION_WINDOWS.ps1 -Verificar    instalador
+\end{verbatim}
+
+\pasotexto{5}{Para no usar sus datos reales al probar, abra con una carpeta de datos aparte:}
+
+\begin{verbatim}
+set CONCRETOLAB_JAVA_OPTS=-Dconcretolab.datos=C:\temp\datos-prueba
+INICIAR_CONCRETOLAB.bat
+\end{verbatim}

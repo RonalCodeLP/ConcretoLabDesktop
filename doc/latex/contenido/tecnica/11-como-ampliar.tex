@@ -1,0 +1,306 @@
+% ------------------------------------------------------------------------------
+\section{Cómo ampliar ConcretoLab}
+\label{sec:amp-ampliar}
+% ------------------------------------------------------------------------------
+
+Este capítulo reúne recetas paso a paso para los cambios más comunes. Cada una copia la forma en que ya lo hace el
+código existente; cuando dude, abra la clase que se cita como ejemplo y siga el mismo patrón.
+
+\subsection{Agregar una pantalla}
+\label{sec:amp-pantalla}
+
+Como ejemplo, una pantalla «Mi módulo» con la vista \ruta{mi-modulo-view.fxml}. La más sencilla para copiar es
+«Balance de volúmenes» (\ruta{balance-view.fxml} y \ruta{BalanceController}).
+
+\par\medskip\noindent\numeropaso{1}\hspace{0.5em}{\bfseries Crear la vista FXML}\par\nopagebreak\smallskip
+
+Cree \ruta{src/main/resources/view/mi-modulo-view.fxml}. El nombre debe terminar en \ruta{-view.fxml}, porque
+\ruta{MainController} carga \ruta{/view/<nombre>.fxml}. Use la misma estructura y clases de estilo que las demás
+pantallas, definidas en \ruta{css/app.css}:
+
+\begin{verbatim}
+<ScrollPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.concretolab.controller.MiModuloController"
+            styleClass="pagina-scroll" fitToWidth="true" hbarPolicy="NEVER">
+  <VBox styleClass="pagina" spacing="18.0">
+    <HBox styleClass="pagina-cabecera" alignment="CENTER_LEFT">
+      <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+        <Label text="Mi modulo" styleClass="pagina-titulo"/>
+        <Label text="Que hace la pantalla." styleClass="pagina-subtitulo"/>
+      </VBox>
+    </HBox>
+    <VBox styleClass="tarjeta" spacing="16.0"> ... </VBox>
+  </VBox>
+</ScrollPane>
+\end{verbatim}
+
+Cada campo de formulario va en un \ruta{VBox} con la clase \ruta{campo} y una etiqueta \ruta{campo-label}; así
+\ruta{Formularios.\allowbreak{}fernandoHuancaMarcarError} puede mostrar el error debajo del campo. No ponga estilos en línea:
+agregue clases a \ruta{app.css}.
+
+\par\medskip\noindent\numeropaso{2}\hspace{0.5em}{\bfseries Crear el controlador}\par\nopagebreak\smallskip
+
+Cree \ruta{controller/MiModuloController.java}:
+
+\begin{verbatim}
+@Component
+@RequiredArgsConstructor
+public class MiModuloController implements Refrescable {
+    private final SesionProyecto sesion;
+    private final Notificador notificador;
+    @FXML private Label lblResultado;
+
+    @FXML
+    public void initialize() { /* una sola vez, al cargar la vista */ }
+
+    @Override
+    public void refrescar() {   /* cada vez que se muestra */
+        Proyecto activo = sesion.getProyecto();
+        ...
+    }
+}
+\end{verbatim}
+
+\begin{itemize}
+	\item Debe ser \ruta{@Component}: el \ruta{FXMLLoader} pide el controlador a Spring
+	      (\ruta{setControllerFactory(context::getBean)}), y las dependencias llegan por constructor.
+	\item Cada campo \ruta{@FXML} necesita un \ruta{fx:id} con el mismo nombre en la vista (si no, queda en \ruta{null}
+	      y falla al usarlo), y cada \ruta{onAction=\textquotedbl{}\#onX\textquotedbl{}} un método
+	      \ruta{@FXML private void onX()} (si falta, la vista no carga). \ruta{VistasFxmlTest} detecta ambos errores
+	      cuando ocurren al cargar o al refrescar la vista.
+	\item Si necesita \ruta{MainController} u otro controlador, pídalo con \ruta{@Lazy} en un constructor explícito, como
+	      \ruta{BalanceController}, para evitar dependencias circulares.
+	\item Implemente \ruta{Refrescable} si la pantalla muestra datos de la base o del proyecto activo.
+\end{itemize}
+
+\par\medskip\noindent\numeropaso{3}\hspace{0.5em}{\bfseries Agregar la entrada del menú}\par\nopagebreak\smallskip
+
+En \ruta{main-view.fxml}, dentro del \ruta{VBox} del menú lateral y bajo la sección que corresponda (\ruta{GENERAL},
+\ruta{PROYECTO}, \ruta{ANÁLISIS ESTRUCTURAL}, \ruta{DISEÑO DE CONCRETO} o \ruta{SISTEMA}):
+
+\begin{verbatim}
+<ToggleButton fx:id="navMiModulo" text="Mi modulo" toggleGroup="$menu"
+              styleClass="nav-item" maxWidth="Infinity">
+    <graphic><FontIcon iconLiteral="fth-grid"/></graphic>
+</ToggleButton>
+\end{verbatim}
+
+Los íconos son de Ikonli Feather (prefijo \ruta{fth-}).
+
+\par\medskip\noindent\numeropaso{4}\hspace{0.5em}{\bfseries Registrar la entrada en \ruta{MainController}}\par\nopagebreak\smallskip
+
+\begin{enumerate}
+	\item Agregue el campo \ruta{@FXML private ToggleButton navMiModulo;}.
+	\item En \ruta{initialize()}, junto a los demás: \ruta{navMiModulo.setUserData(\textquotedbl{}mi-modulo-view\textquotedbl{});}. Ese texto es
+	      el nombre de la vista sin extensión.
+	\item Agregue \ruta{navMiModulo} a la lista de \ruta{fernandoHuancaBotonesMenu()}. Esa lista se usa para las
+	      descripciones emergentes, para el menú contraído y para \ruta{fernandoHuancaIrA}; un botón que no esté en ella
+	      no se podrá abrir desde otra pantalla.
+\end{enumerate}
+
+Al elegir la opción, \ruta{MainController} carga la vista una sola vez, la guarda en memoria y llama a
+\ruta{refrescar()} cada vez que la muestra. Otra pantalla puede abrirla con
+\ruta{principal.fernandoHuancaIrA(\textquotedbl{}mi-modulo-view\textquotedbl{})}.
+
+\par\medskip\noindent\numeropaso{5}\hspace{0.5em}{\bfseries Agregar la vista a la prueba de humo}\par\nopagebreak\smallskip
+
+Agregue \ruta{\textquotedbl{}mi-modulo-view\textquotedbl{}} a la lista \ruta{VISTAS} de \ruta{VistasFxmlTest}, que carga cada vista con Spring y
+llama a \ruta{refrescar()} con y sin proyecto. Ejecute \ruta{mvn -o test '-Dtest=VistasFxmlTest'}.
+
+\subsection{Agregar un servicio de cálculo con pruebas}
+\label{sec:amp-calculo}
+
+Los cálculos no dependen de JavaFX ni de Spring, para poder probarlos solos. El modelo a seguir es
+\ruta{VolumenAbsolutoService} con \ruta{VolumenAbsolutoTest}.
+
+\par\medskip\noindent\numeropaso{1}\hspace{0.5em}{\bfseries Escribir el servicio}\par\nopagebreak\smallskip
+
+\begin{verbatim}
+/** Que calcula, con que norma y articulo, y que NO cubre. */
+public final class MiCalculo {
+    private MiCalculo() { }
+    public record Datos(double a, double b) { }
+    public record Resultado(double valor) { }
+
+    public static Resultado yefriLermaCalcular(Datos d) {
+        if (d == null || !Double.isFinite(d.a()) || d.a() <= 0)
+            throw new IllegalArgumentException("Ingrese un valor positivo para a.");
+        ...
+        return new Resultado(...);
+    }
+}
+\end{verbatim}
+
+\begin{itemize}
+	\item Clase \ruta{final} con constructor privado y métodos estáticos; entradas y salidas como \ruta{record}.
+	\item Valide todo y lance \ruta{IllegalArgumentException} con un mensaje \textbf{para el usuario} (en español y de
+	      «usted»): los controladores y \ruta{DatosController} muestran ese mensaje tal cual.
+	\item En el Javadoc cite la norma y el artículo, las unidades y lo que el cálculo no cubre (ver
+	      \ruta{DisenoMezclaACI} o \ruta{AnalisisTiempoHistoria}).
+	\item Si el cálculo necesita la base, entonces sí es un \ruta{@Service} con los repositorios por constructor y
+	      \ruta{@Transactional} en los métodos que escriben, como \ruta{MezclaService}.
+\end{itemize}
+
+\par\medskip\noindent\numeropaso{2}\hspace{0.5em}{\bfseries Llamarlo desde el controlador}\par\nopagebreak\smallskip
+
+Lea los campos, llame al servicio dentro de un \ruta{try} y muestre el error (\ruta{BalanceController.onCalcular}). Si
+el cálculo tarda, ejecútelo en un \ruta{javafx.concurrent.Task} en otro hilo y actualice la interfaz en
+\ruta{setOnSucceeded} (\ruta{DatosController.\allowbreak{}erickDelgadoEnSegundoPlano}).
+
+\par\medskip\noindent\numeropaso{3}\hspace{0.5em}{\bfseries Escribir las pruebas}\par\nopagebreak\smallskip
+
+Cree \ruta{src/test/java/com/concretolab/MiCalculoTest.java} con al menos un caso con valores conocidos (calculados a
+mano o tomados de un ejemplo de la norma), con su tolerancia, y un caso de datos inválidos:
+
+\begin{verbatim}
+class MiCalculoTest {
+    @Test void calculaElEjemploConocido() {
+        var r = MiCalculo.yefriLermaCalcular(new MiCalculo.Datos(180, 0.5));
+        assertEquals(360, r.valor(), 1e-9);
+    }
+    @Test void rechazaDatosInvalidos() {
+        assertThrows(IllegalArgumentException.class,
+            () -> MiCalculo.yefriLermaCalcular(new MiCalculo.Datos(-1, 0.5)));
+    }
+}
+\end{verbatim}
+
+\subsection{Agregar una columna o una tabla}
+\label{sec:amp-esquema}
+
+Con \ruta{ddl-auto=none}, Hibernate no cambia el esquema: \textbf{todo cambio de una entidad necesita una migración
+Flyway nueva}.
+
+\begin{advertencia}[La próxima migración es la V4]
+Ya existen V1 y V2 (\ruta{.sql} en \ruta{resources/db/migration}) y V3 (\ruta{V3\_\_Completar\_columnas.java} en
+\ruta{src/main/java/db/migration}). Una migración nueva llamada \ruta{V3\_\_\ldots} chocaría con la existente y Flyway
+no arrancaría («more than one migration with version 3»). Use \ruta{V4\_\_descripcion.sql}, luego \ruta{V5}, etc.
+\end{advertencia}
+
+\par\medskip\noindent\numeropaso{1}\hspace{0.5em}{\bfseries Cambiar la entidad}\par\nopagebreak\smallskip
+
+En \ruta{model/}, agregue el campo con su \ruta{@Column} (largo, \ruta{nullable}) y sus métodos de acceso. Para una
+tabla nueva, cree la entidad con \ruta{@Entity}, \ruta{@Table(name = \textquotedbl{}\ldots\textquotedbl{})} y un \ruta{id} \ruta{Long} con
+\ruta{@GeneratedValue(strategy = GenerationType.IDENTITY)}.
+
+\par\medskip\noindent\numeropaso{2}\hspace{0.5em}{\bfseries Escribir la migración}\par\nopagebreak\smallskip
+
+Cree \ruta{src/main/resources/db/migration/V4\_\_agregar\_material\_a\_elementos.sql}:
+
+\begin{verbatim}
+-- V4: material de cada elemento.
+ALTER TABLE elementos ADD COLUMN material varchar(255);
+
+-- Tabla nueva: el id debe ser "integer" para que SQLite lo autoincremente.
+CREATE TABLE IF NOT EXISTS notas (id integer, proyecto_id bigint not null,
+    texto varchar(2000), primary key (id));
+\end{verbatim}
+
+\begin{itemize}
+	\item SQLite no admite \ruta{ADD COLUMN \ldots{} NOT NULL} sin valor por defecto en una tabla con filas: agregue
+	      \ruta{DEFAULT}.
+	\item SQLite no tiene \ruta{ADD COLUMN IF NOT EXISTS}; como Flyway ejecuta cada versión una sola vez, no hace falta.
+	\item \textbf{Nunca modifique una migración ya distribuida} (V1, V2, V3). Flyway guarda la suma de comprobación de
+	      cada \ruta{.sql} aplicado y, si el archivo cambia, la validación falla y la aplicación no arranca sobre las bases
+	      de los clientes. Un cambio en V3 tampoco se volvería a ejecutar donde ya se aplicó. Además, V3 lee el texto de
+	      \ruta{V1\_\_esquema\_base.sql} para saber qué columnas completar.
+	\item No hay claves foráneas: si la tabla nueva depende de un proyecto, agregue su borrado en
+	      \ruta{YefriLermaProyectoService.\allowbreak{}yefriLermaEliminarProyecto}.
+\end{itemize}
+
+\par\medskip\noindent\numeropaso{3}\hspace{0.5em}{\bfseries Crear o ampliar el repositorio}\par\nopagebreak\smallskip
+
+En \ruta{repository/}, una interfaz \ruta{extends JpaRepository<Entidad, Long>} con las consultas derivadas que
+necesite (\ruta{findByProyectoIdOrderById}, etc.).
+
+\par\medskip\noindent\numeropaso{4}\hspace{0.5em}{\bfseries Probar el esquema}\par\nopagebreak\smallskip
+
+\ruta{EsquemaMigracionesTest} recorre \textbf{todas} las entidades del metamodelo y hace una consulta de cada una sobre
+una base nueva y sobre una base «antigua»; si falta una tabla o columna, falla. No hace falta tocarla para que cubra la
+entidad nueva, pero conviene agregar a su consulta de \ruta{flyway\_schema\_history} la versión nueva. Si la migración
+transforma datos existentes, escriba además una prueba como \ruta{CompatibilidadMezclaTest}: cree la tabla con el
+esquema anterior, inserte una fila y compruebe que se lee bien después de migrar.
+
+\par\medskip\noindent\numeropaso{5}\hspace{0.5em}{\bfseries Revisar el intercambio y los seeders}\par\nopagebreak\smallskip
+
+Si el dato debe viajar con el proyecto, agréguelo a los \ruta{record} de \ruta{IntercambioProyectoService}
+(\ruta{ElementoDto}, \ruta{MezclaDto}\ldots), a la exportación, a la importación y a su validación, y a
+\ruta{IntercambioProyectoTest}. El lector JSON ignora propiedades desconocidas
+(\ruta{FAIL\_ON\_UNKNOWN\_PROPERTIES = false}); si el cambio impide que una versión anterior importe bien el archivo,
+aumente \ruta{ERICK\_DELGADO\_VERSION\_FORMATO}. Si los datos de demostración deben usar la columna, actualice el seeder.
+
+\subsection{Usar \ruta{Notificador} y \ruta{SesionProyecto}}
+\label{sec:amp-notificador}
+
+Ambos son beans de Spring: pídalos por constructor.
+
+\begin{table}[H]
+	\centering
+	\caption{Métodos de \ruta{Notificador}.}
+	\label{tab:amp-notificador}
+	\begin{tabular}{L{6.4cm}L{8.4cm}}
+		\hline
+		\textbf{Método} & \textbf{Uso} \\ \hline
+		\ruta{exito(mensaje)} & Notificación verde que se cierra sola a los 3,5~s. \\
+		\ruta{fernandoHuancaInfo(mensaje)} & Notificación informativa (por ejemplo, «Exportando\ldots»). \\
+		\ruta{fernandoHuancaAdvertencia(mensaje)} & Notificación de aviso. \\
+		\ruta{fernandoHuancaError(mensaje)} & Notificación de error. \\
+		\ruta{fernandoHuancaConfirmar(titulo, mensaje, textoAccion, alConfirmar)} & Diálogo modal con «Cancelar» y un
+		botón rojo; ejecuta \ruta{alConfirmar} solo si se acepta. Está pensado para acciones destructivas (usa el ícono
+		de papelera). \\
+		\ruta{fernandoHuancaExitoConAcciones(\ldots)} & Diálogo de resultado con dos acciones. \\
+		\ruta{fernandoHuancaAbrirPanel(nodo)} / \ruta{fernandoHuancaCerrarPanel()} & Abre y cierra el panel lateral
+		derecho con un formulario (por ejemplo \ruta{panelContrasena} de \ruta{datos-view.fxml}). \\
+		\ruta{fernandoHuancaHayVentanaAbierta()} & Indica si hay un panel o diálogo abierto. \\ \hline
+	\end{tabular}
+\end{table}
+
+\ruta{MainController.initialize()} registra las capas (\ruta{modalPanel}, \ruta{modalDialogo} y la zona de
+notificaciones) con \ruta{fernandoHuancaRegistrar}. Todos los métodos tocan nodos de JavaFX: llámelos desde el hilo de
+JavaFX (por ejemplo, en \ruta{setOnSucceeded} de un \ruta{Task}), nunca desde el hilo de fondo.
+
+\ruta{SesionProyecto} guarda el proyecto activo:
+
+\begin{itemize}
+	\item \ruta{getProyecto()} devuelve el proyecto activo o \ruta{null}; las pantallas lo leen en \ruta{refrescar()} y
+	      deben contemplar el caso sin proyecto (\ruta{VistasFxmlTest} lo prueba).
+	\item \ruta{setProyecto(p)} cambia el proyecto activo. El selector está en «Modelo 3D y metrado»
+	      (\ruta{ModeloController}), que lo mantiene sincronizado; «Datos y copias» lo cambia al importar.
+	\item \ruta{proyectoProperty()} es la \ruta{ObjectProperty<Proyecto>} por si una pantalla necesita reaccionar en
+	      cuanto cambie.
+\end{itemize}
+
+\subsection{Convenciones del proyecto}
+\label{sec:amp-convenciones}
+
+\begin{longtable}{L{3.6cm}L{11.2cm}}
+	\caption{Convenciones que debe seguir el código nuevo.} \label{tab:amp-convenciones} \\
+	\hline
+	\textbf{Tema} & \textbf{Convención} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Tema} & \textbf{Convención} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	Idioma & Todo en español: clases, métodos, variables, comentarios, Javadoc, vistas, mensajes y documentación. \\
+	Trato al usuario & Los textos de la interfaz tratan de «usted»: «Ingrese», «Seleccione», «Revise». Parte del
+	código antiguo todavía usa «tú» (capítulo de limitaciones); corríjalo cuando toque esos textos. \\
+	Prefijos del equipo & Los métodos, campos y constantes propios llevan el prefijo del integrante asignado al
+	módulo (\ruta{yefriLerma}, \ruta{erickDelgado}, \ruta{fernandoHuanca}, \ruta{walterQuispesayhua}): métodos y campos
+	\ruta{prefijo + Nombre}, constantes \ruta{PREFIJO\_NOMBRE}, un solo prefijo por clase. No se prefijan los campos y
+	manejadores \ruta{@FXML}, los componentes de \ruta{record}, las constantes de \ruta{enum}, los métodos que
+	sobrescriben (\ruta{initialize}, \ruta{refrescar}, \ruta{run}) ni los repositorios. Es una convención de nombres, no
+	una prueba de autoría; el detalle está en \ruta{doc/REFACTORIZACION\_PREFIJOS.md}. \\
+	Mensajes de error & \ruta{IllegalArgumentException} con un texto que el usuario pueda entender y corregir. \\
+	Esquema & Ningún cambio de entidad sin su migración Flyway nueva. \\
+	Datos reales & Nunca pruebe sobre \ruta{\%USERPROFILE\%\textbackslash .concretolab}: bases temporales en las pruebas
+	y \ruta{-Dconcretolab.datos=<carpeta>} (o \ruta{JAVA\_TOOL\_OPTIONS} con el \ruta{.exe}) al abrir la aplicación.
+	Los seeders siguen apagados por defecto. \\
+	Commits & Solo una persona del equipo confirma los cambios en Git, después de revisarlos. Las herramientas y los
+	asistentes automáticos dejan los cambios sin confirmar. \\
+	Scripts & \ruta{.ps1} en UTF-8 con BOM; los \ruta{.bat}, sin tildes en los mensajes. \\
+	Avisos de alcance & Todo resultado técnico indica que es preliminar o referencial cuando corresponde, como ya hacen
+	el análisis sísmico, el metrado y las mezclas. \\
+\end{longtable}

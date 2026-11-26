@@ -18,22 +18,33 @@
         </HBox>
 
         <VBox styleClass="tarjeta" spacing="9.0">
+            <Label text="¿Es su primera vez? Practique con un ejemplo" styleClass="seccion-form"/>
+            <Label text="Agregue el proyecto «EJEMPLO · Edificio de práctica»: un edificio de 3 pisos listo para el análisis sísmico, una mezcla con sus probetas y materiales con su tamizado. Son datos ficticios y sus proyectos no se modifican."
+                   styleClass="pagina-subtitulo" wrapText="true"/>
+            <HBox spacing="8.0">
+                <Button fx:id="btnAgregarEjemplo" text="Agregar proyecto de ejemplo" onAction="#onAgregarEjemplo" styleClass="accent">
+                    <graphic><FontIcon iconLiteral="fth-plus-circle"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+
+        <VBox styleClass="tarjeta" spacing="9.0">
             <Label text="01   Proyecto y modelo" styleClass="seccion-form"/>
-            <Label text="Crea un proyecto y representa sus elementos. Puedes comenzar con una plantilla de cuatro zapatas, columnas y vigas."
+            <Label text="Cree un proyecto y represente sus elementos. Puede comenzar con una plantilla de cuatro zapatas, columnas y vigas."
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <HBox><Button text="Abrir modelo" onAction="#onAbrirModelo" styleClass="accent"/></HBox>
         </VBox>
 
         <VBox styleClass="tarjeta" spacing="9.0">
             <Label text="02   Materiales y granulometría" styleClass="seccion-form"/>
-            <Label text="Registra resultados reales del laboratorio. Calcula los porcentajes del tamizado a partir de las masas medidas."
+            <Label text="Registre resultados reales del laboratorio y calcule los porcentajes del tamizado a partir de las masas medidas."
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <HBox><Button text="Abrir materiales" onAction="#onAbrirMateriales" styleClass="accent"/></HBox>
         </VBox>
 
         <VBox styleClass="tarjeta" spacing="9.0">
             <Label text="03   Mezclas y pruebas" styleClass="seccion-form"/>
-            <Label text="Registra una dosificación existente, corrige por humedad y conserva los resultados de ensayos."
+            <Label text="Registre una dosificación existente, corríjala por humedad y conserve los resultados de ensayos."
                    styleClass="pagina-subtitulo" wrapText="true"/>
             <HBox><Button text="Abrir mezclas" onAction="#onAbrirMezclas" styleClass="accent"/></HBox>
         </VBox>
@@ -45,7 +56,5 @@
             <HBox><Button text="Abrir análisis sísmico" onAction="#onAbrirSismo" styleClass="accent"/></HBox>
         </VBox>
 
-        <Label styleClass="aviso" wrapText="true"
-               text="El sistema apoya el registro y los cálculos indicados; no diseña automáticamente según ACI ni verifica la seguridad estructural."/>
     </VBox>
 </ScrollPane>

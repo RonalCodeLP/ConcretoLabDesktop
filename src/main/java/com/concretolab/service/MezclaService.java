@@ -10,7 +10,6 @@ public class MezclaService {
  private final MezclaRepository mezclas; private final EnsayoRepository ensayos; private final ProyectoRepository proyectos;
  public MezclaService(MezclaRepository m,EnsayoRepository e,ProyectoRepository p){mezclas=m;ensayos=e;proyectos=p;}
  public record Resultado(double finoHumedo,double gruesoHumedo,double aguaAgregar,double relacionAguaCemento,double volumen) { }
- // Las masas de diseño están en condición saturada superficialmente seca; humedad y absorción son porcentajes de masa seca.
  public static Resultado yefriLermaCalcular(Mezcla m,double volumen){
    if(!Double.isFinite(volumen)||volumen<=0)throw new IllegalArgumentException("Ingrese un volumen positivo y finito.");
    yefriLermaValidar(m);

@@ -18,28 +18,15 @@ import javax.sql.DataSource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-/**
- * Copias de seguridad de la base abierta. Las copias manuales se hacen con {@code VACUUM INTO}, que produce un
- * archivo coherente aunque la base esté en uso. La restauración no se hace en caliente: se programa y se aplica
- * en el próximo arranque (ver {@link RespaldoDatos#erickDelgadoAplicarRestauracionPendiente()}).
- */
 @Service
 @RequiredArgsConstructor
 public class RespaldoService {
-
-    /** Una copia existente en la carpeta de copias. {@code tipo} es el motivo del nombre (manual, inicio, cierre...). */
     public record Copia(Path archivo, String nombre, LocalDateTime fecha, long bytes, String tipo) {
     }
 
     private final DataSource erickDelgadoDataSource;
     private final BitacoraService bitacora;
 
-    /**
-     * Crea una copia coherente de la base abierta. No es transaccional: {@code VACUUM} no puede ejecutarse dentro
-     * de una transacción y la conexión se libera antes de escribir en la bitácora (el pool es de una sola conexión).
-     *
-     * @param motivo motivo para el nombre; nulo o vacío = «manual»
-     */
     public Copia erickDelgadoCrearCopia(String motivo) {
         String tipo = RespaldoDatos.erickDelgadoNormalizarMotivo(motivo);
         Path carpeta = erickDelgadoCarpetaCopias();
@@ -48,7 +35,6 @@ public class RespaldoService {
             Files.createDirectories(carpeta);
             LocalDateTime marca = LocalDateTime.now().withNano(0);
             destino = carpeta.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, tipo));
-            // VACUUM INTO exige que el destino no exista: se avanza un segundo hasta hallar un nombre libre.
             while (Files.exists(destino)) {
                 marca = marca.plusSeconds(1);
                 destino = carpeta.resolve(RespaldoDatos.erickDelgadoNombreCopia(marca, tipo));
@@ -64,7 +50,6 @@ public class RespaldoService {
             try {
                 Files.deleteIfExists(destino);
             } catch (IOException | RuntimeException ignorada) {
-                // limpieza best-effort de una copia incompleta
             }
             throw new IllegalStateException("No se pudo crear la copia de seguridad: " + e.getMessage(), e);
         }
@@ -76,7 +61,6 @@ public class RespaldoService {
         return copia;
     }
 
-    /** Copias existentes, de la más reciente a la más antigua. Ignora archivos que no cumplan el patrón de nombre. */
     public List<Copia> erickDelgadoListar() {
         Path carpeta = erickDelgadoCarpetaCopias();
         if (!Files.isDirectory(carpeta)) return List.of();
@@ -90,22 +74,15 @@ public class RespaldoService {
         return copias;
     }
 
-    /** Programa restaurar la copia en el próximo arranque de la aplicación. */
     public void erickDelgadoProgramarRestauracion(Path copia) {
         RespaldoDatos.erickDelgadoProgramarRestauracion(copia);
         bitacora.erickDelgadoRegistrar("RESTAURACION_PROGRAMADA", copia.getFileName().toString());
     }
 
-    /** Copia pendiente de restaurar en el próximo arranque, si la hay. */
     public Optional<Path> erickDelgadoRestauracionPendiente() {
         return RespaldoDatos.erickDelgadoRestauracionPendiente();
     }
 
-    /**
-     * Elimina una copia. Solo se permiten archivos situados directamente en la carpeta de copias.
-     *
-     * @throws IllegalArgumentException si la ruta está fuera de la carpeta de copias
-     */
     public void erickDelgadoEliminarCopia(Path copia) {
         if (copia == null) throw new IllegalArgumentException("Debe indicar la copia a eliminar");
         Path carpeta = erickDelgadoCarpetaCopias().toAbsolutePath().normalize();
@@ -132,7 +109,6 @@ public class RespaldoService {
         return RespaldoDatos.erickDelgadoArchivoBaseDatos();
     }
 
-    /** Tamaño en bytes del archivo de la base (0 si no existe). */
     public long erickDelgadoTamanoBaseDatos() {
         try {
             Path base = erickDelgadoArchivoBaseDatos();
@@ -142,7 +118,6 @@ public class RespaldoService {
         }
     }
 
-    /** Convierte un archivo en {@link Copia}; vacío si el nombre no cumple el patrón. */
     private static Optional<Copia> erickDelgadoACopia(Path archivo) {
         var m = RespaldoDatos.ERICK_DELGADO_PATRON_NOMBRE.matcher(archivo.getFileName().toString());
         if (!m.matches()) return Optional.empty();

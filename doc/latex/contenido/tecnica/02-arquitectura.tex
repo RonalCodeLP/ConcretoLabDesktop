@@ -1,0 +1,139 @@
+% ------------------------------------------------------------------------------
+\section{Arquitectura}
+% ------------------------------------------------------------------------------
+
+\subsection{Capas}
+
+La aplicación sigue una arquitectura en capas dentro de un único proceso. Las vistas no acceden a la base de datos: lo
+hacen los servicios, a través de repositorios JPA.
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[font=\sffamily\small, caja/.style={draw=clazul, fill=clazulclaro, rounded corners=3pt,
+			minimum width=11.5cm, minimum height=1.05cm, align=center}, flecha/.style={-latex, thick, clazuloscuro}]
+		\node[caja] (vista) at (0,0) {\textbf{Vistas FXML} (\ruta{resources/view}) + estilos CSS (\ruta{resources/css})};
+		\node[caja] (ctrl) at (0,-1.6) {\textbf{Controladores} (\ruta{controller}) --- beans de Spring, uno por pantalla};
+		\node[caja] (ui) at (0,-3.2) {\textbf{Apoyo de interfaz} (\ruta{ui}): visor 3D, notificaciones, diálogos, editores};
+		\node[caja] (serv) at (0,-4.8) {\textbf{Servicios} (\ruta{service}): cálculo y reglas, sin JavaFX};
+		\node[caja] (repo) at (0,-6.4) {\textbf{Repositorios JPA} (\ruta{repository}) y \textbf{entidades} (\ruta{model})};
+		\node[caja, fill=clgris, draw=cltexto] (bd) at (0,-8.0) {\textbf{SQLite} (\ruta{\textasciitilde/.concretolab/concretolab.db})
+			--- esquema con Flyway (\ruta{db/migration})};
+		\draw[flecha] (vista) -- (ctrl);
+		\draw[flecha] (ctrl) -- (ui);
+		\draw[flecha] (ui) -- (serv);
+		\draw[flecha] (serv) -- (repo);
+		\draw[flecha] (repo) -- (bd);
+	\end{tikzpicture}
+	\caption{Capas de ConcretoLab Desktop.}
+	\label{fig:t-capas}
+\end{figure}
+
+\begin{itemize}
+	\item Los \textbf{servicios de cálculo} (análisis sísmico, metrado, mezclas, granulometría, exportadores) son clases
+	      con métodos estáticos o beans de Spring que \textbf{no dependen de JavaFX}: se prueban sin interfaz gráfica.
+	\item Los \textbf{controladores} son \ruta{@Component} de Spring; \ruta{FXMLLoader} los obtiene con
+	      \ruta{setControllerFactory(context::getBean)}, por lo que reciben sus dependencias por constructor.
+	      Ese constructor lo genera Lombok con la anotación \ruta{@RequiredArgsConstructor}.
+	\item Las \textbf{entidades} JPA (\ruta{Proyecto}, \ruta{Elemento}, \ruta{Material}, \ruta{Mezcla}, \ruta{Ensayo},
+	      \ruta{RegistroGranulometria}, \ruta{CuadriculaProyecto}, \ruta{VinculoGeometrico}, \ruta{ExpedienteEstructural},
+	      \ruta{RegistroBitacora}) tienen un repositorio Spring Data cada una.
+\end{itemize}
+
+\subsection{Arranque de la aplicación}
+\label{sec:t-arranque}
+
+\ruta{Launcher.main} llama a \ruta{Application.launch} con \ruta{JavaFxApplication} (la clase intermedia permite
+ejecutar JavaFX desde el JAR de Spring Boot sin módulos). El ciclo de vida es:
+
+\begin{enumerate}
+	\item \textbf{\ruta{init()}} (antes de mostrar ventanas, fuera del hilo de JavaFX):
+	\begin{enumerate}
+		\item crea la carpeta de datos (\ruta{RespaldoDatos.\allowbreak{}erickDelgadoCarpetaDatos()});
+		\item aplica una \textbf{restauración pendiente}, si el usuario la programó (antes de que Flyway toque la base);
+		\item si la base está \textbf{protegida con contraseña} (versión anterior), pide la contraseña y la convierte con
+		      \ruta{BaseCifrada.\allowbreak{}erickDelgadoQuitarClave}, guardando antes una copia «antes-de-quitar-clave»;
+		\item guarda la copia de seguridad «inicio»;
+		\item levanta el contexto de Spring (\ruta{SpringApplicationBuilder}, sin servidor web), que ejecuta Flyway.
+	\end{enumerate}
+	\item \textbf{\ruta{start(stage)}}: aplica el tema Primer claro, entrega \ruta{HostServices} al \ruta{Exportador}
+	      (para abrir PDF y carpetas), carga \ruta{main-view.fxml}, la hoja \ruta{app.css} y los íconos, y muestra la
+	      ventana (mínimo 1000~×~680).
+	\item \textbf{\ruta{stop()}}: cierra el contexto de Spring (y con él la base) y guarda la copia «cierre».
+\end{enumerate}
+
+\subsection{Navegación entre pantallas}
+
+\ruta{MainController} contiene el menú lateral (un \ruta{ToggleGroup} cuyos botones guardan en \ruta{userData} el nombre
+de la vista) y un área de contenido. Al elegir una opción:
+
+\begin{enumerate}
+	\item la vista se carga una sola vez con \ruta{FXMLLoader} y queda en memoria (mapa nombre $\rightarrow$ nodo y
+	      controlador);
+	\item si el controlador implementa \ruta{Refrescable}, se llama \ruta{refrescar()} cada vez que la pantalla se muestra,
+	      para que relea el proyecto activo y sus datos.
+\end{enumerate}
+
+Otras pantallas pueden navegar con \ruta{MainController.\allowbreak{}fernandoHuancaIrA("modelo-view")}; por ejemplo, el botón
+«Cómo corregir» del análisis sísmico abre el modelo 3D con las columnas seleccionadas. Para evitar dependencias
+circulares, esas referencias se piden de forma diferida (\ruta{ObjectProvider} o \ruta{@Lazy}).
+
+\subsection{Estado compartido y servicios de interfaz}
+
+\begin{itemize}
+	\item \ruta{SesionProyecto} guarda el \textbf{proyecto activo}, que comparten todas las pantallas.
+	\item \ruta{Notificador} muestra mensajes temporales (éxito, aviso, error), paneles laterales de formularios
+	      (\ruta{ModalPane} de AtlantaFX) y diálogos de confirmación.
+	\item \ruta{ErickDelgadoVisor3D} dibuja el modelo en un \ruta{SubScene} 3D (X e Y horizontales, Z vertical) y avisa
+	      de clics, Ctrl+clic y doble clic sobre los elementos.
+\end{itemize}
+
+\subsection{Datos del usuario}
+
+Todo se guarda en la carpeta \ruta{\%USERPROFILE\%\textbackslash .concretolab}, o en la indicada con la propiedad
+\ruta{-Dconcretolab.datos=<carpeta>} (la usan las pruebas y las verificaciones del instalador para no tocar datos reales):
+
+\begin{table}[H]
+	\centering
+	\caption{Contenido de la carpeta de datos.}
+	\label{tab:t-carpeta}
+	\begin{tabular}{L{4cm}L{9.8cm}}
+		\hline
+		\ruta{concretolab.db} & Base SQLite con todos los proyectos. \\
+		\ruta{backups/} & Copias \ruta{concretolab-AAAAMMDD-HHMMSS-<motivo>.db}: «inicio» y «cierre» (se conservan
+		                 10 de cada una), «manual» (no se borran), «previa-restauracion» (20) y «antes-de-quitar-clave». \\
+		\ruta{restaurar.pendiente} & Marcador con la copia que se restaurará en el próximo arranque. \\
+		\ruta{logs/concretolab.log} & Registro técnico (rota a los 5~MB, conserva 7 días). \\
+		\ruta{cuantias-acero.properties} & Cuantías de acero propias del usuario para el metrado. \\
+		\ruta{preferencias.properties} & Preferencias de la interfaz: por ahora, si la bienvenida se abre al iniciar
+		(\ruta{bienvenida.mostrar}). \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Ayuda integrada, bienvenida y proyecto de ejemplo}
+
+\begin{itemize}
+	\item \textbf{Manual dentro de la aplicación.} \ruta{doc/latex/compilar.ps1} copia el manual de usuario a
+	      \ruta{src/main/resources/ayuda/}; \ruta{ManualPdf} lo lee con Apache PDFBox (índice, anclas, búsqueda y dibujo
+	      de páginas) y \ruta{VisorAyuda} lo muestra en una ventana aparte. Las páginas se dibujan solo cuando se acercan
+	      a la vista, en un único hilo de trabajo (PDFBox no es seguro entre hilos), y se liberan al alejarse.
+	\item \textbf{Ayuda de cada pantalla.} \ruta{MainController} agrega un botón «?» al final de la cabecera
+	      (\ruta{.pagina-cabecera}) de cada vista al cargarla, y registra la tecla F1. Ambos abren el manual en el destino
+	      con nombre de esa pantalla (\ruta{ayuda-modelo}, \ruta{ayuda-sismo}, \ldots; tabla
+	      \ruta{VisorAyuda.FERNANDO\_HUANCA\_ANCLAS}), que el manual crea con el comando \ruta{\textbackslash anclaayuda}.
+	      Si el ancla no existe, abre el comienzo.
+	\item \textbf{Bienvenida.} Al terminar \ruta{start()}, \ruta{MainController.fernandoHuancaBienvenidaInicial} muestra
+	      el recorrido de \ruta{Bienvenida} salvo que \ruta{preferencias.properties} diga \ruta{bienvenida.mostrar=false}
+	      o se arranque con \ruta{-Dconcretolab.bienvenida=no}.
+	\item \textbf{Proyecto de ejemplo.} \ruta{ProyectoEjemploService.fernandoHuancaAgregar} crea, en una transacción, un
+	      proyecto nuevo (con « (2)», « (3)»\ldots{} si el nombre ya existe) y reutiliza los materiales de ejemplo si ya
+	      están en la biblioteca. Nunca modifica otros proyectos.
+\end{itemize}
+
+\subsection{Convención de nombres del equipo}
+
+Los identificadores propios (métodos, campos y algunas clases) llevan el prefijo del integrante asignado a cada módulo:
+\ruta{yefriLerma} (modelo, metrado y concreto), \ruta{erickDelgado} (visor 3D, intercambio CAD/BIM, datos y
+seguridad), \ruta{fernandoHuanca} (motor sísmico y estructura de la aplicación) y \ruta{walterQuispesayhua} (cuadrícula,
+movimiento e interfaz sísmica). \textbf{Es una convención de nombres para organizar el código, no una prueba de
+autoría}; la tabla completa está en \ruta{doc/REFACTORIZACION\_PREFIJOS.md}. El código nuevo de un módulo usa el prefijo
+de ese módulo.

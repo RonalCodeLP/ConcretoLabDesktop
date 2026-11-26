@@ -2,10 +2,6 @@ package com.concretolab.service;
 
 import com.concretolab.service.NormaE030.Version;
 
-/**
- * Sistemas estructurales de concreto armado y albañilería (E.030, Tabla 8 art. 20, p. 11 impresa; R0 en Tabla 10 art. 22.1, p. 13;
- * CT en art. 36.1, p. 19). La versión 2018 usa R0 = 4 para muros de ductilidad limitada (2026: 3,5).
- */
 public enum SistemaEstructural {
     PORTICOS("Pórticos (columnas y vigas)",
             "Solo columnas y vigas de concreto: al menos el 80 % de la fuerza cortante en la base la toman las columnas de los pórticos.",
@@ -39,13 +35,10 @@ public enum SistemaEstructural {
         this.nota = nota;
     }
 
-    /** Coeficiente básico de reducción R0 según la versión de la norma. */
     public double r0(Version v) { return v == Version.V2026 ? r02026 : r02018; }
 
-    /** Coeficiente CT del periodo T = hn / CT (art. 36.1; para pórticos, 35). */
     public double ct() { return ct; }
 
-    /** Verdadero si la aplicación puede modelar este sistema hoy (solo pórticos). */
     public boolean modelable() { return modelable; }
 
     @Override public String toString() { return etiqueta; }

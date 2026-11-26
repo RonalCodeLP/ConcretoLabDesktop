@@ -4,33 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Resumen de una simulación tiempo-historia ya ejecutada (lo usan la pestaña «Simulación temporal» y el reporte PDF).
- *
- * @param origenRegistros    descripción del origen de los registros (sintéticos E.030 o importados)
- * @param periodoFundamental T usado para el escalado y la rejilla 0,2T a 1,5T (s)
- * @param escalado           resultado del escalado de los registros (art. 47)
- * @param resultados         un resultado tiempo-historia por registro escalado
- * @param verificacion       verificación del art. 49 (o 4.7.3 de la versión 2018)
- */
 public record ResumenTiempoHistoria(String origenRegistros, double periodoFundamental, EscaladoRegistros.ResultadoEscalado escalado,
                                     List<ResultadoTiempoHistoria> resultados, VerificacionTiempoHistoria verificacion) {
-
-    /** Cabecera de la tabla por registro. */
     public static final String[] CABECERA = {"Registro", "PGA (g)", "Factor de escala", "Techo máx. X (cm)", "Techo máx. Y (cm)",
             "Deriva máx. X", "Deriva máx. Y", "V basal máx. X (kN)", "V basal máx. Y (kN)"};
 
     private static String f(double v, int d) { return String.format(Locale.ROOT, "%." + d + "f", v); }
 
-    /** PGA (g) del registro escalado {@code i}: mayor entre las dos componentes. */
     public double pgaG(int i) {
         RegistroSismico r = escalado.escalados().get(i);
         return Math.max(r.aceleracionMaxima(0), r.aceleracionMaxima(1)) / EscaladoRegistros.FERNANDO_HUANCA_G;
     }
 
-    /**
-     * Filas de la tabla: una por registro, luego «Promedio» (o «Máximo» si el criterio es el máximo) y la fila del límite.
-     */
     public List<String[]> filasTabla() {
         List<String[]> filas = new ArrayList<>();
         int n = resultados.size();
@@ -61,13 +46,11 @@ public record ResumenTiempoHistoria(String origenRegistros, double periodoFundam
         return new String[]{nombre, f(v[0], 3), f(v[1], 3), f(v[2], 2), f(v[3], 2), f(v[4], 5), f(v[5], 5), f(v[6], 1), f(v[7], 1)};
     }
 
-    /** Veredicto textual: CUMPLE, NO CUMPLE o NO CONCLUYENTE (menos conjuntos que el mínimo). */
     public String veredicto() {
         if (!verificacion.conjuntosSuficientes()) return "NO CONCLUYENTE";
         return verificacion.cumple() ? "CUMPLE" : "NO CUMPLE";
     }
 
-    /** Advertencia legal que debe acompañar siempre a los resultados. */
     public static final String ADVERTENCIA_LEGAL = "Verificación complementaria: no sustituye al análisis estático ni al modal espectral "
             + "(arts. 46.1 y 32.3). Modelo lineal-elástico con R = 1 (conservador) y base empotrada.";
 }

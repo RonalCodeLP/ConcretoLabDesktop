@@ -66,14 +66,9 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 
-/**
- * Analisis sismico E.030 guiado en cuatro pasos (ubicacion, uso, suelo y sistema estructural). Los datos de entrada no se
- * guardan en la base: se ingresan en cada sesion. El proyecto analizado es el de {@link SesionProyecto}.
- */
 @Component
 @RequiredArgsConstructor
 public class WalterQuispesayhuaSismoController implements Refrescable {
-
     private static final String WALTER_QUISPESAYHUA_ESTADO_INICIAL = "Defina los datos y pulse «Calcular».";
     private static final Locale WALTER_QUISPESAYHUA_ES = Locale.forLanguageTag("es-PE");
 
@@ -82,7 +77,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     private final Notificador walterQuispesayhuaNotificador;
     private final Exportador exportador;
     private final ZonificacionService walterQuispesayhuaZonificacion;
-    /** Para llevar la recomendación de mejora al modelo 3D (se piden tarde: evitan dependencias circulares). */
     private final ObjectProvider<MainController> walterQuispesayhuaPrincipal;
     private final ObjectProvider<ModeloController> walterQuispesayhuaModelo;
 
@@ -95,7 +89,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     private boolean walterQuispesayhuaCargando = true;
     @FXML private ComboBox<Proyecto> cmbProyecto;
 
-    // Paso 1
     @FXML private TextField txtBuscarDistrito;
     @FXML private ListView<Ubicacion> lstBusqueda;
     @FXML private ComboBox<String> cmbDepartamento;
@@ -106,21 +99,17 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     @FXML private VBox boxZonaManual;
     @FXML private ComboBox<Zona> cmbZona;
     @FXML private Label lblNotaZona;
-    // Paso 2
     @FXML private ComboBox<UsoEdificacion> cmbUso;
     @FXML private Label lblUsoDetalle;
     @FXML private Label lblUsoNota;
     @FXML private Label lblAvisoAislamiento;
-    // Paso 3
     @FXML private ComboBox<TipoSuelo> cmbTipoSuelo;
     @FXML private Label lblSueloDetalle;
     @FXML private Label lblAvisoSuelo;
-    // Paso 4
     @FXML private ComboBox<SistemaEstructural> cmbSistema;
     @FXML private Label lblSistemaDetalle;
     @FXML private Label lblAvisoSistema;
     @FXML private Label lblAvisoTabla9;
-    // Avanzadas
     @FXML private TitledPane panelAvanzado;
     @FXML private ComboBox<Version> cmbVersion;
     @FXML private Label lblNotaVersion;
@@ -149,24 +138,18 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
     @FXML private Label lblEstado;
     @FXML private TabPane tabsResultados;
     @FXML private Tab tabSimulacionTemporal;
-    /** Controlador de la pestana incluida con fx:include (fx:id = tiempoHistoria). */
     @FXML private TiempoHistoriaController tiempoHistoriaController;
 
-    /** Proyecto y pisos con los que se armo la tabla; permiten conservar lo editado si nada cambio. */
     private Long walterQuispesayhuaIdProyectoCargado;
     private List<PisoBase> walterQuispesayhuaPisosCargados = List.of();
 
-    /** Datos del ultimo calculo (los usa la exportacion a PDF). */
     private Proyecto walterQuispesayhuaProyectoCalculado;
     private Entrada walterQuispesayhuaEntrada;
     private Resultado walterQuispesayhuaResultado;
-    /** El uso elegido al calcular era A1 (hospital): la Tabla 9 no permite pórticos en ninguna zona. */
     private boolean walterQuispesayhuaUltimoUsoA1;
     private UsoEdificacion walterQuispesayhuaUsoCalculado;
-    /** Recomendación ya calculada para el resultado actual (se calcula al pulsar «Cómo corregir»). */
     private RecomendacionSismica.Recomendacion walterQuispesayhuaRecomendacion;
 
-    /** Fila editable de la tabla de pisos. */
     public static final class FilaPiso {
         final int walterQuispesayhuaNumero;
         final double walterQuispesayhuaCota;
@@ -192,7 +175,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             }
         });
 
-        // Paso 1: ubicacion en cascada y busqueda
         cmbDepartamento.getItems().setAll(walterQuispesayhuaZonificacion.fernandoHuancaDepartamentos());
         cmbDepartamento.valueProperty().addListener((o, a, dep) -> {
             cmbProvincia.setValue(null);
@@ -222,12 +204,10 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             }
         });
 
-        // Pasos 2 a 4
         cmbUso.getItems().addAll(UsoEdificacion.values());
         cmbTipoSuelo.getItems().addAll(TipoSuelo.values());
         cmbSistema.getItems().addAll(SistemaEstructural.values());
 
-        // Avanzadas
         cmbVersion.getItems().addAll(Version.values());
         cmbVersion.setValue(Version.V2026);
         cmbIa.getItems().addAll(1.0, 0.90, 0.80, 0.75, 0.60, 0.50);
@@ -278,7 +258,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         onCambiarVersion();
     }
 
-    /** Se llama cada vez que se muestra la vista: relee el proyecto activo y recarga los pisos. */
     @Override
     public void refrescar() {
         Proyecto activo = walterQuispesayhuaSesion.getProyecto();
@@ -318,7 +297,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         } catch (IllegalArgumentException ex) {
             problema = ex.getMessage();
         }
-        // Mismo proyecto y mismos pisos: se conservan los valores editados y los resultados.
         if (problema == null && Objects.equals(walterQuispesayhuaIdProyectoCargado, p.getId()) && pisos.equals(walterQuispesayhuaPisosCargados)) {
             if (walterQuispesayhuaEntrada != null && !walterQuispesayhuaGeometria(walterQuispesayhuaEntrada.elementos()).equals(walterQuispesayhuaGeometria(walterQuispesayhuaServicio.elementos(p.getId())))) walterQuispesayhuaInvalidar();
             return;
@@ -335,8 +313,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         lblEstado.setText(problema != null ? problema : WALTER_QUISPESAYHUA_ESTADO_INICIAL);
         walterQuispesayhuaActualizarEstado();
     }
-
-    // ------------------------------------------------------------------ asistente
 
     private void walterQuispesayhuaBuscar(String texto) {
         List<Ubicacion> lista = texto == null || texto.trim().length() < 2 || cmbVersion.getValue() != Version.V2026
@@ -365,7 +341,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         walterQuispesayhuaActualizarEstado();
     }
 
-    /** Cambia lo que depende de la version: busqueda por distrito, zona manual, Vs30, R0 y CT. */
     @FXML
     private void onCambiarVersion() {
         if (walterQuispesayhuaCargando) {
@@ -417,7 +392,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return z.isPresent() ? GuiaSismica.walterQuispesayhuaZonaDe(z.getAsInt()) : null;
     }
 
-    /** Precarga CM y CV de todos los pisos segun el uso elegido (el usuario puede seguir editando). */
     private void walterQuispesayhuaAplicarCargasUso() {
         UsoEdificacion uso = cmbUso.getValue();
         if (uso == null) {
@@ -431,7 +405,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         tablaPisos.refresh();
     }
 
-    /** Parametros provisionales para mostrar avisos antes de calcular; {@code null} si algo falta o no es valido. */
     private Parametros walterQuispesayhuaProvisional() {
         Zona zona = walterQuispesayhuaZonaEfectiva();
         if (zona == null || cmbUso.getValue() == null || cmbTipoSuelo.getValue() == null || cmbSistema.getValue() == null) {
@@ -442,13 +415,11 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             try {
                 ct = walterQuispesayhuaNum(txtCt.getText());
             } catch (RuntimeException ignorado) {
-                // se usa el CT del sistema
             }
             double vs30 = Double.NaN;
             try {
                 vs30 = walterQuispesayhuaNum(txtVs30.getText());
             } catch (RuntimeException ignorado) {
-                // sin Vs30
             }
             return GuiaSismica.walterQuispesayhuaParametros(cmbVersion.getValue(), zona, cmbUso.getValue(), cmbTipoSuelo.getValue(), cmbSistema.getValue(),
                     cmbIa.getValue(), cmbIp.getValue(), ct, vs30);
@@ -457,7 +428,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         }
     }
 
-    /** Refresca todos los textos de ayuda y avisos del asistente y habilita o no el boton Calcular. */
     private void walterQuispesayhuaActualizarEstado() {
         if (walterQuispesayhuaCargando) {
             return;
@@ -468,7 +438,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         TipoSuelo tipo = cmbTipoSuelo.getValue();
         SistemaEstructural sis = cmbSistema.getValue();
 
-        // Paso 1: chip de zona
         lblZonaChip.getStyleClass().removeAll("neutro", "exito");
         if (zona == null) {
             lblZonaChip.setText(chkZonaManual.isSelected() ? "Zona sísmica: falta elegir la zona" : "Zona sísmica: falta elegir el distrito");
@@ -479,7 +448,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             lblZonaChip.getStyleClass().add("exito");
         }
 
-        // Paso 2: uso
         if (uso == null) {
             walterQuispesayhuaMostrar(lblUsoDetalle, false);
             walterQuispesayhuaMostrar(lblUsoNota, false);
@@ -495,7 +463,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         lblAvisoAislamiento.setText("La nota de la Tabla 7 de la E.030 pide aislamiento sísmico para este uso en zonas 3 y 4. Esta aplicación no modela aislamiento: el resultado no aplica.");
         walterQuispesayhuaMostrar(lblAvisoAislamiento, aislamiento);
 
-        // Paso 3: suelo
         if (tipo == null || v == null) {
             walterQuispesayhuaMostrar(lblSueloDetalle, false);
             walterQuispesayhuaMostrar(lblAvisoSuelo, false);
@@ -511,7 +478,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             txtVs30.clear();
         }
 
-        // Paso 4: sistema
         if (sis == null || v == null) {
             walterQuispesayhuaMostrar(lblSistemaDetalle, false);
             walterQuispesayhuaMostrar(lblAvisoSistema, false);
@@ -528,7 +494,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         }
         walterQuispesayhuaMostrar(lblAvisoTabla9, t9 != null);
 
-        // Avanzadas
         Parametros prov = walterQuispesayhuaProvisional();
         List<String> restr = prov == null ? List.of() : prov.restricciones();
         lblAvisoIrregularidad.setText(String.join("\n", restr));
@@ -537,7 +502,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         try {
             rigidezBaja = walterQuispesayhuaNum(txtRigidez.getText()) < 1.0;
         } catch (RuntimeException ignorado) {
-            // texto no numerico: se avisa al calcular
         }
         lblAvisoRigidez.setText("La norma pide secciones brutas (EI = 1,0): con menos rigidez los periodos y desplazamientos salen mayores.");
         walterQuispesayhuaMostrar(lblAvisoRigidez, rigidezBaja);
@@ -552,7 +516,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         lblAvisoCt.setText(ctManual ? "Valor cambiado a mano: la E.030 fija CT según el sistema estructural (art. 36.1). Úselo solo si lo puede justificar."
                 : "Calculado automáticamente según el sistema estructural.");
 
-        // Boton Calcular
         List<String> falta = GuiaSismica.walterQuispesayhuaFaltantes(zona, uso, tipo, sis, !tablaPisos.getItems().isEmpty());
         lblFalta.setText(falta.isEmpty() ? "Todo listo: pulse «Calcular»." : "Falta: " + String.join("; ", falta) + ".");
         btnCalcular.setDisable(!falta.isEmpty());
@@ -562,8 +525,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         nodo.setVisible(visible);
         nodo.setManaged(visible);
     }
-
-    // ------------------------------------------------------------------ acciones
 
     @FXML
     private void onCalcular() {
@@ -633,8 +594,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
                 Exportador.Formato.PDF, destino -> Files.write(destino.toPath(), ReporteSismo.fernandoHuancaGenerar(p, e, r, th)));
     }
 
-    // ------------------------------------------------------------------ utilidades
-
     private void walterQuispesayhuaError(String mensaje) {
         lblEstado.setText(mensaje);
         walterQuispesayhuaNotificador.fernandoHuancaError(mensaje);
@@ -664,7 +623,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         btnExportar.setDisable(true);
     }
 
-    /** Lee un campo numerico; si no es valido lo marca y relanza la excepcion. */
     private double walterQuispesayhuaLeer(TextField campo) {
         try {
             return walterQuispesayhuaNum(campo.getText());
@@ -682,7 +640,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return String.format(Locale.ROOT, "%." + d + "f", v);
     }
 
-    /** Numero con coma decimal para los textos de ayuda. */
     private static String walterQuispesayhuaComa(double v, int d) {
         return String.format(WALTER_QUISPESAYHUA_ES, "%." + d + "f", v);
     }
@@ -701,8 +658,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         });
     }
 
-    // ------------------------------------------------------------------ resultados
-
     private static TableView<String[]> tabla(String[] cab, List<String[]> filas) {
         TableView<String[]> t = new TableView<>();
         Tablas.fernandoHuancaConfigurar(t, "Sin datos para mostrar.", fila -> { });
@@ -711,7 +666,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             final int k = i;
             TableColumn<String[], String> c = new TableColumn<>(cab[i]);
             c.setCellValueFactory(x -> new SimpleStringProperty(x.getValue()[k]));
-            // Ancho mínimo según el título, para que «Piso» o «Δ esp. X (mm)» no se corten con «…».
             c.setMinWidth(Math.min(112, Math.max(56, cab[i].length() * 7.0 + 22)));
             t.getColumns().add(c);
         }
@@ -719,14 +673,12 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return t;
     }
 
-    /** Veredicto del resumen: solo se dice «cumple» si el modelo forma pórticos (vigas unidas a las columnas). */
     static String walterQuispesayhuaVeredicto(Resultado r) {
         if (!GuiaSismica.walterQuispesayhuaModeloValido(r)) return "MODELO INCOMPLETO: las vigas no forman pórticos";
         boolean cumple = r.estaticoX().cumple() && r.estaticoY().cumple() && r.espectralX().cumple() && r.espectralY().cumple();
         return cumple ? "CUMPLE (preliminar)" : "NO CUMPLE";
     }
 
-    /** Banner semaforo con el veredicto de derivas. */
     private static Label walterQuispesayhuaBanner(String veredicto) {
         boolean cumple = veredicto.startsWith("CUMPLE");
         Label b = new Label(veredicto);
@@ -737,7 +689,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return b;
     }
 
-    /** Lista de verificaciones con icono verde, rojo, ambar o informativo; las que no cumplen llevan un botón «Cómo corregir». */
     private VBox walterQuispesayhuaListaVerificaciones(List<GuiaSismica.Verificacion> items) {
         VBox caja = new VBox(6);
         caja.getStyleClass().add("sismo-verificaciones");
@@ -762,7 +713,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
             if (v.correccion() != GuiaSismica.Correccion.NINGUNA) {
                 boolean enModelo = v.correccion() == GuiaSismica.Correccion.DERIVA || v.correccion() == GuiaSismica.Correccion.MODELO;
                 FontIcon iconoBoton = new FontIcon("fth-zap");
-                if (enModelo) iconoBoton.setStyle("-fx-icon-color: white;"); // la fila en rojo no debe teñir el icono del botón
+                if (enModelo) iconoBoton.setStyle("-fx-icon-color: white;");
                 Button corregir = new Button(v.correccion() == GuiaSismica.Correccion.MODELO ? "Ver en el modelo 3D" : "Cómo corregir", iconoBoton);
                 corregir.getStyleClass().addAll("button-small", enModelo ? "accent" : "button-outlined");
                 corregir.setTooltip(new javafx.scene.control.Tooltip(switch (v.correccion()) {
@@ -781,7 +732,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return caja;
     }
 
-    /** Botón «Cómo corregir»: consejo en texto o, si falla la deriva, la medida calculada y el atajo al modelo 3D. */
     private void walterQuispesayhuaCorregir(GuiaSismica.Verificacion v) {
         var ventana = tabsResultados.getScene().getWindow();
         if (v.correccion() == GuiaSismica.Correccion.MODELO && walterQuispesayhuaResultado != null) {
@@ -840,7 +790,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         Parametros n = walterQuispesayhuaEntrada.norma();
         walterQuispesayhuaQuitarTabsCalculados();
         String veredicto = walterQuispesayhuaVeredicto(r);
-        // Resumen
         List<String[]> res = new ArrayList<>(List.of(
                 new String[]{"Versión de la norma", n.version().etiqueta},
                 new String[]{"Z · U · S", n.z() + " · " + n.u() + " · " + n.s()},
@@ -870,7 +819,7 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         for (String a : r.advertencias()) {
             Label l = new Label("• " + a);
             l.setWrapText(true);
-            l.setMinHeight(Region.USE_PREF_SIZE); // sin esto el VBox encoge el texto largo a una línea con «…»
+            l.setMinHeight(Region.USE_PREF_SIZE);
             avisos.getChildren().add(l);
         }
         TableView<String[]> tablaResumen = tabla(new String[]{"Concepto", "Valor"}, res);
@@ -884,15 +833,12 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         scroll.getStyleClass().add("pagina-scroll");
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Resumen", scroll));
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Simulación 3D", new com.concretolab.ui.VistaModal(walterQuispesayhuaEntrada.elementos(), r)));
-        // Pisos
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Pisos", tabla(new String[]{"Piso", "Cota (m)", "h (m)", "Área (m²)", "Peso (kN)", "X cm", "Y cm", "I polar"},
                 r.pisos().stream().map(s -> new String[]{"" + s.numero(), f(s.cota(), 2), f(s.altura(), 2), f(s.area(), 2), f(s.peso(), 1), f(s.xcm(), 3), f(s.ycm(), 3), f(s.inercia(), 0)}).toList())));
-        // Modos
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Modos", tabla(new String[]{"Modo", "T (s)", "f (Hz)", "Masa X (%)", "Masa Y (%)"},
                 r.modos().stream().map(m -> new String[]{"" + m.numero(), f(m.periodo(), 4), f(1 / m.periodo(), 3), f(m.masaEfectivaX() * 100, 1), f(m.masaEfectivaY() * 100, 1)}).toList())));
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Estático", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, walterQuispesayhuaFuerzas(r.estaticoX(), r.estaticoY()))));
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Espectral", tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, walterQuispesayhuaFuerzas(r.espectralX(), r.espectralY()))));
-        // Derivas
         List<String[]> der = new ArrayList<>();
         for (int i = r.pisos().size() - 1; i >= 0; i--) {
             double max = Math.max(Math.max(r.estaticoX().derivasMaximas()[i], r.estaticoY().derivasMaximas()[i]),
@@ -907,12 +853,10 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         walterQuispesayhuaAgregarTab(walterQuispesayhuaTab("Espectro", walterQuispesayhuaEspectro(r, n)));
     }
 
-    /** Quita las pestanas calculadas y conserva la pestana fija «Simulación temporal». */
     private void walterQuispesayhuaQuitarTabsCalculados() {
         tabsResultados.getTabs().removeIf(t -> t != tabSimulacionTemporal);
     }
 
-    /** Agrega una pestana calculada antes de la pestana fija «Simulación temporal». */
     private void walterQuispesayhuaAgregarTab(Tab t) {
         int pos = tabsResultados.getTabs().indexOf(tabSimulacionTemporal);
         tabsResultados.getTabs().add(pos < 0 ? tabsResultados.getTabs().size() : pos, t);
@@ -930,7 +874,6 @@ public class WalterQuispesayhuaSismoController implements Refrescable {
         return l;
     }
 
-    /** Espectro de diseno con los periodos modales; los colores y el estilo de marcadores salen del CSS ("grafico-espectro"). */
     private static Node walterQuispesayhuaEspectro(Resultado r, Parametros n) {
         NumberAxis ejeX = new NumberAxis(0, 4, 0.5);
         NumberAxis ejeY = new NumberAxis();

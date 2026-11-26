@@ -1,0 +1,201 @@
+% ConcretoLab Desktop - estilo común de la documentación
+% Se carga después de \input{template} (los datos van en comun/datos.tex, antes de la plantilla) (plantilla «Template-Informe» de Pablo Pizarro R., licencia MIT;
+% ver LICENCIA-PLANTILLA.md). Define la portada de ConcretoLab, colores, pasos numerados, botones y recuadros.
+% Codificación: UTF-8
+
+% Nombres que la plantilla define al cargarse
+\def\nameabstract {Presentación}
+\def\nameportraitpage {Portada}
+
+% ------------------------------------------------------------------------------
+% Colores de la aplicación
+% ------------------------------------------------------------------------------
+\definecolor{clazul}{RGB}{9,105,218}
+\definecolor{clazuloscuro}{RGB}{6,78,168}
+\definecolor{clazulclaro}{RGB}{232,241,253}
+\definecolor{cltexto}{RGB}{55,65,81}
+\definecolor{clgris}{RGB}{243,244,246}
+\definecolor{clgrisborde}{RGB}{209,213,219}
+\definecolor{clambar}{RGB}{254,243,199}
+\definecolor{clambarborde}{RGB}{217,119,6}
+\definecolor{clverde}{RGB}{220,252,231}
+\definecolor{clverdeborde}{RGB}{22,163,74}
+\definecolor{clrojo}{RGB}{254,226,226}
+\definecolor{clrojoborde}{RGB}{220,38,38}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{pifont}
+\usepackage{needspace}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ------------------------------------------------------------------------------
+% Portada de ConcretoLab (basada en el estilo 1 de la plantilla, con el ícono de la app)
+% ------------------------------------------------------------------------------
+\newcommand{\portadaConcretoLab}[1]{%
+	\clearpage
+	\renewcommand{\thepage}{\nameportraitpage}
+	\setpagemargincm{\pagemarginleft}{\firstpagemargintop}{\pagemarginright}{\pagemarginbottom}
+	\fancypagestyle{portraitstyle}{%
+		\fancyhf{}%
+		\fancyhead[L]{%
+			\COREwriteheaderitem{\nombreuniversidad}
+			\COREwriteheaderitem{\nombrefacultad}
+			\COREwriteheaderitem{\departamentouniversidad}
+			\vspace{-0.95\baselineskip}%
+		}%
+		\fancyhead[R]{%
+			\hspace{-0.255cm}%
+			\coreinsertkeyimage{\imagendepartamentoparams}{\imagendepartamento}%
+			\vspace{-0.175cm}%
+		}%
+	}
+	\thispagestyle{portraitstyle}
+	\begin{spacing}{1.025}
+	~ \\
+	\vfill
+	\begin{center}
+		\includegraphics[width=3.4cm]{marca/icono-concretolab} \\[1.1cm]
+		{\fontsize{32}{38}\selectfont \bfseries \color{clazul} \titulodelinforme} \\[0.45cm]
+		{\Large \color{cltexto} \temaatratar} \\[0.75cm]
+		{\large \color{cltexto} #1}
+	\end{center}
+	\vfill
+	\noindent
+	\begin{minipage}{1.0\linewidth}%
+		\begin{flushright}%
+			\tablaintegrantes
+		\end{flushright}
+	\end{minipage}
+	\end{spacing}
+}
+
+% Paso con su captura debajo, sin leyenda (manual directo):
+%   \pasocaptura{3}{Clic en «Crear».}[0.9]{manual/06b-modelo-nuevo-proyecto}{\senal{...}{1}}
+\NewDocumentCommand{\pasocaptura}{m m O{0.92} m m}{%
+	\par\medskip\noindent\begin{minipage}{\linewidth}
+		{\bfseries #1.\enspace #2}\par\smallskip
+		\centering
+		\begin{tikzpicture}
+			\node[anchor=south west, inner sep=0, draw=clgrisborde, line width=0.4pt] (img) at (0,0)
+				{\includegraphics[width=#3\linewidth]{#4}};
+			\begin{scope}[x={(img.south east)}, y={(img.north west)}]
+				#5
+			\end{scope}
+		\end{tikzpicture}
+	\end{minipage}\par\medskip}
+
+% Paso sin captura (una sola línea)
+\newcommand{\pasotexto}[2]{\par\smallskip\noindent{\bfseries #1.\enspace #2}\par\smallskip}
+
+% Portada sencilla (guía de instalación): solo el ícono, el título y el nombre del programa
+\newcommand{\portadaSimple}{%
+	\clearpage
+	\renewcommand{\thepage}{\nameportraitpage}
+	\setpagemargincm{\pagemarginleft}{\firstpagemargintop}{\pagemarginright}{\pagemarginbottom}
+	\thispagestyle{empty}
+	~ \\
+	\vfill
+	\begin{center}
+		\includegraphics[width=3.0cm]{marca/icono-concretolab} \\[1.0cm]
+		{\fontsize{30}{36}\selectfont \bfseries \titulodelinforme} \\[0.4cm]
+		{\Large ConcretoLab Desktop}
+	\end{center}
+	\vfill
+	\vfill
+}
+
+% ------------------------------------------------------------------------------
+% Elementos para explicar la interfaz
+% ------------------------------------------------------------------------------
+% Número de paso dentro de un círculo azul
+\newcommand{\numeropaso}[1]{%
+	\tikz[baseline=(n.base)] \node[circle, fill=clazul, text=white, font=\bfseries\small, inner sep=0pt,
+		minimum size=1.45em] (n) {#1};}
+
+% Número rojo, igual al de las marcas de las capturas
+\newcommand{\marca}[1]{%
+	\tikz[baseline=(n.base)] \node[circle, fill=clrojoborde, text=white, font=\bfseries\fontsize{6.5}{7}\selectfont,
+		inner sep=0pt, minimum size=1.15em] (n) {#1};}
+
+% Paso: \paso{3}{Pulse «Instalar»} seguido de la explicación
+\newcommand{\paso}[2]{%
+	\par\medskip\needspace{4\baselineskip}%
+	\noindent{\bfseries Paso #1. #2}\par\nopagebreak\smallskip}
+
+% Botón o control de la pantalla, dibujado como en la aplicación: \boton{Siguiente}
+\newcommand{\boton}[1]{\textbf{#1}}
+
+% Botón principal (azul)
+\newcommand{\botonprincipal}[1]{\textbf{#1}}
+
+% Tecla del teclado: \tecla{Ctrl}
+\newcommand{\tecla}[1]{\textsc{#1}}
+
+% Ruta de menú: \menu{Datos y copias > Crear copia ahora}
+\newcommand{\menu}[1]{\textit{#1}}
+
+% Columna de tabla alineada a la izquierda (sin espacios estirados): L{4cm}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Rutas de archivos, carpetas, clases y métodos en letra de máquina. Se permite cortar la línea después de «_» y de
+% «\» para que los nombres largos (constantes, rutas de Windows) no se salgan del margen.
+\let\rutabarraoriginal\textbackslash
+\newcommand{\rutaguionbajo}{\textunderscore\allowbreak}
+\newcommand{\rutabarra}{\rutabarraoriginal\allowbreak}
+\newcommand{\ruta}[1]{{\small\ttfamily\let\_\rutaguionbajo\let\textbackslash\rutabarra #1}}
+
+% Recuadros
+\newenvironment{nota}[1][]{\par\smallskip\noindent\ignorespaces}{\par\smallskip}
+\newenvironment{importante}[1][]{\par\smallskip\noindent\ignorespaces}{\par\smallskip}
+\newenvironment{consejo}[1][]{\par\smallskip\noindent\ignorespaces}{\par\smallskip}
+\newenvironment{advertencia}[1][]{\par\smallskip\noindent\ignorespaces}{\par\smallskip}
+
+% Captura de pantalla con borde fino: \captura[ancho]{archivo}{leyenda}{etiqueta}
+\newcommand{\captura}[4][0.78]{%
+	\begin{figure}[H]
+		\centering
+		\setlength{\fboxsep}{0pt}\setlength{\fboxrule}{0.4pt}%
+		\fcolorbox{clgrisborde}{white}{\includegraphics[width=#1\linewidth]{#2}}
+		\caption{#3}
+		\label{#4}
+	\end{figure}}
+
+% Captura con marcas numeradas dibujadas encima (coordenadas relativas: 0,0 abajo a la izquierda; 1,1 arriba a la
+% derecha). Así las marcas no dependen de la resolución de la imagen.
+%   \capturamarcada[0.9]{archivo}{\marcaen{0.2}{0.8}{1} \marcaen{0.5}{0.9}{2}}{Leyenda}{fig:etiqueta}
+\newcommand{\marcaen}[3]{%
+	\node[circle, fill=clrojoborde, text=white, font=\bfseries\fontsize{6.5}{7}\selectfont, inner sep=0pt,
+		minimum size=1.15em] at (#1,#2) {#3};}
+\newcommand{\recuadroen}[4]{% esquina inferior izquierda (x,y) y superior derecha (x,y)
+	\draw[clrojoborde, line width=0.9pt] (#1,#2) rectangle (#3,#4);}
+% Señal sobre un control medido en coordenadas.tex: recuadro rojo alrededor y su número pequeño en la esquina
+% superior izquierda, como en la guía de instalación.  \senal{ModeloModeloNuevoProyecto}{1}
+\newcommand{\senal}[2]{%
+	\draw[clrojoborde, line width=0.9pt]
+		(\csname capizq#1\endcsname-0.004, \csname capaba#1\endcsname-0.006) rectangle
+		(\csname capder#1\endcsname+0.004, \csname caparr#1\endcsname+0.006);
+	\node[circle, fill=clrojoborde, text=white, font=\bfseries\fontsize{6.5}{7}\selectfont, inner sep=0pt,
+		minimum size=1.15em] at (\csname capizq#1\endcsname-0.004, \csname caparr#1\endcsname+0.006) {#2};}
+\newcommand{\capturamarcada}[5][0.9]{%
+	\begin{figure}[H]
+		\centering
+		\begin{tikzpicture}
+			\node[anchor=south west, inner sep=0, draw=clgrisborde, line width=0.4pt] (img) at (0,0)
+				{\includegraphics[width=#1\linewidth]{#2}};
+			\begin{scope}[x={(img.south east)}, y={(img.north west)}]
+				#3
+			\end{scope}
+		\end{tikzpicture}
+		\caption{#4}
+		\label{#5}
+	\end{figure}}
+
+% Lista de verificación con ✔
+\newcommand{\visto}{\textbullet}
+\newcommand{\equis}{\textendash}
+
+% Ancla para la ayuda integrada de la aplicación: crea el destino con nombre «ayuda-<pantalla>», que el botón «?» de
+% cada pantalla abre directamente (ver VisorAyuda.FERNANDO_HUANCA_ANCLAS). Úsese justo después del \section.
+\newcommand{\anclaayuda}[1]{\hypertarget{ayuda-#1}{}}

@@ -16,7 +16,6 @@
         <ToggleGroup fx:id="grupoDireccion"/>
     </fx:define>
 
-    <!-- ===== Aún no se calculó el análisis sísmico ===== -->
     <VBox fx:id="panelVacio" styleClass="tarjeta" alignment="CENTER" VBox.vgrow="ALWAYS">
         <FontIcon iconLiteral="fth-activity" styleClass="vacio-icono"/>
         <Label text="Simulación temporal no disponible" styleClass="vacio-titulo"/>
@@ -27,7 +26,6 @@
                 VBox.vgrow="ALWAYS" visible="false" managed="false">
         <VBox spacing="12.0" styleClass="th-contenido">
 
-            <!-- ===== Origen de los registros ===== -->
             <VBox styleClass="paso-tarjeta" spacing="8.0">
                 <Label text="Análisis tiempo-historia · suelo móvil + estructura" styleClass="paso-titulo"/>
                 <Label fx:id="lblAyuda" styleClass="paso-ayuda" wrapText="true" minHeight="-Infinity"/>
@@ -86,7 +84,6 @@
                 </HBox>
             </VBox>
 
-            <!-- ===== Resultados ===== -->
             <VBox fx:id="panelResultados" spacing="10.0" visible="false" managed="false">
                 <Label fx:id="lblBanner" maxWidth="Infinity" wrapText="true" minHeight="-Infinity"/>
                 <TitledPane text="Notas de la verificación (límite, método, supuestos): expandir para leer" expanded="false" animated="false">
@@ -97,7 +94,6 @@
                     <tabs>
                         <Tab text="Animación">
                             <VBox spacing="8.0" styleClass="th-pestana">
-                                <!-- Cada etiqueta va con su control: al estrecharse la ventana, saltan juntos de línea -->
                                 <FlowPane hgap="18.0" vgap="8.0" alignment="CENTER_LEFT">
                                     <HBox spacing="6.0" alignment="CENTER_LEFT">
                                         <Button fx:id="btnPlay" text="Reproducir" onAction="#onPlay" styleClass="accent">
@@ -191,5 +187,5 @@
         </VBox>
     </ScrollPane>
 
-    <Label fx:id="lblAdvertencia" styleClass="sismo-aviso" wrapText="true" minHeight="-Infinity"/>
+    <Label fx:id="lblAdvertencia" visible="false" managed="false"/>
 </VBox>

@@ -9,7 +9,6 @@
             styleClass="pagina-scroll" fitToWidth="true" hbarPolicy="NEVER">
 
     <fx:define>
-        <!-- ============ Panel: contraseña opcional del archivo exportado / importado ============ -->
         <VBox fx:id="panelContrasena" styleClass="drawer"
               prefWidth="440.0" maxWidth="440.0" maxHeight="Infinity">
             <HBox styleClass="drawer-header">
@@ -37,7 +36,7 @@
                         <Label styleClass="campo-error" visible="false" managed="false"/>
                     </VBox>
                     <Label fx:id="lblAvisoContrasena" wrapText="true" minHeight="-Infinity" styleClass="campo-ayuda"
-                           text="Solo protege el archivo que exportas, no tus datos en esta computadora. Quien lo importe necesitará la contraseña; si se olvida, ese archivo no se puede abrir."/>
+                           text="Solo protege el archivo que usted exporta, no sus datos en esta computadora. Quien lo importe necesitará la contraseña; si se olvida, ese archivo no se puede abrir."/>
                 </VBox>
             </ScrollPane>
 
@@ -55,12 +54,11 @@
         <HBox styleClass="pagina-cabecera" alignment="CENTER_LEFT">
             <VBox spacing="3.0" HBox.hgrow="ALWAYS">
                 <Label text="Datos y copias de seguridad" styleClass="pagina-titulo"/>
-                <Label text="Guarda copias de tu trabajo y lleva tus proyectos a otra computadora."
+                <Label text="Guarde copias de su trabajo y lleve sus proyectos a otra computadora."
                        styleClass="pagina-subtitulo" wrapText="true"/>
             </VBox>
         </HBox>
 
-        <!-- ============ Copias de seguridad ============ -->
         <VBox styleClass="tarjeta" spacing="10.0">
             <HBox alignment="CENTER_LEFT" spacing="8.0">
                 <Label text="Copias de seguridad" styleClass="seccion-form" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
@@ -68,8 +66,6 @@
                     <graphic><FontIcon iconLiteral="fth-save"/></graphic>
                 </Button>
             </HBox>
-            <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
-                   text="ConcretoLab guarda una copia automática al abrirse y otra al cerrarse. Crea una copia antes de un cambio importante; las que creas tú no se borran solas."/>
             <Label fx:id="lblRestauracionPendiente" styleClass="modelo-aviso" wrapText="true" maxWidth="Infinity" minHeight="-Infinity"
                    visible="false" managed="false"/>
             <TableView fx:id="tablaCopias" prefHeight="230.0" minHeight="230.0">
@@ -89,13 +85,10 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Proyectos: exportar / importar ============ -->
         <VBox styleClass="tarjeta" spacing="10.0">
             <Label text="Llevar un proyecto a otra computadora" styleClass="seccion-form"/>
-            <Label styleClass="campo-ayuda" wrapText="true" minHeight="-Infinity"
-                   text="Exporta un proyecto a un archivo .concretolab (con sus elementos, mezclas y ensayos) y ábrelo en otra computadora con «Importar». Al importar se crea un proyecto nuevo: nunca se reemplaza ninguno."/>
             <HBox spacing="8.0" alignment="CENTER_LEFT">
-                <ComboBox fx:id="cmbProyecto" promptText="Elige el proyecto a exportar" prefWidth="320.0"/>
+                <ComboBox fx:id="cmbProyecto" promptText="Elija el proyecto a exportar" prefWidth="320.0"/>
                 <Button text="Exportar…" onAction="#onExportar" styleClass="accent">
                     <graphic><FontIcon iconLiteral="fth-upload"/></graphic>
                 </Button>
@@ -105,7 +98,6 @@
             </HBox>
         </VBox>
 
-        <!-- ============ Opciones avanzadas (rutas, registros e historial) ============ -->
         <TitledPane fx:id="panelAvanzado" text="Opciones avanzadas" expanded="false" animated="false">
             <VBox spacing="12.0">
                 <Label text="Ubicación de los datos" styleClass="seccion-form"/>

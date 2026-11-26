@@ -34,16 +34,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-/**
- * Datos y copias de seguridad, pensada para el cliente: copias (crear, restaurar, eliminar) y exportación e importación
- * de proyectos (el archivo exportado puede protegerse con contraseña de forma opcional). Las rutas, los registros y el
- * historial de cambios están en «Opciones avanzadas».
- */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class DatosController implements Refrescable {
-
     private static final DateTimeFormatter ERICK_DELGADO_FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     private static final int ERICK_DELGADO_MINIMO_CONTRASENA = 8;
 
@@ -55,17 +49,14 @@ public class DatosController implements Refrescable {
     private final Notificador erickDelgadoNotificador;
     private final Exportador exportador;
 
-    // ---- opciones avanzadas
     @FXML private Label lblRutaBase;
     @FXML private Label lblTamanoBase;
 
-    // ---- copias
     @FXML private Label lblRestauracionPendiente;
     @FXML private TableView<RespaldoService.Copia> tablaCopias;
     @FXML private TableColumn<RespaldoService.Copia, String> colFechaCopia;
     @FXML private TableColumn<RespaldoService.Copia, String> colTipoCopia;
     @FXML private TableColumn<RespaldoService.Copia, String> colTamanoCopia;
-    /** Cierra la aplicación tras programar una restauración (se sustituye en las pruebas). */
     private Runnable erickDelgadoCerrarAplicacion = javafx.application.Platform::exit;
     @FXML private Button btnRestaurar;
     @FXML private Button btnEliminarCopia;
@@ -133,13 +124,9 @@ public class DatosController implements Refrescable {
         tablaBitacora.getItems().setAll(bitacora.erickDelgadoRecientes());
     }
 
-    // ------------------------------------------------------------ carpetas
-
     @FXML private void onAbrirCarpetaDatos() { exportador.fernandoHuancaAbrirCarpeta(erickDelgadoRespaldos.erickDelgadoArchivoBaseDatos().getParent().toFile()); }
 
     @FXML private void onAbrirCarpetaRegistros() { exportador.fernandoHuancaAbrirCarpeta(erickDelgadoRespaldos.erickDelgadoCarpetaRegistros().toFile()); }
-
-    // ------------------------------------------------------------ copias
 
     @FXML
     private void onCrearCopia() {
@@ -152,9 +139,9 @@ public class DatosController implements Refrescable {
         var copia = tablaCopias.getSelectionModel().getSelectedItem();
         if (copia == null) return;
         erickDelgadoNotificador.fernandoHuancaConfirmar("Restaurar copia",
-                "Tus datos actuales se reemplazarán por los de la copia del " + copia.fecha().format(ERICK_DELGADO_FORMATO_FECHA)
-                        + ". Antes se guarda automáticamente una copia de lo que tienes ahora.\n\n"
-                        + "ConcretoLab se cerrará para aplicarla: vuelve a abrirlo y verás los datos de esa copia.",
+                "Sus datos actuales se reemplazarán por los de la copia del " + copia.fecha().format(ERICK_DELGADO_FORMATO_FECHA)
+                        + ". Antes se guarda automáticamente una copia de lo que tiene ahora.\n\n"
+                        + "ConcretoLab se cerrará para aplicarla: vuelva a abrirlo y verá los datos de esa copia.",
                 "Restaurar y cerrar", () -> {
                     try {
                         erickDelgadoRespaldos.erickDelgadoProgramarRestauracion(copia.archivo());
@@ -181,13 +168,11 @@ public class DatosController implements Refrescable {
         });
     }
 
-    // ------------------------------------------------------------ exportar / importar
-
     @FXML
     private void onExportar() {
         Proyecto p = cmbProyecto.getValue();
         if (p == null) {
-            erickDelgadoNotificador.fernandoHuancaAdvertencia("Elige primero el proyecto que quieres exportar.");
+            erickDelgadoNotificador.fernandoHuancaAdvertencia("Elija primero el proyecto que desea exportar.");
             return;
         }
         erickDelgadoModo = Modo.EXPORTAR;
@@ -258,7 +243,7 @@ public class DatosController implements Refrescable {
             String texto = txtContrasena.getText();
             if (erickDelgadoModo == Modo.EXPORTAR) {
                 if (texto.length() < ERICK_DELGADO_MINIMO_CONTRASENA) {
-                    Formularios.fernandoHuancaMarcarError(txtContrasena, "Usa al menos " + ERICK_DELGADO_MINIMO_CONTRASENA + " caracteres.");
+                    Formularios.fernandoHuancaMarcarError(txtContrasena, "Use al menos " + ERICK_DELGADO_MINIMO_CONTRASENA + " caracteres.");
                     return;
                 }
                 if (!texto.equals(txtConfirmacion.getText())) {
@@ -266,7 +251,7 @@ public class DatosController implements Refrescable {
                     return;
                 }
             } else if (texto.isEmpty()) {
-                Formularios.fernandoHuancaMarcarError(txtContrasena, "Escribe la contraseña del archivo.");
+                Formularios.fernandoHuancaMarcarError(txtContrasena, "Escriba la contraseña del archivo.");
                 return;
             }
             contrasena = texto.toCharArray();
@@ -314,13 +299,8 @@ public class DatosController implements Refrescable {
                 }, () -> erickDelgadoBorrar(contrasena));
     }
 
-    // ------------------------------------------------------------ bitácora
-
     @FXML private void onActualizarBitacora() { tablaBitacora.getItems().setAll(bitacora.erickDelgadoRecientes()); }
 
-    // ------------------------------------------------------------ utilidades
-
-    /** Ejecuta la operación fuera del hilo de JavaFX y avisa del resultado; los errores del usuario salen como mensaje claro. */
     private <T> void erickDelgadoEnSegundoPlano(String mensajeInicio, java.util.concurrent.Callable<T> trabajo, java.util.function.Consumer<T> alTerminar) {
         erickDelgadoEnSegundoPlano(mensajeInicio, trabajo, alTerminar, () -> { });
     }

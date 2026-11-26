@@ -1,0 +1,73 @@
+% ------------------------------------------------------------------------------
+\section{Abrir ConcretoLab por primera vez}
+% ------------------------------------------------------------------------------
+
+\paso{1}{Abra el programa}
+
+Puede abrirlo de cualquiera de estas formas:
+
+\begin{itemize}
+	\item \textbf{Menú Inicio:} pulse la tecla \tecla{Windows} (o el botón Inicio), escriba \textbf{ConcretoLab} y pulse
+	      \tecla{Enter}. También está en la lista de aplicaciones, dentro de la carpeta \textbf{ConcretoLab}.
+	\item \textbf{Escritorio:} haga doble clic en el acceso \textbf{ConcretoLab}, si lo creó en el paso~5.
+\end{itemize}
+
+\begin{consejo}
+Para tenerlo siempre a mano, en el menú Inicio haga clic derecho sobre ConcretoLab y elija \menu{Anclar a la barra de
+tareas}.
+\end{consejo}
+
+\paso{2}{Espere a que cargue}
+
+La primera vez tarda unos segundos más, porque prepara su base de datos. Luego se abre la pantalla de inicio:
+
+\captura[0.86]{guia/11-inicio}{ConcretoLab recién instalado, en la pantalla de inicio.}{fig:primera}
+
+Encima aparece un breve \textbf{recorrido de bienvenida} de cinco páginas que presenta el programa:
+
+\captura[0.8]{guia/10-bienvenida}{Recorrido de bienvenida del primer uso.}{fig:g-bienvenida}
+
+Avance con \boton{Siguiente} o ciérrelo con la \boton{X}. Si marca \textbf{No volver a mostrar al abrir}, no aparecerá
+en los próximos inicios (puede volver a verlo desde \menu{Ayuda}).
+
+Arriba están la barra de menús y las pestañas con todas las secciones del programa. Para aprender a usarlas, pulse \menu{Ayuda}
+$\rightarrow$ \menu{Manual de usuario}: el manual se abre dentro del programa. En cada pantalla, el botón \boton{?} de
+arriba a la derecha (o la tecla \tecla{F1}) lo abre justo en la sección que necesita. Para practicar sin tocar sus
+datos, use el botón \boton{Agregar proyecto de ejemplo} de la pantalla de inicio.
+
+\paso{3}{Solo si usaba una versión anterior con contraseña}
+
+Las versiones anteriores de ConcretoLab pedían una contraseña para abrir los datos. \textbf{La versión actual abre
+directamente, sin contraseña.} Si en esta computadora ya había datos protegidos con contraseña, la primera vez aparecerá
+la ventana \textbf{«Abrir datos de una versión anterior»}:
+
+\begin{enumerate}
+	\item Escriba la contraseña que usaba antes y pulse \boton{Abrir}.
+	\item Aparecerá el mensaje \textbf{«Datos listos»}: sus proyectos se conservaron y desde ese momento ConcretoLab ya
+	      no pedirá contraseña.
+\end{enumerate}
+
+\begin{nota}
+Antes de quitar la contraseña, ConcretoLab guarda una copia exacta de la base anterior. La verá en la sección
+\menu{Datos y copias} con el tipo «Base anterior con contraseña». Si se equivoca de contraseña, tiene tres intentos y
+sus datos no se modifican; si pulsa \boton{Salir}, el programa se cierra sin tocar nada.
+\end{nota}
+
+\subsection{Dónde se guardan sus datos}
+
+\begin{table}[H]
+	\centering
+	\caption{Carpetas que usa ConcretoLab.}
+	\label{tab:carpetas}
+	\begin{tabular}{L{4.6cm}L{9.2cm}}
+		\hline
+		\textbf{Qué} & \textbf{Dónde} \\ \hline
+		El programa & \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash AppData\textbackslash Local\textbackslash ConcretoLab} \\
+		Sus proyectos (base de datos) & \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash .concretolab\textbackslash concretolab.db} \\
+		Copias de seguridad & \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash .concretolab\textbackslash backups} \\
+		Registros técnicos & \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash .concretolab\textbackslash logs} \\ \hline
+	\end{tabular}
+\end{table}
+
+No necesita abrir estas carpetas: todo se maneja desde \menu{Datos y copias}, dentro del programa. Allí también puede
+crear una copia de seguridad cuando quiera y llevar un proyecto a otra computadora.

@@ -1,0 +1,102 @@
+% ------------------------------------------------------------------------------
+\section{Instalar ConcretoLab paso a paso}
+% ------------------------------------------------------------------------------
+
+\paso{1}{Abra el instalador}
+
+Abra la carpeta \ruta{Descargas} (o la carpeta donde guardó el archivo, sección~\ref{sec:descarga}) y haga
+\textbf{doble clic} en \ruta{\archivoinstalador}. Si no ve la extensión \ruta{.exe}, busque el archivo con el ícono
+de ConcretoLab (figura~\ref{fig:icono}). También puede abrirlo desde la lista de descargas del navegador.
+
+\paso{2}{Si aparece «Windows protegió su PC»}
+\label{sec:smartscreen}
+
+Es posible que Windows muestre una ventana azul titulada \textbf{«Windows protegió su PC»}. Aparece porque el
+instalador todavía no tiene una firma digital de un fabricante reconocido: es habitual en programas nuevos y
+\textbf{no significa que el archivo tenga un virus}. Para continuar:
+
+\begin{enumerate}
+	\item Pulse el enlace \boton{Más información}.
+	\item Aparece el nombre del archivo y el botón \boton{Ejecutar de todas formas}: púlselo.
+\end{enumerate}
+
+\begin{figure}[H]
+	\centering
+	\begin{tikzpicture}[font=\sffamily\small]
+		\node[fill=clazul!85!black, text=white, minimum width=6.8cm, minimum height=4.1cm, anchor=north west,
+			rounded corners=2pt] (v1) at (0,0) {};
+		\node[text=white, anchor=north west, font=\sffamily\large] at (0.3,-0.3) {Windows protegió su PC};
+		\node[text=white, anchor=north west, text width=6.1cm, font=\sffamily\scriptsize] at (0.3,-1.0)
+			{Microsoft Defender SmartScreen impidió el inicio de una aplicación no reconocida\ldots};
+		\node[text=white, anchor=north west, font=\sffamily\scriptsize, draw=clrojoborde, line width=1.2pt,
+			inner sep=2pt] (mi) at (0.3,-2.0) {\underline{Más información}};
+		\node[fill=white, text=black, anchor=south east, font=\sffamily\scriptsize, minimum width=2cm]
+			at (6.5,0.3-4.1) {No ejecutar};
+		\node[circle, fill=clrojoborde, draw=white, text=white, font=\bfseries\scriptsize, inner sep=0pt,
+			minimum size=1.3em] at ($(mi.north west)+(-0.05,0.05)$) {1};
+
+		\node[fill=clazul!85!black, text=white, minimum width=6.8cm, minimum height=4.1cm, anchor=north west,
+			rounded corners=2pt] (v2) at (7.4,0) {};
+		\node[text=white, anchor=north west, font=\sffamily\large] at (7.7,-0.3) {Windows protegió su PC};
+		\node[text=white, anchor=north west, text width=6.1cm, font=\sffamily\scriptsize] at (7.7,-1.0)
+			{Aplicación: \archivoinstalador\\ Editor: Editor desconocido};
+		\node[fill=white, text=black, anchor=south east, font=\sffamily\scriptsize, minimum width=2cm]
+			at (13.9,0.3-4.1) {No ejecutar};
+		\node[fill=white, text=black, anchor=south east, font=\sffamily\scriptsize, draw=clrojoborde,
+			line width=1.2pt, minimum width=3cm] (ej) at (11.7,0.3-4.1) {Ejecutar de todas formas};
+		\node[circle, fill=clrojoborde, draw=white, text=white, font=\bfseries\scriptsize, inner sep=0pt,
+			minimum size=1.3em] at ($(ej.north west)+(-0.05,0.05)$) {2};
+	\end{tikzpicture}
+	\caption{Esquema del aviso de Windows SmartScreen (no es una captura: la ventana real puede verse un poco
+	distinta según la versión de Windows).}
+	\label{fig:smartscreen}
+\end{figure}
+
+\begin{nota}
+Si este aviso no aparece, no tiene que hacer nada: siga con el paso~3. Solo aparece en algunas computadoras, según la
+configuración de seguridad de Windows.
+\end{nota}
+
+\paso{3}{Bienvenida: pulse «Siguiente»}
+
+Se abre el asistente para la instalación de ConcretoLab. Pulse \boton{Siguiente}~\marca{1}.
+
+\captura[0.66]{guia/03-bienvenida}{Pantalla de bienvenida del asistente.}{fig:bienvenida}
+
+\paso{4}{Carpeta de destino: pulse «Siguiente»}
+
+El asistente propone instalar ConcretoLab en su carpeta de usuario. \textbf{Lo recomendado es dejarla así} y pulsar
+\boton{Siguiente}~\marca{1}. En la ruta aparecerá su propio nombre de usuario de Windows en lugar de
+\ruta{<su usuario>}.
+
+Solo si necesita instalar en otra carpeta, pulse \boton{Cambiar...}~\marca{2}, elija la carpeta y pulse
+\boton{Aceptar}.
+
+\captura[0.66]{guia/04-carpeta}{Carpeta donde se instalará el programa.}{fig:carpeta}
+
+\paso{5}{Accesos directos: elija si quiere uno en el escritorio}
+
+El acceso en el \textbf{menú Inicio} se crea siempre. Además, la casilla \textbf{«Crear un acceso directo en el
+escritorio»}~\marca{1} viene marcada: déjela así si quiere abrir ConcretoLab desde el escritorio, o quítele la marca si
+no lo necesita. Luego pulse \boton{Siguiente}~\marca{2}.
+
+\captura[0.66]{guia/05-accesos-directos}{Acceso directo en el escritorio (opcional).}{fig:accesos}
+
+\paso{6}{Pulse «Instalar»}
+
+El asistente ya tiene todo listo. Pulse \boton{Instalar}~\marca{1}.
+
+\captura[0.66]{guia/06-listo-para-instalar}{Listo para instalar.}{fig:listo}
+
+\paso{7}{Espere unos segundos}
+
+La barra verde muestra el avance. Suele tardar menos de un minuto. No cierre la ventana mientras tanto.
+
+\captura[0.66]{guia/07-instalando}{Instalación en curso.}{fig:instalando}
+
+\paso{8}{Pulse «Finalizar»}
+
+Cuando aparezca el mensaje «Ha completado el Asistente para la instalación de ConcretoLab», pulse
+\boton{Finalizar}~\marca{1}. ConcretoLab ya está instalado.
+
+\captura[0.66]{guia/08-finalizado}{Instalación terminada.}{fig:finalizado}

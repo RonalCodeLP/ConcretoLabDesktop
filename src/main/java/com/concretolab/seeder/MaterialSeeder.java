@@ -9,14 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Biblioteca de materiales ficticios: una arena, una piedra y un cemento. Omite los que ya existen por nombre.
- * Los valores no provienen de ensayos reales.
- */
 @Component
 @RequiredArgsConstructor
 public class MaterialSeeder {
-
     public static final String YEFRI_LERMA_ARENA = "DEMO - Arena de ensayo";
     public static final String YEFRI_LERMA_PIEDRA = "DEMO - Piedra de ensayo";
     public static final String CEMENTO = "DEMO - Cemento de ensayo";

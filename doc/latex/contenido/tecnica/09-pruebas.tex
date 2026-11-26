@@ -1,0 +1,247 @@
+% ------------------------------------------------------------------------------
+\section{Pruebas automáticas}
+\label{sec:pru-pruebas}
+% ------------------------------------------------------------------------------
+
+ConcretoLab tiene \textbf{45 clases de prueba con 227 métodos \ruta{@Test}} (JUnit~5, AssertJ y las aserciones de
+JUnit), en \ruta{src/test/java/com/concretolab} y sus subcarpetas \ruta{controller/} y \ruta{ui/}. No hay pruebas
+parametrizadas ni repetidas: cada \ruta{@Test} es un caso. Las pruebas comprueban que la programación hace lo que dice
+contra valores conocidos; no sustituyen la revisión profesional de los cálculos.
+
+\subsection{Cómo ejecutarlas}
+
+Se necesita el \textbf{JDK 17} y Maven con las dependencias ya descargadas en \ruta{\%USERPROFILE\%\textbackslash .m2}.
+\ruta{INICIAR\_CONCRETOLAB.bat} muestra cómo los encuentra el proyecto:
+
+\begin{itemize}
+	\item \textbf{Java:} \ruta{JAVA\_HOME} si está definida; si no, la primera carpeta
+	      \ruta{C:\textbackslash Program Files\textbackslash Eclipse Adoptium\textbackslash jdk-17*}.
+	\item \textbf{Maven:} \ruta{mvn} del \ruta{PATH}; si no está, el \ruta{mvn.cmd} que el \emph{wrapper} de Maven dejó
+	      en \ruta{\%USERPROFILE\%\textbackslash .m2\textbackslash wrapper\textbackslash dists}.
+	\item \textbf{Sin conexión:} primero intenta \ruta{mvn -o} (\emph{offline}); solo si falla vuelve a intentar con
+	      conexión para descargar lo que falte.
+\end{itemize}
+
+Desde PowerShell, en la raíz del proyecto:
+
+\begin{verbatim}
+$jdk = Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory `
+       -Filter 'jdk-17*' | Select-Object -First 1
+$env:JAVA_HOME = $jdk.FullName
+$mvn = (Get-ChildItem "$env:USERPROFILE\.m2\wrapper\dists" -Recurse `
+        -Filter mvn.cmd | Select-Object -First 1).FullName
+& $mvn -o test                                # todas las pruebas
+& $mvn -o test '-Dtest=RespaldoTest'          # una clase
+& $mvn -o test '-Dtest=RespaldoTest#sinMarcadorNoHaceNada'
+& $mvn -o test '-Dtest=TiempoHistoria*Test'   # varias, con comodin
+\end{verbatim}
+
+Si \ruta{mvn} está en el \ruta{PATH}, basta con \ruta{mvn -o test}. En PowerShell, los argumentos \ruta{-D\ldots} con
+puntos o \ruta{\#} deben ir entre comillas simples; si no, PowerShell los parte.
+
+\begin{nota}[Dónde quedan los resultados]
+Maven deja un informe por clase en \ruta{target/surefire-reports}. El \ruta{pom.xml} configura Surefire con
+\ruta{logging.file.name=\$\{project.build.directory\}/pruebas.log}, así que el registro de Spring de las pruebas va a
+\ruta{target/pruebas.log} y no al registro de la aplicación.
+\end{nota}
+
+La distribución (\ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1}) compila con \ruta{-Dmaven.test.skip=true}: las pruebas se
+ejecutan aparte, antes de distribuir.
+
+\subsection{Clases de prueba}
+
+En la tabla, \textbf{U} es una prueba unitaria sin Spring ni JavaFX, \textbf{I} es de integración con un contexto de
+Spring sobre una base SQLite temporal y \textbf{G} usa la interfaz JavaFX (y se omite sin pantalla, salvo la excepción
+indicada más abajo).
+
+\begin{longtable}{L{5.4cm}L{0.8cm}L{6.9cm}L{0.9cm}}
+	\caption{Clases de prueba, qué comprueban y número de métodos \ruta{@Test}.} \label{tab:pru-clases} \\
+	\hline
+	\textbf{Clase} & \textbf{Tipo} & \textbf{Qué comprueba} & \textbf{N.º} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Tipo} & \textbf{Qué comprueba} & \textbf{N.º} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\multicolumn{4}{l}{\textit{Análisis sísmico y norma}} \\ \hline
+	\ruta{SismoE030Test} & U & Tablas de la norma, cortante mínimo, rigidez de un piso, masas efectivas, fuerzas
+	estáticas, simetría, irregularidades, excentricidad accidental, Vs30, factor C, versión 2018 sin 30~\%, reporte PDF
+	y junta sísmica. & 20 \\
+	\ruta{PerfilesNormaTest} & U & Suelo a perfil por versión, rangos Vs30, R0 y CT por sistema, categoría y factor U
+	por uso, cargas no negativas y marcadas como no verificadas. & 8 \\
+	\ruta{GuiaSismicaTest} & U & Lógica del asistente: Tabla 9 (pórticos en categoría A y A1), zona desde el anexo,
+	parámetros desde las cuatro elecciones, cargas por uso, faltantes y verificaciones. & 7 \\
+	\ruta{ZonificacionServiceTest} & U & Zonificación del Anexo II contra el PDF oficial: conteos, zonas, búsqueda sin
+	tildes, homónimos, límites y ausencia de duplicados. & 13 \\
+	\ruta{RecomendacionSismicaTest} & U & «Cómo corregir»: menor aumento que cumple, solo en la dirección que falla;
+	sin fallas no recomienda. & 3 \\
+	\ruta{controller/} \ruta{ModeloIncompletoTest} & U & Con vigas sueltas el análisis nunca dice «CUMPLE»; una
+	viga suelta entre varias es solo alerta; la edición avisa de las vigas que se sueltan. & 4 \\ \hline
+	\multicolumn{4}{l}{\textit{Tiempo-historia}} \\ \hline
+	\ruta{TiempoHistoriaTest} & U & Motor físico: oscilador contra régimen permanente, reposo, periodo libre = T1,
+	simetría, convergencia con dt, desplazamiento absoluto y verificación E.030. & 8 \\
+	\ruta{RegistrosSismicosTest} & U & Registros: validaciones, integración y línea base, espectros contra soluciones
+	analíticas, importación (1, 2 y 3 columnas, PEER, pares, errores, 10~MB) y generador reproducible. & 25 \\
+	\ruta{TiempoHistoriaPestanaTest} & U & Lógica de la pestaña (resumen, suelo móvil, decimación, escala al
+	17,5~\%, colores por deriva, periodo fundamental) y PDF con y sin tiempo-historia. & 7 \\ \hline
+	\multicolumn{4}{l}{\textit{Modelos didácticos anteriores}} \\ \hline
+	\ruta{AnalisisPorticoTest} & U & Pórtico plano: voladizo, inestabilidad, nudo aislado y equilibrio axial. & 4 \\
+	\ruta{HistoriaPisoTest} & U & Solución cerrada con aceleración constante, geometría y muestreo insuficiente. & 3 \\
+	\ruta{OsciladorSismicoTest} & U & Periodo y respuesta del oscilador; datos inválidos. & 2 \\ \hline
+	\multicolumn{4}{l}{\textit{Modelo, metrado, CAD y BIM}} \\ \hline
+	\ruta{ProyectoIntegracionTest} & I & Eliminar un proyecto con sus datos sin tocar otro, validación de elementos,
+	plantilla, expediente con fecha y escenarios persistidos. & 5 \\
+	\ruta{CuadriculaIntegracionTest} & I & Generación por ejes en un proyecto existente con superposiciones; niveles
+	y vanos inválidos no guardan nada. & 2 \\
+	\ruta{MovimientoElemento\allowbreak IntegracionTest} & I & Vista previa con alineación, guardar y deshacer, vínculos
+	viga--columna y reajuste del extremo de la viga. & 4 \\
+	\ruta{MetradoNetoTest} & U & Cruces descontados una vez por prioridad, dobles idénticos, encofrado y acero. & 3 \\
+	\ruta{controller/} \ruta{EdicionLoteTest} & U & Edición en lote: medida fija, incrementos \ruta{+}/\ruta{-}, campos
+	vacíos y recomendación precargada. & 4 \\
+	\ruta{ImportacionDxfTest} & U & Importa \ruta{planta-contornos.dxf} y los DXF de \ruta{doc/}, exporta y reimporta,
+	y analiza el pórtico importado. & 4 \\
+	\ruta{DxfDeteccionTest} & U & Bloques, círculos y polilíneas; vigas ancladas a columnas; capas por nombre;
+	losas y muros por piso. & 5 \\
+	\ruta{PlanoDxfRobustezTest} & U & Archivos dañados, límite de 10~MB, tildes según la versión del DXF, unidades
+	y ubicación del conversor DWG. & 7 \\
+	\ruta{ExportacionIfcEtabsTest} & U & Estructura y referencias del IFC, GUID reproducibles, pisos, secciones y
+	apoyos del \ruta{.e2k} y validación de entradas. & 4 \\ \hline
+	\multicolumn{4}{l}{\textit{Concreto}} \\ \hline
+	\ruta{DisenoMezclaTest} & U & f'cr con y sin desviación, ejemplo de 28~MPa, durabilidad, aire por congelamiento,
+	fuera de tabla, evaluación de resistencia y huso del fino. & 8 \\
+	\ruta{VolumenAbsolutoTest} & U & Balance de un metro cúbico y volumen inviable. & 2 \\
+	\ruta{GranulometriaTest} & U & Porcentajes, balance de masas y datos imposibles. & 2 \\
+	\ruta{PendientesCierreTest} & U & Cuantías de acero editables, catálogo de cementos y aditivos y aviso por
+	sulfatos. & 4 \\
+	\ruta{MezclaIntegracionTest} & I & Registrar y calcular con humedad y ensayo; datos inválidos. & 2 \\
+	\ruta{CompatibilidadMezclaTest} & I & Una tabla \ruta{mezclas} de un esquema anterior (sin columnas de material) se
+	sigue leyendo tras migrar. & 1 \\ \hline
+	\multicolumn{4}{l}{\textit{Datos, seguridad y arranque}} \\ \hline
+	\ruta{EsquemaMigracionesTest} & I & Las migraciones dejan todas las entidades consultables en una base nueva y en
+	una creada con \ruta{ddl-auto=update}, sin perder datos. & 2 \\
+	\ruta{RespaldoTest} & U & Rotación, copias manuales, restauración pendiente, copias corruptas o vacías,
+	marcador inválido, eliminación fuera de carpeta y \ruta{VACUUM INTO}. & 10 \\
+	\ruta{CifradoBaseTest} & I & Cifrar y cambiar la contraseña de una base; convertir una base protegida antigua sin
+	perder proyectos y conservando la copia. & 4 \\
+	\ruta{CifradoArchivoTest} & U & Ida y vuelta, contraseña incorrecta, bit o cabecera alterados, cifrados
+	distintos y datos truncados. & 7 \\
+	\ruta{IntercambioProyectoTest} & I & Exportar e importar con y sin contraseña, nombre duplicado, archivo
+	manipulado, ZIP con rutas peligrosas, datos inválidos, versión más nueva y temporales. & 11 \\
+	\ruta{SeederApagadoPorDefectoTest} & I & Sin activar la propiedad no existe el seeder ni se crean datos. & 1 \\
+	\ruta{SeederDemostracionTest} & I & Con los seeders activos: proyecto DEMO completo, sin duplicar, analizable, y
+	tres edificios con escenarios distintos. & 5 \\
+	\ruta{EdificioPracticaSeederTest} & I & El proyecto de práctica incompleto se puede completar y conserva los
+	cambios. & 1 \\
+	\ruta{AcercaDeTest} & U & El diálogo «Acerca de» incluye versión, autores, normas y aviso. & 1 \\
+	\ruta{ManualPdfTest} & U & Índice, ancla con nombre, búsqueda sin tildes y dibujo de un PDF de prueba; la aplicación
+	incluye el manual y cada pantalla tiene su ancla. & 2 \\
+	\ruta{controller/} \ruta{ProyectoEjemploTest} & I & El proyecto de ejemplo se agrega sin tocar otros, no duplica
+	materiales y su edificio está conectado y cumple con los valores sugeridos para vivienda. & 2 \\ \hline
+	\multicolumn{4}{l}{\textit{Interfaz gráfica}} \\ \hline
+	\ruta{VistasFxmlTest} & G & Carga las diez vistas con sus controladores y llama a \ruta{refrescar()}, sin
+	proyecto y con uno; simula siete registros sintéticos en la pestaña temporal. & 3 \\
+	\ruta{ModeloSeleccionMultipleTest} & G & Ventana real: selección múltiple en la tabla y en el 3D, edición de
+	todos, deshacer (también con Ctrl+Z) y aviso de vigas sueltas. & 10 \\
+	\ruta{ui/} \ruta{VisorSeleccionTest} & G & Visor 3D: distingue clic, Ctrl+clic y doble clic. & 1 \\
+	\ruta{ui/} \ruta{VisorMovimientoTest} & G & Visor 3D: arrastrar en modo movimiento envía el desplazamiento y
+	actualiza la vista. & 1 \\
+	\ruta{ui/} \ruta{BienvenidaTest} & G & Recorrido de bienvenida: cinco páginas, «No volver a mostrar al abrir» y
+	archivo de preferencias dañado. & 3 \\
+	\ruta{ui/} \ruta{VisorAyudaTest} & G & La ventana de ayuda abre el manual incluido con su índice y salta de página. & 1 \\
+	\ruta{documentacion/} \ruta{CapturasManualTest} & G & No es una prueba: genera las capturas del manual (solo con
+	\ruta{-Dcapturas.dir}; si no, se omite). & 1 \\ \hline
+	\multicolumn{3}{r}{\textbf{Total}} & \textbf{227} \\
+\end{longtable}
+
+Por tipo: 167 métodos unitarios, 40 de integración con Spring y 20 de interfaz gráfica.
+
+\subsection{Pruebas de interfaz gráfica}
+
+Las clases \textbf{G} arrancan el \emph{toolkit} de JavaFX dentro de la misma máquina virtual de las pruebas,
+sin \ruta{Application.launch}:
+
+\begin{verbatim}
+try {
+    Platform.startup(() -> { });
+} catch (IllegalStateException yaIniciado) {
+    // otra prueba ya arranco JavaFX
+} catch (Throwable sinPantalla) {
+    assumeTrue(false, "Sin entorno grafico para JavaFX: " + sinPantalla);
+}
+Platform.setImplicitExit(false);
+\end{verbatim}
+
+\begin{itemize}
+	\item \ruta{Platform.startup} solo puede llamarse una vez por proceso; la segunda lanza
+	      \ruta{IllegalStateException}, que se ignora porque significa que otra prueba ya lo arrancó.
+	\item Si no hay pantalla (por ejemplo, un servidor de integración continua sin escritorio), \ruta{Platform.startup}
+	      falla con otro error y \ruta{assumeTrue(false, \ldots)} marca la prueba como \textbf{omitida}, no como fallida.
+	\item \ruta{ModeloSeleccionMultipleTest} llama a \ruta{Platform.\allowbreak{}setImplicitExit(false)}: así, cerrar la ventana de un
+	      caso no apaga JavaFX para el siguiente.
+	\item El trabajo sobre la interfaz se hace en el hilo de JavaFX con \ruta{Platform.runLater} y se espera con un
+	      \ruta{CompletableFuture} con tiempo límite (60~s en \ruta{VistasFxmlTest}, 20~s en las pruebas del visor). La
+	      simulación temporal de \ruta{VistasFxmlTest} espera hasta 120~s a que terminen los siete registros.
+	\item \ruta{VistasFxmlTest} y \ruta{ModeloSeleccionMultipleTest} son además \ruta{@SpringBootTest}: los controladores
+	      salen del contexto de Spring igual que en la aplicación (\ruta{setControllerFactory(context::getBean)}).
+\end{itemize}
+
+\subsection{Capturas del manual de usuario}
+
+\ruta{documentacion/CapturasManualTest} abre la ventana real con una carpeta de datos temporal, agrega el proyecto de
+ejemplo y recorre las pantallas (bienvenida, modelo, edición en lote, asistente sísmico, «CUMPLE», «NO CUMPLE» con
+«Cómo corregir», «MODELO INCOMPLETO», concreto, datos y ayuda). Guarda cada pantalla como PNG y escribe
+\ruta{coordenadas.tex} con la posición de los controles en cada imagen, que el manual usa para dibujar las marcas
+numeradas. Solo corre si se indica la carpeta de salida:
+
+\begin{verbatim}
+mvn -o test -Dtest=CapturasManualTest -Dcapturas.dir=doc/latex/img/manual
+\end{verbatim}
+
+Después de cambiar una pantalla, vuelva a generar las capturas y a compilar el manual (\ruta{doc/latex/compilar.ps1}).
+
+\subsection{Las pruebas nunca tocan los datos reales}
+
+La carpeta \ruta{\%USERPROFILE\%\textbackslash .concretolab} contiene los proyectos reales de quien usa la computadora.
+Ninguna prueba debe escribir en ella:
+
+\begin{itemize}
+	\item \textbf{Pruebas con Spring:} todas sustituyen la URL de la base por un archivo temporal, con
+	      \ruta{@DynamicPropertySource} (\ruta{spring.datasource.url} apuntando a \ruta{Files.\allowbreak{}createTempFile} o a una
+	      carpeta de \ruta{Files.\allowbreak{}createTempDirectory}) o con el argumento \ruta{-{}-spring.datasource.url=\ldots} en
+	      \ruta{SpringApplicationBuilder.run} (\ruta{EsquemaMigracionesTest}, \ruta{CifradoBaseTest}), que tiene la máxima
+	      prioridad. También pasan \ruta{-{}-app.seeder.enabled=false} cuando arrancan Spring a mano.
+	\item \textbf{Registros:} Surefire redirige \ruta{logging.file.name} a \ruta{target/pruebas.log}.
+	\item \textbf{Copias de seguridad:} \ruta{RespaldoTest} fija la propiedad del sistema \ruta{concretolab.datos} a una
+	      carpeta \ruta{@TempDir} en \ruta{@BeforeEach} y la restaura en \ruta{@AfterEach}.
+	\item \textbf{Archivos:} las demás pruebas que escriben (DXF, IFC, cuantías, \ruta{.concretolab}) usan
+	      \ruta{@TempDir}. \ruta{PlanoDxfRobustezTest} cambia y restaura \ruta{concretolab.tools}.
+\end{itemize}
+
+\begin{importante}[Lecturas de la carpeta por defecto]
+En las pruebas con Spring no se fija \ruta{concretolab.datos}. Al refrescar las pantallas, \ruta{VistasFxmlTest} hace
+que «Datos y copias» \textbf{lea} la carpeta de copias, el tamaño de la base y el marcador de restauración de la
+carpeta por defecto, y el resumen de metrado lee \ruta{cuantias-acero.properties}; ninguna de esas operaciones escribe.
+Para aislar también esas lecturas, ejecute:
+\ruta{mvn -o test '-DargLine=-Dconcretolab.datos=C:\textbackslash ruta\textbackslash temporal'}.
+\end{importante}
+
+Al abrir la aplicación para comprobar un cambio a mano, use siempre otra carpeta de datos: con
+\ruta{INICIAR\_CONCRETOLAB.bat}, \ruta{set CONCRETOLAB\_JAVA\_OPTS=-Dconcretolab.datos=C:\textbackslash ruta} antes de
+ejecutarlo; con el \ruta{.exe} instalado o portable, la variable \ruta{JAVA\_TOOL\_OPTIONS} con esa misma opción (así lo
+hacen \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1 -Verificar} y \ruta{PROBAR\_INSTALADOR\_WINDOWS.ps1}).
+
+\subsection{Cómo escribir una prueba nueva}
+
+\begin{itemize}
+	\item Para un \textbf{cálculo}, prefiera una prueba unitaria sin Spring (como \ruta{VolumenAbsolutoTest} o
+	      \ruta{SismoE030Test}) con valores calculados a mano o tomados de la norma, y una prueba de rechazo de datos
+	      inválidos.
+	\item Para algo que \textbf{guarda en la base}, copie el patrón de \ruta{ProyectoIntegracionTest}:
+	      \ruta{@SpringBootTest(classes = ConcretoLabApplication.class, webEnvironment = NONE)},
+	      \ruta{@TestExecutionListeners(DependencyInjectionTestExecutionListener.class)} y un
+	      \ruta{@DynamicPropertySource} con una base temporal.
+	\item Para la \textbf{interfaz}, copie el arranque de \ruta{VistasFxmlTest} (con el \ruta{assumeTrue}) y agregue la
+	      vista nueva a su lista \ruta{VISTAS}.
+	\item Nombre los métodos como una frase que diga lo que se espera (\ruta{copiaCorruptaNoReemplazaLaBaseNiLanzaExcepcion}).
+\end{itemize}

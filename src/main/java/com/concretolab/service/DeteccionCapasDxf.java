@@ -14,12 +14,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-/**
- * Reconoce el rol de las capas de un plano CAD por su nombre (convenciones habituales en el Perú y en inglés) y arma un
- * diagnóstico legible de lo que se usará y de lo que se ignora. Solo sugiere: la persona usuaria confirma el mapeo.
- */
 public final class DeteccionCapasDxf {
-
     private DeteccionCapasDxf() { }
 
     public enum Rol {
@@ -41,7 +36,6 @@ public final class DeteccionCapasDxf {
         public String etiqueta() { return etiqueta; }
     }
 
-    /** Capa sugerida por rol; los roles sin capa reconocida no aparecen. */
     public record Mapeo(Map<Rol, String> capas) {
         public String de(Rol rol) { return capas.get(rol); }
     }
@@ -62,13 +56,11 @@ public final class DeteccionCapasDxf {
 
     private static final Set<String> ERICK_DELGADO_TIPOS_PUNTUALES = Set.of("POINT", "BLOQUE", "RECTÁNGULO", "CÍRCULO");
 
-    /** Quita tildes, pasa a mayúsculas y separa en palabras (por guiones, puntos, espacios, $, _ y |). */
     static List<String> erickDelgadoPalabras(String capa) {
         String limpio = Normalizer.normalize(capa, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toUpperCase(Locale.ROOT);
         return Arrays.stream(limpio.split("[^A-Z0-9]+")).filter(s -> !s.isEmpty()).toList();
     }
 
-    /** Puntaje del nombre de capa para un rol: palabra exacta 3, prefijo de palabra 2, contenido 1, nada 0. */
     public static int erickDelgadoPuntaje(String capa, Rol rol) {
         int mejor = 0;
         for (String p : erickDelgadoPalabras(capa)) {
@@ -89,7 +81,6 @@ public final class DeteccionCapasDxf {
         return !es.isEmpty() && es.size() <= 200 && es.stream().allMatch(e -> tipos.contains(e.tipo()));
     }
 
-    /** Sugiere una capa por rol entre las capas compatibles con el uso previsto (puntos/rectángulos o líneas). */
     public static Mapeo erickDelgadoSugerir(Plano plano) {
         var mapa = new LinkedHashMap<Rol, String>();
         var capas = erickDelgadoPorCapa(plano);
@@ -115,7 +106,6 @@ public final class DeteccionCapasDxf {
         return new Mapeo(mapa);
     }
 
-    /** Metros por unidad: la declarada en $INSUNITS o, si falta, una estimación por el tamaño del dibujo. */
     public static Unidad erickDelgadoUnidad(Plano plano) {
         double declarado = FernandoHuancaPlanoDxf.fernandoHuancaMetrosPorUnidad(plano.unidad());
         if (!Double.isNaN(declarado)) {

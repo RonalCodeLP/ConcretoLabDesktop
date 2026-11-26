@@ -9,14 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Dosificación ficticia de 21 MPa con un ensayo de probeta a 28 días, asociadas al proyecto DEMO.
- * Requiere que {@link ProyectoSeeder} ya haya corrido. Es idempotente.
- */
 @Component
 @RequiredArgsConstructor
 public class MezclaSeeder {
-
     public static final String YEFRI_LERMA_NOMBRE = "DEMO - Mezcla de práctica";
     public static final String YEFRI_LERMA_PROBETA = "DEMO - Probeta 28 días";
 

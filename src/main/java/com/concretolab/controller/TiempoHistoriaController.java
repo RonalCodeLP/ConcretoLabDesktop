@@ -52,15 +52,9 @@ import lombok.RequiredArgsConstructor;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.stereotype.Component;
 
-/**
- * Pestaña «Simulación temporal»: análisis tiempo-historia con el suelo móvil. Genera o importa registros sísmicos, los
- * escala (art. 47), los simula sobre el modelo dinámico calculado en la pantalla sísmica (en segundo plano), verifica el
- * art. 49 y anima el edificio sobre el terreno en movimiento con gráficas sincronizadas.
- */
 @Component
 @RequiredArgsConstructor
 public class TiempoHistoriaController {
-
     private static final String WALTER_QUISPESAYHUA_FORMATO_UNO = "Un archivo (3 columnas: t, ax, ay)";
     private static final String WALTER_QUISPESAYHUA_FORMATO_PAR = "Dos archivos (componente X y Y)";
     private static final int WALTER_QUISPESAYHUA_CONJUNTOS_SINTETICOS = 7;
@@ -222,9 +216,6 @@ public class TiempoHistoriaController {
         walterQuispesayhuaLimpiar();
     }
 
-    // ------------------------------------------------------------------ API para la pantalla sísmica
-
-    /** Recibe el resultado del análisis sísmico recién calculado y reinicia la pestaña. */
     public void walterQuispesayhuaConfigurar(Resultado resultado, Parametros norma) {
         walterQuispesayhuaLimpiar();
         this.walterQuispesayhuaResultado = resultado;
@@ -246,7 +237,6 @@ public class TiempoHistoriaController {
         walterQuispesayhuaMostrar(panelContenido, true);
     }
 
-    /** Vuelve al estado inicial (cambio de proyecto o datos modificados). */
     public void walterQuispesayhuaLimpiar() {
         walterQuispesayhuaGeneracion++;
         walterQuispesayhuaPausar();
@@ -274,12 +264,9 @@ public class TiempoHistoriaController {
         }
     }
 
-    /** Última simulación completada (para el reporte PDF). */
     public Optional<ResumenTiempoHistoria> walterQuispesayhuaUltimo() {
         return Optional.ofNullable(walterQuispesayhuaResumen);
     }
-
-    // ------------------------------------------------------------------ acciones
 
     @FXML
     private void onGenerar() {
@@ -307,7 +294,7 @@ public class TiempoHistoriaController {
         }
         Double dt = walterQuispesayhuaLeerDt();
         if (dt != null && dt < 0) {
-            return; // error ya mostrado
+            return;
         }
         UnidadAceleracion unidad = cmbUnidad.getValue();
         try {
@@ -416,8 +403,6 @@ public class TiempoHistoriaController {
         sldTiempo.setValue(0);
     }
 
-    // ------------------------------------------------------------------ simulación en segundo plano
-
     private void walterQuispesayhuaEjecutar(boolean espectroCompatible, String origen, Supplier<List<RegistroSismico>> fuente) {
         final var modelo = walterQuispesayhuaResultado.modelo();
         final Parametros n = walterQuispesayhuaNorma;
@@ -475,8 +460,6 @@ public class TiempoHistoriaController {
         }
     }
 
-    // ------------------------------------------------------------------ resultados
-
     private void walterQuispesayhuaMostrarResumen(ResumenTiempoHistoria r) {
         walterQuispesayhuaPausar();
         this.walterQuispesayhuaResumen = r;
@@ -484,7 +467,6 @@ public class TiempoHistoriaController {
         walterQuispesayhuaMostrar(panelResultados, true);
 
         String veredicto = r.veredicto();
-        // Con vigas que no unen columnas no hay pórtico: no se dice «CUMPLE».
         if (walterQuispesayhuaResultado != null && !GuiaSismica.walterQuispesayhuaModeloValido(walterQuispesayhuaResultado)) {
             veredicto = "MODELO INCOMPLETO";
         }
@@ -540,7 +522,7 @@ public class TiempoHistoriaController {
     private static Label walterQuispesayhuaAviso(String texto, String clase) {
         Label l = new Label(texto);
         l.setWrapText(true);
-        l.setMinHeight(Region.USE_PREF_SIZE); // sin esto el VBox encoge el texto largo a una línea con «…»
+        l.setMinHeight(Region.USE_PREF_SIZE);
         l.setMaxWidth(Double.MAX_VALUE);
         l.getStyleClass().add(clase);
         return l;
@@ -570,13 +552,10 @@ public class TiempoHistoriaController {
         }
     }
 
-    // ------------------------------------------------------------------ animación y gráficas
-
     private int walterQuispesayhuaDireccion() {
         return tbY.isSelected() ? 1 : 0;
     }
 
-    /** Explica el control de escala (el factor ×N ya se dibuja sobre la animación). */
     private String walterQuispesayhuaTextoEscala() {
         return String.format(java.util.Locale.forLanguageTag("es-PE"),
                 "Escala visual ×%.2f sobre el factor automático: solo cambia el dibujo, no los resultados.", sldEscala.getValue());
@@ -673,8 +652,6 @@ public class TiempoHistoriaController {
         }
     }
 
-    // ------------------------------------------------------------------ utilidades
-
     private static XYChart.Series<Number, Number> walterQuispesayhuaSerie(String nombre, double[] x, double[] y, double factorY) {
         XYChart.Series<Number, Number> s = new XYChart.Series<>();
         s.setName(nombre);
@@ -694,7 +671,6 @@ public class TiempoHistoriaController {
         return s;
     }
 
-    /** Fija los ejes (sin autorango, para que el cursor vertical cubra todo el alto) y devuelve {mínimo, máximo} del eje Y. */
     private static double[] walterQuispesayhuaAjustar(LineChart<Number, Number> g, double duracion, double min, double max, boolean desdeCero) {
         NumberAxis x = (NumberAxis) g.getXAxis();
         NumberAxis y = (NumberAxis) g.getYAxis();
@@ -744,7 +720,6 @@ public class TiempoHistoriaController {
         return m;
     }
 
-    /** Lee el dt opcional: {@code null} si está vacío, -1 si no es válido (ya marcado). */
     private Double walterQuispesayhuaLeerDt() {
         String s = txtDt.getText() == null ? "" : txtDt.getText().trim();
         if (s.isEmpty()) {

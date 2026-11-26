@@ -1,6 +1,5 @@
 package com.concretolab.service;
 
-/** Oscilador lineal ideal de un grado de libertad; unidades: kN, m, s. */
 public final class OsciladorSismico {
  private OsciladorSismico(){}
  public record Resultado(double periodoSegundos,double fuerzaKn,double desplazamientoMm){}

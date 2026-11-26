@@ -1,0 +1,359 @@
+% ------------------------------------------------------------------------------
+\section{Estructura del código}
+\label{sec:est-estructura}
+% ------------------------------------------------------------------------------
+
+Este capítulo recorre el repositorio carpeta por carpeta y describe, en una línea, cada clase del código fuente. Las
+descripciones salen del Javadoc o del encabezado de cada archivo; cuando una clase no tiene Javadoc, se resume lo que
+hacen sus métodos públicos. La arquitectura en capas y el arranque ya se explicaron en el capítulo anterior.
+
+\subsection{Árbol del repositorio}
+
+\begin{verbatim}
+ConcretoLabDesktop/
++-- pom.xml                          dependencias y versiones (Maven)
++-- INICIAR_CONCRETOLAB.bat          compila y abre la aplicacion
++-- CREAR_DISTRIBUCION_WINDOWS.ps1   carpeta portable e instalador .exe
++-- PROBAR_INSTALADOR_WINDOWS.ps1    prueba de punta a punta del instalador
++-- README.md, CREDITOS_Y_AUTORIA.md, GUIA_ANALISIS_SISMICO_PERU.md
++-- src/
+|   +-- main/java/com/concretolab/   Launcher, JavaFxApplication, ...
+|   |   +-- controller/  model/  repository/  service/
+|   |   +-- ui/  seeder/  exception/
+|   +-- main/java/db/migration/      V3__Completar_columnas (migracion Java)
+|   +-- main/resources/
+|   |   +-- application.properties
+|   |   +-- view/  css/  img/  data/  db/migration/
+|   +-- main/jpackage/               recursos del instalador (WiX, icono)
+|   +-- test/java/com/concretolab/   pruebas (+ controller/ y ui/)
+|   +-- test/resources/              planta-contornos.dxf
++-- doc/                             PDF, norma E.030, DXF de ejemplo
+|   +-- latex/                       fuentes de esta documentacion
++-- skill/                           guia de la arquitectura base
++-- dist/                            distribucion generada (no se versiona)
++-- target/                          compilacion de Maven (no se versiona)
+\end{verbatim}
+
+\begin{nota}[No hay carpeta \ruta{scripts}]
+Los scripts de compilación, distribución y prueba del instalador están en la \textbf{raíz} del repositorio, no en una
+carpeta aparte. \ruta{dist/}, \ruta{target/}, las bases \ruta{*.db}, los registros \ruta{*.log} y
+\ruta{doc/latex/build/} están excluidos en \ruta{.gitignore}.
+\end{nota}
+
+\begin{longtable}{L{6.2cm}L{8.6cm}}
+	\caption{Carpetas y archivos de primer nivel.} \label{tab:est-raiz} \\
+	\hline
+	\textbf{Ruta} & \textbf{Contenido} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Ruta} & \textbf{Contenido} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{pom.xml} & Proyecto Maven \ruta{concretolab-desktop} 0.1.0, padre \ruta{spring-boot-starter-parent} 3.3.4,
+	Java 17. El plugin de Spring Boot arma el JAR ejecutable con \ruta{com.concretolab.Launcher}; Surefire envía el
+	registro de las pruebas a \ruta{target/pruebas.log}. \\
+	\ruta{src/main/java/com/concretolab} & Código de la aplicación (paquetes descritos abajo). \\
+	\ruta{src/main/java/db/migration} & Migración Flyway escrita en Java (\ruta{V3\_\_Completar\_columnas}); ver
+	el capítulo de base de datos. \\
+	\ruta{src/main/resources/view} & Diez vistas FXML: \ruta{main-view}, \ruta{inicio-view}, \ruta{modelo-view},
+	\ruta{sismo-view}, \ruta{tiempo-historia-view}, \ruta{materiales-view}, \ruta{granulometria-view},
+	\ruta{balance-view}, \ruta{mezclas-view} y \ruta{datos-view}. \\
+	\ruta{src/main/resources/css} & \ruta{app.css}, la hoja de estilos propia (sobre el tema AtlantaFX). \\
+	\ruta{src/main/resources/img} & Íconos de la ventana: \ruta{concretolab-32.png} y \ruta{concretolab-256.png}. \\
+	\ruta{src/main/resources/db/migration} & Migraciones SQL \ruta{V1\_\_esquema\_base.sql} y \ruta{V2\_\_bitacora.sql}. \\
+	\ruta{src/main/resources/data} & \ruta{zonificacion-e030-2026.csv}: zona sísmica de los 1\,892 distritos del
+	Anexo II de la E.030 (2026), separador \ruta{;}. \\
+	\ruta{src/main/resources/\allowbreak application.properties} & Configuración de Spring: base SQLite, JPA, Flyway, registros y
+	datos de demostración. \\
+	\ruta{src/main/jpackage} & Recursos del instalador: \ruta{main.wxs}, \ruta{ShortcutPromptDlg.wxs},
+	\ruta{InstallDirNotEmptyDlg.wxs}, \ruta{MsiInstallerStrings\_es.wxl}, \ruta{banner.bmp}, \ruta{dialogo.bmp} y
+	\ruta{ConcretoLab.ico}. \\
+	\ruta{src/test} & Pruebas JUnit 5 y el recurso \ruta{planta-contornos.dxf}. \\
+	\ruta{doc} & PDF de la documentación, el texto oficial de la E.030 2026
+	(\ruta{8081915-nt-e-030-diseno-sismorresistente-2026.pdf}), tres DXF de ejemplo
+	(\ruta{planta-estructural-ejemplo.dxf}, \ruta{portico-dos-vanos.dxf}, \ruta{portico-completo-3d.dxf}) y
+	\ruta{REFACTORIZACION\_PREFIJOS.md}. \\
+	\ruta{doc/latex} & Fuentes LaTeX de los tres documentos, la plantilla, \ruta{compilar.ps1} y
+	\ruta{herramientas/capturar-instalador.ps1}. \\
+	\ruta{skill} & \ruta{SKILL.md} y \ruta{templates.md}: la guía de arquitectura \ruta{javafx-spring-sqlite-desktop}
+	(JavaFX + Spring Boot sin web + JPA/SQLite + AtlantaFX) en la que se basó el proyecto. \\
+	\ruta{dist} & Salida de \ruta{CREAR\_DISTRIBUCION\_WINDOWS.ps1}: \ruta{ConcretoLab-0.1.0.exe}, su huella
+	\ruta{.sha256.txt} y la carpeta portable \ruta{ConcretoLab/}. \\
+\end{longtable}
+
+\subsection{Paquete raíz y \ruta{exception}}
+
+\begin{table}[H]
+	\centering
+	\caption{Clases del paquete \ruta{com.concretolab}, de \ruta{exception} y la migración Java.}
+	\label{tab:est-raiz-clases}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Clase} & \textbf{Propósito} \\ \hline
+		\ruta{Launcher} & Punto de entrada; evita el error «JavaFX runtime components missing» al ejecutar desde el JAR. \\
+		\ruta{JavaFxApplication} & Ciclo de vida JavaFX: restauración pendiente, conversión de bases antiguas con
+		contraseña, copias «inicio» y «cierre», arranque de Spring y ventana principal. \\
+		\ruta{ConcretoLabApplication} & Clase \ruta{@SpringBootApplication} vacía: raíz del escaneo de componentes. \\
+		\ruta{exception.\allowbreak{}NegocioException} & Excepción de reglas de negocio (\ruta{RuntimeException}). Tres controladores
+		la capturan, pero ninguna clase la lanza todavía. \\
+		\ruta{db.migration.\allowbreak V3\_\_Completar\_columnas} & Migración Flyway en Java: agrega a las tablas existentes las
+		columnas de \ruta{V1} que les falten (bases creadas con \ruta{ddl-auto=update}). \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Paquete \ruta{controller}}
+
+Cada pantalla tiene un controlador \ruta{@Component}; casi todos implementan \ruta{Refrescable}. \ruta{GuiaSismica}
+vive en este paquete aunque no es un controlador: es la lógica sin JavaFX de la pantalla sísmica.
+
+\begin{longtable}{L{6.2cm}L{8.6cm}}
+	\caption{Clases del paquete \ruta{controller}.} \label{tab:est-controller} \\
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{MainController} & Ventana principal: menú lateral, carga perezosa de vistas, modo oscuro, menú contraído,
+	«Acerca de» y navegación (\ruta{fernandoHuancaIrA}). Registra en \ruta{Notificador} las capas modales. Menú
+	«Ayuda» (manual, ayuda de esta pantalla con F1, recorrido de bienvenida, proyecto de ejemplo) y botón «?» que
+	agrega a la cabecera de cada pantalla. \\
+	\ruta{InicioController} & Pantalla de inicio con accesos directos a los módulos y el botón «Agregar proyecto de
+	ejemplo». \\
+	\ruta{ModeloController} & «Modelo 3D y metrado»: dueño del selector de proyecto (lo sincroniza con
+	\ruta{SesionProyecto}), tabla y visor de elementos, edición individual y en lote, deshacer, metrado neto,
+	cuantías de acero, importación CAD y exportación DXF, IFC y ETABS. \\
+	\ruta{WalterQuispesayhuaSismoController} & Análisis sísmico E.030 guiado en cuatro pasos (ubicación, uso, suelo y
+	sistema); los datos de entrada no se guardan en la base. \\
+	\ruta{GuiaSismica} & Lógica no gráfica de la pantalla sísmica: traduce las cuatro elecciones a parámetros de la
+	E.030, aplica la regla de sistemas permitidos (Tabla 9) y arma la lista de verificaciones. \\
+	\ruta{TiempoHistoriaController} & Pestaña «Simulación temporal»: genera o importa registros, los escala (art. 47),
+	simula en segundo plano, verifica el art. 49 y anima el edificio sobre el terreno. Se incluye dentro de
+	\ruta{sismo-view.fxml}. \\
+	\ruta{MaterialesController} & Biblioteca de materiales y ensayos con tabla paginada (\ruta{Paginador}) y
+	formulario en panel lateral. \\
+	\ruta{GranulometriaController} & Calculadora de granulometría: porcentajes, balance de masas, módulo de finura,
+	huso NTP~400.037 / ASTM~C33 y registro de tamizados por agregado. \\
+	\ruta{BalanceController} & Balance de volúmenes: cemento y agregado fino por m$^3$; «Usar en una mezcla» abre
+	«Registrar mezcla» ya llenada. \\
+	\ruta{MezclasController} & Mezclas y probetas: registrar dosificaciones, cálculo de lote con corrección por
+	humedad, «Diseñar mezcla» (ACI~211.1), ensayos, evaluación E.060 y resumen PDF. \\
+	\ruta{DatosController} & Datos y copias: copias de seguridad, exportar e importar proyectos y, en «Opciones
+	avanzadas», rutas, registros e historial de cambios. \\
+\end{longtable}
+
+\subsection{Paquete \ruta{service}}
+
+Es el paquete más grande (47 clases). Las clases \ruta{final} con métodos estáticos no dependen de Spring ni de JavaFX;
+las anotadas con \ruta{@Service} son beans que usan repositorios.
+
+\begin{longtable}{L{6.2cm}L{8.6cm}}
+	\caption{Clases del paquete \ruta{service}, agrupadas por área.} \label{tab:est-service} \\
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\multicolumn{2}{l}{\textit{Análisis sísmico E.030}} \\ \hline
+	\ruta{FernandoHuancaAnalisisSismico} & Motor sísmico: barras 3D de Euler-Bernoulli, base empotrada, diafragma
+	rígido por nivel y condensación estática; análisis estático, modal espectral y derivas. No modela muros, losas
+	deformables, zonas rígidas, interacción suelo-estructura ni diseño. \\
+	\ruta{NormaE030} & Parámetros y espectro de la E.030 en dos versiones: texto 2026 (R.M. 183-2026-VIVIENDA) y 2018
+	(R.M. 355-2018-VIVIENDA). \\
+	\ruta{SistemaEstructural} & Enum de sistemas (Tabla 8): R0 y CT; solo \ruta{PORTICOS} es modelable. \\
+	\ruta{TipoSuelo} & Enum del suelo en lenguaje simple y su perfil equivalente en cada versión (S0--S4 en 2026,
+	S0--S3 en 2018). \\
+	\ruta{UsoEdificacion} & Enum del uso: categoría (Tabla 7) y cargas vivas de la E.020, con marca
+	\ruta{verificado} por valor. \\
+	\ruta{ZonificacionService} & Zona sísmica por distrito (Anexo II, 2026), leída una vez de
+	\ruta{data/zonificacion-e030-2026.csv}; búsqueda sin tildes ni mayúsculas. \\
+	\ruta{RecomendacionSismica} & «Cómo corregir»: busca el menor aumento de columnas, en pasos de 5~cm, que hace
+	cumplir la deriva, volviendo a analizar con el mismo motor. \\
+	\ruta{ReporteSismo} & Reporte PDF del análisis sísmico educativo (no es memoria de cálculo). \\ \hline
+	\multicolumn{2}{l}{\textit{Tiempo-historia}} \\ \hline
+	\ruta{AnalisisTiempoHistoria} & Integración lineal suelo + estructura (Newmark de aceleración media, Rayleigh
+	al 5~\%), 3 GDL por piso. \\
+	\ruta{RegistroSismico} & Acelerograma inmutable de dos componentes con corrección de línea base. \\
+	\ruta{GeneradorAcelerograma} & Acelerogramas sintéticos espectro-compatibles con la E.030 y R~=~1. \\
+	\ruta{EspectroRespuesta} & Espectro de pseudo-aceleraciones de un acelerograma (Nair-Jennings). \\
+	\ruta{EscaladoRegistros} & Escalado de los registros al espectro de diseño (arts. 46 a 49; 2018, art. 4.7). \\
+	\ruta{ImportadorRegistro} & Lee acelerogramas en texto (CISMID, IGP, CSMIP, PEER-NGA), máximo 10~MB. \\
+	\ruta{ResultadoTiempoHistoria} & Record con desplazamientos, derivas y cortantes de una simulación. \\
+	\ruta{ResumenTiempoHistoria} & Record que resume una simulación completa (pestaña y PDF). \\
+	\ruta{VerificacionTiempoHistoria} & Record de la verificación de derivas (art. 49.1 o 4.7.3; límite
+	1,25~$\times$~0,007). \\ \hline
+	\multicolumn{2}{l}{\textit{Modelos didácticos anteriores}} \\ \hline
+	\ruta{AnalisisPortico} & Pórtico plano elástico lineal (m, kN). Solo lo usan las pruebas. \\
+	\ruta{EdificioCortante} & Edificio de cortante con diafragmas rígidos y masas iguales. Solo lo usan las pruebas. \\
+	\ruta{HistoriaPiso} & Traslación elástica de un piso con giros impedidos. Lo usa \ruta{EdificioCortante}. \\
+	\ruta{OsciladorSismico} & Oscilador lineal de un grado de libertad. Solo lo usan las pruebas. \\
+	\ruta{DiagnosticoSismico} & Inventario geométrico y lista de faltantes; ninguna clase lo usa. \\ \hline
+	\multicolumn{2}{l}{\textit{Proyecto, modelo y metrado}} \\ \hline
+	\ruta{YefriLermaProyectoService} & Proyectos y elementos: crear, validar, plantilla rectangular, eliminar un
+	proyecto con todos sus datos y registrar en la bitácora. \\
+	\ruta{CuadriculaService} & Cuadrícula de ejes y niveles por proyecto: guarda la definición, previsualiza y crea
+	zapatas, columnas y vigas en las intersecciones y tramos elegidos, y avisa de superposiciones. \\
+	\ruta{MovimientoElementoService} & Mover un elemento en 3D: vista previa, sugerencias de alineación con ejes y
+	niveles, vínculos viga--columna y operación reversible. \\
+	\ruta{MetradoNeto} & Metrado de concreto sin doble conteo (prioridad zapata, columna, viga, muro, losa), encofrado
+	y acero con cuantías referenciales. \\
+	\ruta{CuantiasAcero} & Lee y guarda las cuantías propias en \ruta{cuantias-acero.properties}. \\
+	\ruta{ExpedienteService} & Guarda el expediente estructural de un proyecto (no tiene pantalla). \\ \hline
+	\multicolumn{2}{l}{\textit{Intercambio CAD y BIM}} \\ \hline
+	\ruta{FernandoHuancaPlanoDxf} & Lee DXF (y DWG mediante el conversor externo \ruta{dwgread}), convierte unidades,
+	arma el modelo y exporta el modelo a DXF con caras 3D. \\
+	\ruta{DeteccionCapasDxf} & Propone el rol de cada capa por su nombre y arma un diagnóstico de lo que se usa y lo que
+	se ignora. \\
+	\ruta{ExportadorIfc} & Exporta a IFC2X3 (STEP) con sólidos extruidos y material «Concreto». \\
+	\ruta{ExportadorEtabs} & Exporta a ETABS \ruta{.e2k}. \textbf{Experimental}: no verificado en ETABS. \\ \hline
+	\multicolumn{2}{l}{\textit{Concreto}} \\ \hline
+	\ruta{MaterialService} & Biblioteca de materiales: listar, filtrar por tipo, cementos y guardar. \\
+	\ruta{GranulometriaService} & Cálculos aritméticos del tamizado. \\
+	\ruta{HusosGranulometricos} & Módulo de finura y husos NTP~400.037 / ASTM~C33 (fino y gruesos Nº~57, 67 y 7). \\
+	\ruta{RegistroGranulometriaService} & Guarda y lista tamizados por agregado y lee las mediciones en texto. \\
+	\ruta{VolumenAbsolutoService} & Balance de volúmenes absolutos para un metro cúbico. \\
+	\ruta{DisenoMezclaACI} & Diseño ACI~211.1 con f'cr de la E.060 y límites de durabilidad. \\
+	\ruta{EvaluacionResistencia} & Criterios de aceptación de la E.060 (art. 5.6) sobre los ensayos. \\
+	\ruta{MezclaService} & Mezclas y ensayos: listar, guardar y calcular el lote corregido por humedad. \\
+	\ruta{ReporteMezcla} & PDF «Resumen de dosificación» de una mezcla con sus ensayos. \\ \hline
+	\multicolumn{2}{l}{\textit{Datos y seguridad}} \\ \hline
+	\ruta{RespaldoDatos} & Copias del archivo de la base sin Spring (arranque y cierre), rotación y restauración
+	pendiente. \\
+	\ruta{RespaldoService} & Copias con \ruta{VACUUM INTO}, listado, eliminación y programación de la restauración. \\
+	\ruta{BaseCifrada} & Reconoce bases antiguas con contraseña (SQLCipher 4) y las convierte sin perder datos. \\
+	\ruta{CifradoArchivo} & Cifrado AES-256-GCM de archivos con clave PBKDF2. \\
+	\ruta{IntercambioProyectoService} & Exportar e importar proyectos \ruta{.concretolab}. \\ \hline
+	\multicolumn{2}{l}{\textit{Ayuda y práctica}} \\ \hline
+	\ruta{ManualPdf} & Lee el manual de usuario incluido (\ruta{/ayuda/Manual\_de\_usuario\_ConcretoLab.pdf}) con
+	PDFBox: índice, anclas por pantalla, búsqueda sin tildes y dibujo de páginas. Sin JavaFX. \\
+	\ruta{ProyectoEjemploService} & Agrega el proyecto «EJEMPLO · Edificio de práctica» (pórtico de 3 pisos, mezcla con
+	probetas y materiales con tamizado) sin tocar otros proyectos. \\
+	\ruta{BitacoraService} & Bitácora de cambios importantes. \\
+\end{longtable}
+
+\subsection{Paquete \ruta{model}}
+
+Las diez entidades JPA se describen columna por columna en el capítulo de base de datos.
+
+\begin{table}[H]
+	\centering
+	\caption{Entidades del paquete \ruta{model}.}
+	\label{tab:est-model}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Entidad (tabla)} & \textbf{Propósito} \\ \hline
+		\ruta{Proyecto} (\ruta{proyectos}) & Nombre (hasta 120) y ubicación (hasta 200). \\
+		\ruta{Elemento} (\ruta{elementos}) & Prisma alineado a los ejes: tipo, nombre, dimensiones y centro (m). \\
+		\ruta{CuadriculaProyecto} (\ruta{cuadriculas\_proyecto}) & Ejes y niveles de un proyecto (clave = proyecto). \\
+		\ruta{VinculoGeometrico} (\ruta{vinculos\_geometricos}) & Vínculo explícito entre una columna y una viga. \\
+		\ruta{ExpedienteEstructural} (\ruta{expedientes\_estructurales}) & Datos administrativos del proyecto. \\
+		\ruta{Material} (\ruta{materiales}) & Material de la biblioteca con sus propiedades medidas. \\
+		\ruta{RegistroGranulometria} (\ruta{granulometrias}) & Tamizado guardado de un agregado. \\
+		\ruta{Mezcla} (\ruta{mezclas}) & Dosificación por m$^3$ de un proyecto. \\
+		\ruta{Ensayo} (\ruta{ensayos}) & Probeta o ensayo de una mezcla. \\
+		\ruta{RegistroBitacora} (\ruta{bitacora}) & Evento de la bitácora (fecha ISO-8601, acción, detalle). \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Paquete \ruta{repository}}
+
+Son interfaces de Spring Data (\ruta{JpaRepository}); las consultas se derivan del nombre del método.
+
+\begin{table}[H]
+	\centering
+	\caption{Repositorios y sus consultas propias.}
+	\label{tab:est-repository}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Repositorio} & \textbf{Consultas además de las heredadas} \\ \hline
+		\ruta{ProyectoRepository} & --- \\
+		\ruta{ElementoRepository} & \ruta{findByProyectoIdOrderById} \\
+		\ruta{CuadriculaProyectoRepository} & --- \\
+		\ruta{VinculoGeometricoRepository} & \ruta{findByColumnaId}, \ruta{deleteByColumnaId},
+		\ruta{deleteByColumnaIdOrVigaId} \\
+		\ruta{ExpedienteRepository} & --- \\
+		\ruta{MaterialRepository} & \ruta{findAllByOrderByNombreAsc}, \ruta{findByTipoOrderByNombreAsc} \\
+		\ruta{GranulometriaRepository} & \ruta{findByMaterialIdOrderByIdDesc} \\
+		\ruta{MezclaRepository} & \ruta{findByProyectoIdOrderByIdDesc} \\
+		\ruta{EnsayoRepository} & \ruta{findByMezclaIdOrderByIdDesc} \\
+		\ruta{BitacoraRepository} & \ruta{findTop200ByOrderByIdDesc} \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Paquete \ruta{ui}}
+
+Componentes de interfaz reutilizables y piezas grandes de las pantallas. Los que no son beans se crean con
+\ruta{new} desde los controladores.
+
+\begin{longtable}{L{6.2cm}L{8.6cm}}
+	\caption{Clases del paquete \ruta{ui}.} \label{tab:est-ui} \\
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endfirsthead
+	\hline
+	\textbf{Clase} & \textbf{Propósito} \\ \hline
+	\endhead
+	\hline
+	\endfoot
+	\ruta{SesionProyecto} & Bean con el proyecto activo (\ruta{ObjectProperty<Proyecto>}) que comparten las vistas. \\
+	\ruta{Refrescable} & Interfaz con \ruta{refrescar()}: la vista recarga sus datos cada vez que se muestra. \\
+	\ruta{Notificador} & Bean de retroalimentación: notificaciones flotantes, confirmaciones y panel lateral. \\
+	\ruta{Formularios} & Utilidades de formularios: marcar y limpiar errores bajo cada campo, solo dígitos o decimales. \\
+	\ruta{Tablas} & Configuración visual común de las tablas (texto vacío, doble clic, celdas). \\
+	\ruta{Paginador} & Barra de paginación reutilizable desde FXML; la usa la biblioteca de materiales. \\
+	\ruta{Exportador} & Bean que genera archivos en segundo plano y los abre con la aplicación del sistema. \\
+	\ruta{FormatoNumeros} & Formato de volúmenes (hasta 6 decimales y coma decimal). \\
+	\ruta{Autocompletar} & Autocompletado con lista flotante para un \ruta{TextField}; hoy no se usa. \\
+	\ruta{AcercaDe} & Diálogo «Acerca de»: versión, equipo, normas, componentes de terceros y avisos. \\
+	\ruta{Bienvenida} & Recorrido de bienvenida de cinco páginas y preferencia «No volver a mostrar al abrir»
+	(\ruta{preferencias.properties}). \\
+	\ruta{VisorAyuda} & Ventana de ayuda: muestra el manual con índice, búsqueda, zoom y desplazamiento continuo; dibuja
+	las páginas a demanda en un hilo aparte. \\
+	\ruta{DialogoClaveBase} & Diálogos del arranque para convertir una base antigua con contraseña; se ejecutan en el
+	hilo de JavaFX desde cualquier hilo. \\
+	\ruta{ErickDelgadoVisor3D} & Visor 3D del modelo (solo presentación): clic, Ctrl+clic, doble clic y arrastre. \\
+	\ruta{ErickDelgadoImportacionDxf} & Asistente «Importar proyecto desde CAD» (DXF, DWG; con un RVT explica cómo
+	exportarlo a DXF desde Revit). \\
+	\ruta{EditorCuadricula} & Diálogo «Ejes y niveles»: definir ejes, elegir intersecciones y tramos y generar. \\
+	\ruta{EditorMovimiento} & Panel «Mover en 3D»: eje, arrastre, coordenadas exactas y vínculos. \\
+	\ruta{VistaModal} & Pestaña «Simulación 3D»: animación de las formas modales. \\
+	\ruta{VistaTiempoHistoria} & Elevación animada del edificio sobre el suelo en movimiento, coloreada por deriva. \\
+	\ruta{ResumenSimulacion} & Lógica pura de la simulación temporal: ejecución, decimación de series, escala visual,
+	nivel de deriva y periodo fundamental. \\
+\end{longtable}
+
+\subsection{Paquete \ruta{seeder}}
+
+Datos de demostración. \textbf{Están apagados por defecto} (\ruta{app.seeder.enabled=false}); el detalle está en el
+capítulo de base de datos.
+
+\begin{table}[H]
+	\centering
+	\caption{Clases del paquete \ruta{seeder}.}
+	\label{tab:est-seeder}
+	\begin{tabular}{L{6.2cm}L{8.6cm}}
+		\hline
+		\textbf{Clase} & \textbf{Propósito} \\ \hline
+		\ruta{DatabaseSeeder} & \ruta{ApplicationRunner} condicionado a \ruta{app.seeder.enabled=true}; ejecuta los
+		demás en orden de dependencias. \\
+		\ruta{ProyectoSeeder} & Proyecto «DEMO - Edificación de práctica» con la plantilla rectangular (12 elementos). \\
+		\ruta{MaterialSeeder} & Una arena, una piedra y un cemento ficticios. \\
+		\ruta{GranulometriaSeeder} & Tamizado de ejemplo de la arena DEMO. \\
+		\ruta{MezclaSeeder} & Dosificación ficticia de 21~MPa con un ensayo a 28 días. \\
+		\ruta{EdificiosSismicosSeeder} & Tres edificios: pórtico regular de 3 pisos, asimétrico de 4 y torre flexible de 6. \\
+		\ruta{EdificioPracticaSeeder} & «Práctica - Edificio de dos pisos incompleto» para completar con la cuadrícula. \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Recursos y vistas}
+
+Cada vista FXML declara su controlador con \ruta{fx:controller}, y el \ruta{FXMLLoader} lo pide a Spring. Los nombres
+de archivo siguen el patrón \ruta{<pantalla>-view.fxml}; \ruta{MainController} usa ese nombre, sin extensión, como
+identificador de navegación. \ruta{tiempo-historia-view.fxml} no tiene entrada propia en el menú: se incluye dentro de
+\ruta{sismo-view.fxml}, y su controlador se inyecta en el sísmico como \ruta{tiempoHistoriaController}.

@@ -12,14 +12,7 @@ import org.kordamp.ikonli.feather.Feather;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.data.domain.Page;
 
-/**
- * Barra de paginacion reutilizable: resumen "Mostrando x–y de z", selector de filas
- * por pagina y botones numerados con elipsis (1 … 4 5 6 … 20).
- * <p>
- * Se usa directamente desde FXML: {@code <Paginador fx:id="paginador"/>}.
- */
 public class Paginador extends HBox {
-
     private static final int YEFRI_LERMA_BOTONES_VISIBLES = 5;
 
     private final Label lblResumen = new Label();
@@ -64,15 +57,10 @@ public class Paginador extends HBox {
         return yefriLermaCmbTamanio.getValue();
     }
 
-    /** Vuelve a la primera pagina y solicita recargar (p. ej. al cambiar el filtro). */
     public void yefriLermaIrAPrimera() {
         yefriLermaIrA(0);
     }
 
-    /**
-     * Refleja en la barra el resultado de una consulta paginada. Si la pagina actual
-     * quedo fuera de rango (p. ej. tras eliminar el ultimo registro) retrocede y recarga.
-     */
     public void yefriLermaActualizar(Page<?> resultado) {
         yefriLermaTotalPaginas = Math.max(resultado.getTotalPages(), 1);
         if (yefriLermaPagina >= yefriLermaTotalPaginas) {

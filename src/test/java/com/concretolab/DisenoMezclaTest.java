@@ -13,7 +13,6 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class DisenoMezclaTest {
-
     private static Entrada base(double fc, Exposicion ex, boolean aire) {
         return new Entrada(fc, null, 0, 87.5, 19.0, 2.7, 1600.0, 3.15, 2.65, 2.65, 1.0, ex, aire,
                 DisenoMezclaACI.SeveridadAire.MODERADA);
@@ -28,11 +27,8 @@ class DisenoMezclaTest {
 
     @Test
     void fcrConDesviacion() {
-        // f'c 28, s = 3 MPa, 30 ensayos: max(28+4.02, 28+6.99-3.5=31.49) = 32.02
         assertEquals(32.02, DisenoMezclaACI.yefriLermaFcr(28, 3.0, 30, new StringBuilder())[0], 1e-9);
-        // 20 ensayos: s corregida = 3*1.08 = 3.24 -> max(32.34, 28+7.549-3.5=32.05)
         assertEquals(28 + 1.34 * 3.24, DisenoMezclaACI.yefriLermaFcr(28, 3.0, 20, new StringBuilder())[0], 1e-9);
-        // f'c > 35: 0,9 f'c + 2,33 s
         assertEquals(Math.max(40 + 1.34 * 3, 0.9 * 40 + 2.33 * 3), DisenoMezclaACI.yefriLermaFcr(40, 3.0, 30, new StringBuilder())[0], 1e-9);
     }
 
@@ -40,7 +36,7 @@ class DisenoMezclaTest {
     void ejemploFc28SinAire() {
         var r = DisenoMezclaACI.yefriLermaDisenar(base(28, Exposicion.NORMAL, false));
         assertEquals(36.5, r.fcrMpa(), 1e-9);
-        assertEquals(0.455, r.relacionAcResistencia(), 1e-9); // 0,47 - 0,05*(1,5/5)... interpolación 35->40
+        assertEquals(0.455, r.relacionAcResistencia(), 1e-9);
         assertEquals(205.0, r.agua(), 1e-9);
         assertEquals(2.0, r.airePorcentaje(), 1e-9);
         assertEquals(205.0 / 0.455, r.cemento(), 1e-6);
@@ -62,7 +58,7 @@ class DisenoMezclaTest {
     @Test
     void congelamientoExigeAireIncorporado() {
         var r = DisenoMezclaACI.yefriLermaDisenar(base(25, Exposicion.CONGELAMIENTO, false));
-        assertEquals(5.0, r.airePorcentaje(), 1e-9); // moderada, TMA 19
+        assertEquals(5.0, r.airePorcentaje(), 1e-9);
         assertEquals(184.0, r.agua(), 1e-9);
     }
 
@@ -90,7 +86,6 @@ class DisenoMezclaTest {
 
     @Test
     void husoDelAgregadoFinoYModuloDeFinura() {
-        // Arena típica: % retenido por tamiz sobre 500 g
         var r = GranulometriaService.yefriLermaCalcular(500, List.of(
                 new GranulometriaService.Tamiz(9.5, 0), new GranulometriaService.Tamiz(4.75, 25),
                 new GranulometriaService.Tamiz(2.36, 70), new GranulometriaService.Tamiz(1.18, 85),
@@ -98,9 +93,7 @@ class DisenoMezclaTest {
                 new GranulometriaService.Tamiz(0.15, 75)), 25);
         var v = HusosGranulometricos.yefriLermaVerificar(Huso.FINO, r.filas());
         assertTrue(v.cumple(), v.mensaje());
-        // acumulados: 0, 5, 19, 36, 56, 80, 95 -> MF = (5+19+36+56+80+95)/100 = 2.91
         assertEquals(2.91, v.moduloFinura(), 1e-9);
-        // una arena demasiado fina queda fuera
         var fina = GranulometriaService.yefriLermaCalcular(500, List.of(
                 new GranulometriaService.Tamiz(9.5, 0), new GranulometriaService.Tamiz(4.75, 0),
                 new GranulometriaService.Tamiz(2.36, 5), new GranulometriaService.Tamiz(1.18, 10),

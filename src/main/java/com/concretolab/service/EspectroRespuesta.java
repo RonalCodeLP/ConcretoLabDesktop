@@ -1,24 +1,10 @@
 package com.concretolab.service;
 
-/**
- * Espectro de pseudo-aceleraciones de un acelerograma (E.030 texto 2026, art. 47.4). Se resuelve un oscilador de 1 GDL
- * amortiguado excitado en su base con el algoritmo exacto para excitación lineal por tramos (Nair-Jennings; coeficientes
- * según Chopra, «Dynamics of Structures», Tabla 5.2.1). La pseudo-aceleración es Sa = ω²·máx|u|, con u el desplazamiento relativo.
- */
 public final class EspectroRespuesta {
     private EspectroRespuesta() {}
 
-    /** Periodo (s) por debajo del cual el oscilador es rígido y Sa se toma igual a la aceleración pico del terreno. */
     public static final double FERNANDO_HUANCA_PERIODO_RIGIDO = 0.02;
 
-    /**
-     * Pseudo-aceleración (m/s²) para cada periodo.
-     *
-     * @param aceleracionSuelo aceleración del terreno (cualquier unidad; Sa sale en la misma unidad)
-     * @param dt paso de tiempo del registro (s)
-     * @param periodos periodos (s) donde se evalúa
-     * @param amortiguamiento fracción del amortiguamiento crítico (0,05 = 5 %)
-     */
     public static double[] fernandoHuancaPseudoAceleracion(double[] aceleracionSuelo, double dt, double[] periodos, double amortiguamiento) {
         if (aceleracionSuelo == null || aceleracionSuelo.length < 2) throw new IllegalArgumentException("El registro necesita al menos 2 puntos.");
         if (!(dt > 0) || !Double.isFinite(dt)) throw new IllegalArgumentException("dt debe ser positivo.");
@@ -37,7 +23,6 @@ public final class EspectroRespuesta {
     private static double fernandoHuancaSaUnPeriodo(double[] ag, double dt, double t, double xi) {
         double w = 2 * Math.PI / t;
         double k = w * w;
-        // Si el registro es grueso respecto al periodo se interpola linealmente a ~T/20 (el método es exacto para esa señal lineal por tramos).
         int sub = 1;
         if (dt > t / 10) sub = (int) Math.min(64, Math.ceil(dt / (t / 20)));
         double h = dt / sub;
@@ -68,7 +53,6 @@ public final class EspectroRespuesta {
         return k * umax;
     }
 
-    /** {@code n} periodos con espaciamiento logarítmico entre {@code tMin} y {@code tMax} (ambos incluidos). */
     public static double[] fernandoHuancaRejillaPeriodos(double tMin, double tMax, int n) {
         if (!(tMin > 0) || !(tMax > tMin) || n < 2) throw new IllegalArgumentException("La rejilla requiere 0 < tMin < tMax y al menos 2 puntos.");
         double[] p = new double[n];

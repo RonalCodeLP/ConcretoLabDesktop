@@ -1,7 +1,6 @@
 package com.concretolab.service;
 import java.util.*;
 
-/** Pórtico plano elástico lineal: unidades m, kN, kN·m, kN/m², m² y m⁴. */
 public final class AnalisisPortico {
  private AnalisisPortico(){}
  public record Nudo(String nombre,double x,double y,boolean fijoX,boolean fijoY,boolean fijoGiro,double fx,double fy,double momento){}

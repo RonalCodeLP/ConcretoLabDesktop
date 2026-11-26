@@ -6,14 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Proyecto de demostración con la plantilla rectangular (4 zapatas, 4 columnas y 4 vigas), listo para probar el modelo 3D,
- * el metrado y el análisis sísmico. Es idempotente: si ya existe un proyecto con ese nombre, no hace nada.
- */
 @Component
 @RequiredArgsConstructor
 public class ProyectoSeeder {
-
     public static final String YEFRI_LERMA_NOMBRE = "DEMO - Edificación de práctica";
 
     private final YefriLermaProyectoService proyectos;
@@ -28,7 +23,6 @@ public class ProyectoSeeder {
         return 1;
     }
 
-    /** Devuelve el proyecto DEMO o {@code null} si todavía no existe. */
     static Proyecto yefriLermaBuscar(YefriLermaProyectoService proyectos) {
         return proyectos.proyectos().stream().filter(p -> YEFRI_LERMA_NOMBRE.equals(p.getNombre())).findFirst().orElse(null);
     }

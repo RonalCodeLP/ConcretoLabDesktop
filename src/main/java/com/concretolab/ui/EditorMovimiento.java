@@ -65,7 +65,7 @@ public class EditorMovimiento {
         vinculos.clear();
         VBox panelVinculos = new VBox(4);
         if (!walterQuispesayhuaCandidatos.isEmpty()) {
-            Label explicacion = new Label("Vigas en contacto: marca solo las conexiones que deseas guardar y reajustar al mover la columna sobre el eje de cada viga.");
+            Label explicacion = new Label("Vigas en contacto: marque solo las conexiones que desea guardar y reajustar al mover la columna sobre el eje de cada viga.");
             explicacion.setWrapText(true);
             panelVinculos.getChildren().add(explicacion);
             for (Candidato candidato : walterQuispesayhuaCandidatos) {
@@ -78,7 +78,7 @@ public class EditorMovimiento {
         }
         Label titulo = new Label("Mover " + walterQuispesayhuaOriginal.tipo() + " " + walterQuispesayhuaOriginal.nombre());
         titulo.getStyleClass().add("grafico-titulo");
-        Label instruccion = new Label("Elige un eje y arrastra horizontalmente el elemento naranja, o escribe la posición exacta del centro en metros.");
+        Label instruccion = new Label("Elija un eje y arrastre horizontalmente el elemento naranja, o escriba la posición exacta del centro en metros.");
         instruccion.setWrapText(true);
         HBox coordenadas = new HBox(6, new Label("X"), x, new Label("Y"), y, new Label("Z"), walterQuispesayhuaZ, new Label("Eje"), walterQuispesayhuaEje);
         Button cancelar = new Button("Cancelar");

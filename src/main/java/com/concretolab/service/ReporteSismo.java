@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Locale;
 
-/** Reporte PDF del análisis sísmico educativo. No es una memoria de cálculo para presentación a entidades. */
 public final class ReporteSismo {
     private ReporteSismo() {}
     private static final Font FERNANDO_HUANCA_TITULO = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16), FERNANDO_HUANCA_SECCION = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12),
@@ -26,7 +25,6 @@ public final class ReporteSismo {
 
     public static byte[] fernandoHuancaGenerar(Proyecto p, Entrada in, Resultado r) { return fernandoHuancaGenerar(p, in, r, null); }
 
-    /** Igual que la versión sin tiempo-historia, e incluye esa sección si {@code th} no es nulo. */
     public static byte[] fernandoHuancaGenerar(Proyecto p, Entrada in, Resultado r, ResumenTiempoHistoria th) {
         var n = in.norma(); ByteArrayOutputStream out = new ByteArrayOutputStream(); Document d = new Document(PageSize.A4, 40, 40, 40, 40);
         PdfWriter.getInstance(d, out); d.open();
@@ -64,7 +62,6 @@ public final class ReporteSismo {
         d.add(tabla(new String[]{"Piso", "F X (kN)", "V X (kN)", "F Y (kN)", "V Y (kN)"}, fernandoHuancaFilas(r, r.espectralX(), r.espectralY())));
 
         d.add(new Paragraph("6. Desplazamientos y derivas (inelásticos: " + f(n.factorInelastico(), 2) + " × elástico)", FERNANDO_HUANCA_SECCION));
-        // Con vigas que no unen columnas no hay pórtico: las derivas no se califican como «Cumple».
         var conexion = r.conexion();
         boolean modeloValido = conexion == null || conexion.formaPorticos();
         if (!modeloValido) {

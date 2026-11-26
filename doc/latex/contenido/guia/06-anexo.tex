@@ -1,0 +1,64 @@
+% ------------------------------------------------------------------------------
+\begin{anexo}
+\section{Para soporte técnico}
+% ------------------------------------------------------------------------------
+
+\subsection{Comprobar que el instalador llegó completo}
+\label{sec:huella}
+
+En la página de versiones del repositorio (\href{\enlaceversiones}{\ruta{\enlaceversiones}}) se publica, junto con el instalador, su \textbf{huella SHA-256} en el archivo \ruta{\archivoinstalador.sha256.txt}.
+Si la huella calculada en su computadora es igual, el archivo llegó completo y sin cambios.
+
+\begin{enumerate}
+	\item Abra la carpeta donde está el instalador.
+	\item Haga clic en la barra de dirección de la carpeta, escriba \textbf{powershell} y pulse \tecla{Enter}.
+	\item En la ventana que se abre escriba la siguiente línea y pulse \tecla{Enter}:
+
+	\begin{center}
+		\ruta{Get-FileHash .\textbackslash \archivoinstalador}
+	\end{center}
+
+	\item Compare el texto de la columna \textbf{Hash} con el del archivo \ruta{.sha256.txt}: deben ser iguales.
+\end{enumerate}
+
+\subsection{Instalación sin ventanas}
+
+Para instalar en varias computadoras, el instalador acepta los parámetros de Windows Installer. Con \ruta{/qn} instala
+sin mostrar el asistente, para el usuario que lo ejecuta y con los dos accesos directos:
+
+\begin{center}
+	\ruta{\archivoinstalador /qn}
+\end{center}
+
+La desinstalación se hace desde la lista de aplicaciones instaladas (sección «Desinstalar»).
+
+\subsection{Datos técnicos del instalador}
+
+\begin{table}[H]
+	\centering
+	\caption{Características del instalador.}
+	\label{tab:instalador}
+	\begin{tabular}{L{4.6cm}L{9.2cm}}
+		\hline
+		Tipo & Instalador de Windows (MSI dentro de un \ruta{.exe}), creado con jpackage y WiX Toolset. \\
+		Alcance & Por usuario; no requiere permisos de administrador. \\
+		Carpeta por defecto & \ruta{\%LOCALAPPDATA\%\textbackslash ConcretoLab} \\
+		Accesos directos & Menú Inicio (siempre) y escritorio (opcional). \\
+		Contenido & La aplicación y su propio entorno Java (no usa el Java instalado en la computadora). \\
+		Actualizaciones & Una versión nueva reemplaza a la anterior y conserva los datos. \\
+		Firma digital & El instalador no está firmado; por eso Windows puede mostrar el aviso de SmartScreen. \\ \hline
+	\end{tabular}
+\end{table}
+
+\subsection{Soporte e información legal}
+
+Para informar un problema o sugerir una mejora, use la sección \textit{Issues} del repositorio del proyecto
+(\href{\repositorioweb/issues}{\ruta{\repositorioweb/issues}}). Indique la versión instalada (menú \menu{Ayuda}
+\textgreater{} \menu{Acerca de ConcretoLab}), la versión de Windows y los pasos que llevan al problema. El registro técnico
+del programa está en \ruta{C:\textbackslash Users\textbackslash <su usuario>\textbackslash .concretolab\textbackslash logs}.
+
+ConcretoLab Desktop es una herramienta de apoyo para el anteproyecto y la enseñanza. Sus resultados, en particular los
+del análisis sísmico, son preliminares y no están validados para diseñar ni construir obras: deben ser revisados y
+firmados por un ingeniero civil colegiado. El instalador incluye componentes de terceros (Java, JavaFX, Spring Boot,
+SQLite y otros) distribuidos con sus propias licencias, que se detallan en \menu{Acerca de ConcretoLab}.
+\end{anexo}

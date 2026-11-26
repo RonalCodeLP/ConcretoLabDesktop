@@ -1,0 +1,43 @@
+% ConcretoLab Desktop - datos comunes de la documentación
+% Se carga ANTES de \input{template}: la plantilla comprueba estos datos al cargarse.
+% Codificación: UTF-8
+
+% ------------------------------------------------------------------------------
+% Datos comunes a los tres documentos
+% ------------------------------------------------------------------------------
+\def\versionapp {0.1.0}
+\def\versiondocumento {1.0}
+\def\nombreapp {ConcretoLab Desktop}
+
+% Datos de la portada que usa la plantilla (encabezado izquierdo y logo derecho)
+\def\nombreuniversidad {ConcretoLab Desktop}
+\def\nombrefacultad {Software de cálculo y ensayos de concreto}
+\def\imagendepartamento {marca/logo-concretolab}
+\def\imagendepartamentoparams {height=1.35cm}
+\def\localizacionuniversidad {Perú}
+\def\codigodelcurso {ConcretoLab}
+\def\nombredelcurso {Desktop \versionapp}
+\def\autordeldocumento {Equipo ConcretoLab}
+
+
+\def\equipoconcretolab {%
+	Yefri Ronaldiño Lerma Pacompia \\
+	Erick Mijael Delgado Lima \\
+	Fernando André Huanca Huallpa \\
+	Walter David Quispesayhua Quispe}
+
+% Bloque de la portada: solo datos del documento (sin autores), como en las guías de otras aplicaciones
+\def\tablaintegrantes {%
+\begin{tabular}{ll}
+	Versión del programa: & \versionapp \\
+	Versión del documento: & \versiondocumento \\
+	Fecha de publicación: & \today \\
+	\multicolumn{2}{l}{\localizacionuniversidad}
+\end{tabular}}
+
+% Descarga oficial del instalador (Release del repositorio; nombre de archivo fijo para que el enlace no cambie)
+\def\repositorioweb {https://github.com/RonalCodeLP/ConcretoLabDesktop}
+\def\enlacedescarga {https://github.com/RonalCodeLP/ConcretoLabDesktop/releases/latest/download/ConcretoLab-Setup.exe}
+\def\enlaceversiones {https://github.com/RonalCodeLP/ConcretoLabDesktop/releases}
+\def\archivoinstalador {ConcretoLab-Setup.exe}
+
